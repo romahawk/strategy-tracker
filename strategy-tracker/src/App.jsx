@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import TradeForm from "./components/TradeForm";
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
+import Metrics from "./components/Metrics";
 
 const LOCAL_STORAGE_KEY = "strategy-trades";
 
@@ -80,6 +81,7 @@ function App() {
 
       <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
       <FilterBar filters={filters} setFilters={setFilters} />
+      <Metrics trades={filteredTrades} />
       <TradeTable trades={filteredTrades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
     </div>
   );
