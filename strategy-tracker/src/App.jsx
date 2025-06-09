@@ -3,6 +3,7 @@ import TradeForm from "./components/TradeForm";
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
 import Metrics from "./components/Metrics";
+import EquityCurveChart from './components/EquityCurveChart';
 
 const LOCAL_STORAGE_KEY = "strategy-trades";
 
@@ -82,6 +83,7 @@ function App() {
       <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
       <FilterBar filters={filters} setFilters={setFilters} />
       <Metrics trades={filteredTrades} />
+      <EquityCurveChart trades={filteredTrades} />
       <TradeTable trades={filteredTrades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
     </div>
   );
