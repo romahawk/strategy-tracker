@@ -1,8 +1,7 @@
-// ✅ Full App.jsx with Edit & Delete logic
-
 import { useState, useEffect } from "react";
 import TradeForm from "./components/TradeForm";
 import TradeTable from "./components/TradeTable";
+import FilterBar from "./components/FilterBar";
 
 const LOCAL_STORAGE_KEY = "strategy-trades";
 
@@ -10,11 +9,11 @@ function App() {
   const [trades, setTrades] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
+  const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "" });
 
   useEffect(() => {
     const storedTrades = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedTrades) {
-      console.log("✅ Loaded trades from localStorage:", storedTrades);
       setTrades(JSON.parse(storedTrades));
     }
     setHasLoaded(true);
@@ -22,14 +21,12 @@ function App() {
 
   useEffect(() => {
     if (hasLoaded) {
-      console.log("💾 Saving trades to localStorage:", trades);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trades));
     }
   }, [trades, hasLoaded]);
 
   const handleAddTrade = (newTrade) => {
     if (editingTrade) {
-      // ✅ Update existing
       setTrades((prev) =>
         prev.map((trade) =>
           trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
@@ -37,7 +34,6 @@ function App() {
       );
       setEditingTrade(null);
     } else {
-      // ✅ Add new
       setTrades((prev) => {
         const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
         return isDuplicate ? prev : [...prev, newTrade];
@@ -63,6 +59,14 @@ function App() {
     }
   };
 
+  const filteredTrades = trades.filter((trade) => {
+    if (filters.result && trade.result !== filters.result) return false;
+    if (filters.startDate && trade.date < filters.startDate) return false;
+    if (filters.endDate && trade.date > filters.endDate) return false;
+    if (filters.pair && !trade.pair.toLowerCase().includes(filters.pair.toLowerCase())) return false;
+    return true;
+  });
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">📈 Strategy Execution Tracker</h1>
@@ -75,7 +79,8 @@ function App() {
       </button>
 
       <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
-      <TradeTable trades={trades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
+      <FilterBar filters={filters} setFilters={setFilters} />
+      <TradeTable trades={filteredTrades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
     </div>
   );
 }
