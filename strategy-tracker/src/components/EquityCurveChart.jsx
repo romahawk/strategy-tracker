@@ -30,17 +30,45 @@ export default function EquityCurveChart({ trades }) {
         label: 'Equity Curve ($)',
         data: values,
         fill: false,
-        borderColor: 'rgb(75, 192, 192)',
+        borderColor: '#00ffa3', // Updated to neon green accent
+        pointBackgroundColor: '#00ffa3', // Matching point color
         tension: 0.3,
       },
     ],
   };
 
+  const options = {
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#d1d5db', // Light text for legend
+        },
+      },
+      tooltip: {
+        backgroundColor: '#1e293b', // Dark tooltip background
+        titleColor: '#ffffff', // White title text
+        bodyColor: '#d1d5db', // Light body text
+        borderColor: '#00ffa3', // Neon green border
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#d1d5db' }, // Light text for x-axis
+        grid: { color: '#94a3b8' }, // Subtle grid lines
+      },
+      y: {
+        ticks: { color: '#d1d5db' }, // Light text for y-axis
+        grid: { color: '#94a3b8' }, // Subtle grid lines
+      },
+    },
+  };
+
   return (
-    <div className="bg-white p-4 rounded shadow mb-6">
-      <h2 className="text-xl font-semibold mb-2">📈 Equity Curve</h2>
-      <div className="h-64">
-        <Line data={chartData} options={{ maintainAspectRatio: false }} />
+    <div className="bg-[#0f172a] p-6 rounded-2xl shadow-lg mb-6">
+      <div className="bg-[#1e293b] rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 h-72">
+        <Line data={chartData} options={options} />
       </div>
     </div>
   );

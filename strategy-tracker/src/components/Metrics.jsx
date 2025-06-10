@@ -1,4 +1,7 @@
+import React from 'react';
+
 export default function Metrics({ trades }) {
+  // Calculate metrics
   const total = trades.length;
   const wins = trades.filter((t) => t.result === "Win").length;
   const winRate = total ? ((wins / total) * 100).toFixed(1) : "0.0";
@@ -22,22 +25,31 @@ export default function Metrics({ trades }) {
     .toFixed(2);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-100 p-4 rounded shadow mb-6">
-      <div>
-        <div className="text-sm text-gray-500">📊 Total Trades</div>
-        <div className="text-lg font-semibold">{total}</div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-[#0f172a] p-6 rounded-2xl shadow-lg">
+      {/* Total Trades Card */}
+      <div className="bg-[#1e293b] text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="text-sm text-gray-300">📊 Total Trades</div>
+        <div className="text-2xl font-semibold text-[#00ffa3] mt-2">{total}</div>
       </div>
-      <div>
-        <div className="text-sm text-gray-500">✅ Win Rate</div>
-        <div className="text-lg font-semibold">{winRate}%</div>
+
+      {/* Win Rate Card */}
+      <div className="bg-[#1e293b] text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="text-sm text-gray-300">✅ Win Rate</div>
+        <div className="text-2xl font-semibold text-[#00ffa3] mt-2">{winRate}%</div>
       </div>
-      <div>
-        <div className="text-sm text-gray-500">📈 Avg RR</div>
-        <div className="text-lg font-semibold">{avgRR}</div>
+
+      {/* Avg RR Card */}
+      <div className="bg-[#1e293b] text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="text-sm text-gray-300">📈 Avg RR</div>
+        <div className="text-2xl font-semibold text-[#00ffa3] mt-2">{avgRR}</div>
       </div>
-      <div>
-        <div className="text-sm text-gray-500">💰 Net PnL</div>
-        <div className={`text-lg font-semibold ${netPnL >= 0 ? "text-green-600" : "text-red-600"}`}>
+
+      {/* Net PnL Card */}
+      <div className="bg-[#1e293b] text-white rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="text-sm text-gray-300">💰 Net PnL</div>
+        <div
+          className={`text-2xl font-semibold mt-2 ${netPnL >= 0 ? "text-[#00ffa3]" : "text-[#7f5af0]"}`}
+        >
           {netPnL >= 0 ? "+" : ""}${netPnL}
         </div>
       </div>
