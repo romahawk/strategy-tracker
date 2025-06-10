@@ -10,10 +10,12 @@ import "react-tabs/style/react-tabs.css"; // Import default styles
 const LOCAL_STORAGE_KEY = "strategy-trades";
 const BACKTEST_STORAGE_KEY = "backtest-trades";
 const LIVE_STORAGE_KEY = "live-trades";
+const HISTORY_STORAGE_KEY = "history-trades";
 
 export default function App() {
   const [trades, setTrades] = useState([]); // Live trades
   const [backtestTrades, setBacktestTrades] = useState([]); // Backtest trades
+  const [historyTrades, setHistoryTrades] = useState([]); // History trades
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "", mode: "live" });
@@ -24,15 +26,17 @@ export default function App() {
     equityCurve: true,
     tradeTable: true,
   });
-  const [tabIndex, setTabIndex] = useState(0); // 0 for Live, 1 for Backtest
+  const [tabIndex, setTabIndex] = useState(0); // 0 for Live, 1 for Backtest, 2 for History
 
   useEffect(() => {
     const storedTrades = localStorage.getItem(LOCAL_STORAGE_KEY);
     const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
+    const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
     if (storedTrades) setTrades(JSON.parse(storedTrades));
     if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
     if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
+    if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
     setHasLoaded(true);
   }, []);
 
@@ -49,10 +53,17 @@ export default function App() {
     }
   }, [backtestTrades, hasLoaded]);
 
+  useEffect(() => {
+    if (hasLoaded) {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
+    }
+  }, [historyTrades, hasLoaded]);
+
   const handleAddTrade = (newTrade) => {
     const isBacktest = filters.mode === "backtest";
-    const setTradeFunc = isBacktest ? setBacktestTrades : setTrades;
-    const currentTrades = isBacktest ? backtestTrades : trades;
+    const isHistory = filters.mode === "history";
+    const setTradeFunc = isHistory ? setHistoryTrades : isBacktest ? setBacktestTrades : setTrades;
+    const currentTrades = isHistory ? historyTrades : isBacktest ? backtestTrades : trades;
 
     if (editingTrade) {
       setTradeFunc((prev) =>
@@ -77,8 +88,9 @@ export default function App() {
 
   const handleDeleteTrade = (id) => {
     const isBacktest = filters.mode === "backtest";
-    const setTradeFunc = isBacktest ? setBacktestTrades : setTrades;
-    const currentTrades = isBacktest ? backtestTrades : trades;
+    const isHistory = filters.mode === "history";
+    const setTradeFunc = isHistory ? setHistoryTrades : isBacktest ? setBacktestTrades : setTrades;
+    const currentTrades = isHistory ? historyTrades : isBacktest ? backtestTrades : trades;
 
     if (confirm("Delete this trade?")) {
       setTradeFunc((prev) => prev.filter((trade) => trade.id !== id));
@@ -90,6 +102,9 @@ export default function App() {
       if (filters.mode === "backtest") {
         setBacktestTrades([]);
         localStorage.removeItem(BACKTEST_STORAGE_KEY);
+      } else if (filters.mode === "history") {
+        setHistoryTrades([]);
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
       } else {
         setTrades([]);
         localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -112,7 +127,7 @@ export default function App() {
     setSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const currentTrades = tabIndex === 0 ? trades : backtestTrades;
+  const currentTrades = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
   const filteredCurrentTrades = filteredTrades(currentTrades);
 
   return (
@@ -135,6 +150,9 @@ export default function App() {
             </Tab>
             <Tab className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]">
               Backtest
+            </Tab>
+            <Tab className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]">
+              History
             </Tab>
           </TabList>
 
@@ -239,6 +257,79 @@ export default function App() {
                   filters={filters}
                   setFilters={(newFilters) => {
                     setFilters({ ...newFilters, mode: "backtest" });
+                  }}
+                />
+              )}
+            </section>
+
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("metrics")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span>{sections.metrics ? "▼" : "▲"}</span>
+              </div>
+              {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
+            </section>
+
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("equityCurve")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span>{sections.equityCurve ? "▼" : "▲"}</span>
+              </div>
+              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+            </section>
+
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("tradeTable")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span>{sections.tradeTable ? "▼" : "▲"}</span>
+              </div>
+              {sections.tradeTable && (
+                <TradeTable
+                  trades={filteredCurrentTrades}
+                  onEdit={handleEditTrade}
+                  onDelete={handleDeleteTrade}
+                />
+              )}
+            </section>
+          </TabPanel>
+
+          <TabPanel>
+            {/* History Tab Content */}
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("tradeForm")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span>{sections.tradeForm ? "▼" : "▲"}</span>
+              </div>
+              {sections.tradeForm && (
+                <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
+              )}
+            </section>
+
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("filters")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span>{sections.filters ? "▼" : "▲"}</span>
+              </div>
+              {sections.filters && (
+                <FilterBar
+                  filters={filters}
+                  setFilters={(newFilters) => {
+                    setFilters({ ...newFilters, mode: "history" });
                   }}
                 />
               )}
