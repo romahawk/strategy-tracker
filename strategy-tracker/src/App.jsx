@@ -1,3 +1,4 @@
+import './index.css';
 import { useState, useEffect } from "react";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import TradeForm from "./components/TradeForm";
@@ -18,7 +19,13 @@ export default function App() {
   const [historyTrades, setHistoryTrades] = useState([]); // History trades
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
-  const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "", mode: "live" });
+  const [filters, setFilters] = useState({
+    result: "",
+    startDate: "",
+    endDate: "",
+    pair: "",
+    mode: "live",
+  });
   const [sections, setSections] = useState({
     tradeForm: true,
     filters: true,
@@ -34,7 +41,8 @@ export default function App() {
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
     if (storedTrades) setTrades(JSON.parse(storedTrades));
-    if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
+    if (storedBacktestTrades)
+      setBacktestTrades(JSON.parse(storedBacktestTrades));
     if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
     if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
     setHasLoaded(true);
@@ -49,7 +57,10 @@ export default function App() {
 
   useEffect(() => {
     if (hasLoaded) {
-      localStorage.setItem(BACKTEST_STORAGE_KEY, JSON.stringify(backtestTrades));
+      localStorage.setItem(
+        BACKTEST_STORAGE_KEY,
+        JSON.stringify(backtestTrades)
+      );
     }
   }, [backtestTrades, hasLoaded]);
 
@@ -62,8 +73,10 @@ export default function App() {
   // Sync filters.mode with tabIndex on tab switch
   useEffect(() => {
     if (tabIndex === 0) setFilters((prev) => ({ ...prev, mode: "live" }));
-    else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
-    else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
+    else if (tabIndex === 1)
+      setFilters((prev) => ({ ...prev, mode: "backtest" }));
+    else if (tabIndex === 2)
+      setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
 
   const handleAddTrade = (newTrade) => {
@@ -85,7 +98,9 @@ export default function App() {
       setTradeFunc((prev) =>
         [...prev]
           .map((trade) =>
-            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
+            trade.id === editingTrade.id
+              ? { ...newTrade, id: editingTrade.id }
+              : trade
           )
           .sort((a, b) => new Date(a.date) - new Date(b.date))
       );
@@ -123,7 +138,9 @@ export default function App() {
 
     if (confirm("Delete this trade?")) {
       setTradeFunc((prev) =>
-        prev.filter((trade) => trade.id !== id).sort((a, b) => new Date(a.date) - new Date(b.date))
+        prev
+          .filter((trade) => trade.id !== id)
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
       );
     }
   };
@@ -149,7 +166,11 @@ export default function App() {
       if (filters.result && trade.result !== filters.result) return false;
       if (filters.startDate && trade.date < filters.startDate) return false;
       if (filters.endDate && trade.date > filters.endDate) return false;
-      if (filters.pair && !trade.pair.toLowerCase().includes(filters.pair.toLowerCase())) return false;
+      if (
+        filters.pair &&
+        !trade.pair.toLowerCase().includes(filters.pair.toLowerCase())
+      )
+        return false;
       return true;
     });
   };
@@ -158,13 +179,16 @@ export default function App() {
     setSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const currentTrades = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
+  const currentTrades =
+    tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
   const filteredCurrentTrades = filteredTrades(currentTrades);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
+        <h1 className="text-2xl font-bold text-white">
+          📈 Strategy Execution Tracker
+        </h1>
         <button
           onClick={handleClearAll}
           className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0]"
@@ -176,13 +200,22 @@ export default function App() {
       <main className="p-4 flex-1 overflow-y-auto space-y-6">
         <Tabs selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
           <TabList className="flex space-x-4 mb-4 bg-[#1e293b] p-2 rounded-xl">
-            <Tab className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]">
+            <Tab
+              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
+              selectedClassName="bg-[#00ffa3] text-black opacity-100 border-b-2 border-white"
+            >
               Live
             </Tab>
-            <Tab className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]">
+            <Tab
+              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
+              selectedClassName="bg-[#00ffa3] text-black opacity-100 border-b-2 border-white"
+            >
               Backtest
             </Tab>
-            <Tab className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]">
+            <Tab
+              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
+              selectedClassName="bg-[#00ffa3] text-black opacity-100 border-b-2 border-white"
+            >
               History
             </Tab>
           </TabList>
@@ -194,11 +227,16 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  ➕ Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
-                <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
+                <TradeForm
+                  onAddTrade={handleAddTrade}
+                  editingTrade={editingTrade}
+                />
               )}
             </section>
 
@@ -207,7 +245,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  🔍 Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -225,7 +265,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📊 KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -236,10 +278,14 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📈 Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -247,7 +293,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📋 All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (
@@ -267,11 +315,16 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  ➕ Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
-                <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
+                <TradeForm
+                  onAddTrade={handleAddTrade}
+                  editingTrade={editingTrade}
+                />
               )}
             </section>
 
@@ -280,7 +333,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  🔍 Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -298,7 +353,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📊 KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -309,10 +366,14 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📈 Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -320,7 +381,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📋 All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (
@@ -340,11 +403,16 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  ➕ Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
-                <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
+                <TradeForm
+                  onAddTrade={handleAddTrade}
+                  editingTrade={editingTrade}
+                />
               )}
             </section>
 
@@ -353,7 +421,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  🔍 Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -371,7 +441,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📊 KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -382,10 +454,14 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📈 Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -393,7 +469,9 @@ export default function App() {
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3]">
+                  📋 All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (

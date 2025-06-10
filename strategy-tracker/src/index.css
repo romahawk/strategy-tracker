@@ -32,3 +32,19 @@ button {
 .card {
   @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
 }
+
+.react-tabs__tab--selected {
+  background-color: #00ffa3 !important;
+  color: black !important;
+  opacity: 1 !important;
+  border-bottom: 2px solid white !important;
+}
+
+.react-tabs__tab {
+  transition: all 0.3s ease;
+}
+
+.react-tabs__tab:hover {
+  background-color: #00ffa3 !important;
+  color: black !important;
+}
