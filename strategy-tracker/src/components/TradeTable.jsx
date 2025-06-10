@@ -1,4 +1,4 @@
-export default function TradeTable({ trades, onEdit, onDelete }) {
+export default function TradeTable({ trades, onEdit, onDelete, onViewChart }) {
   if (!trades.length) return <p className="text-gray-300 italic text-center py-4">No trades yet.</p>;
 
   return (
@@ -87,6 +87,13 @@ export default function TradeTable({ trades, onEdit, onDelete }) {
                     className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
                   >
                     🗑️ Delete
+                  </button>
+                  <button
+                    onClick={() => onViewChart(trade)}
+                    className="px-2 py-1 bg-[#00ffa3] text-xs rounded hover:brightness-110 text-black"
+                    title="View Chart"
+                  >
+                    📈
                   </button>
                 </td>
               </tr>

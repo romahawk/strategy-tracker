@@ -28,6 +28,7 @@ export default function App() {
     tradeTable: true,
   });
   const [tabIndex, setTabIndex] = useState(0); // 0 for Live, 1 for Backtest, 2 for History
+  const [selectedTrade, setSelectedTrade] = useState(null); // For modal
 
   useEffect(() => {
     const storedTrades = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -165,6 +166,9 @@ export default function App() {
   const latestTrade = [...filteredCurrentTrades].sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))[0];
   const initialDeposit = latestTrade?.nextDeposit ? parseFloat(latestTrade.nextDeposit) : 1000;
 
+  // Close modal
+  const closeModal = () => setSelectedTrade(null);
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
@@ -271,6 +275,7 @@ export default function App() {
                   trades={filteredCurrentTrades}
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
                 />
               )}
             </section>
@@ -347,6 +352,7 @@ export default function App() {
                   trades={filteredCurrentTrades}
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
                 />
               )}
             </section>
@@ -423,12 +429,70 @@ export default function App() {
                   trades={filteredCurrentTrades}
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
                 />
               )}
             </section>
           </TabPanel>
         </Tabs>
+
+        {/* Modal for Chart View */}
+        {selectedTrade && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
+              <h2 className="text-2xl font-bold text-white mb-4">📊 Trade Chart</h2>
+              <div className="mb-4">
+                <select
+                  className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
+                  onChange={(e) => {
+                    const mode = e.target.value;
+                    setSelectedTrade((prev) => ({ ...prev, viewMode: mode }));
+                  }}
+                  value={selectedTrade.viewMode || "live"}
+                >
+                  <option value="live">Live</option>
+                  <option value="backtest">Backtest</option>
+                  <option value="compare">Compare</option>
+                </select>
+              </div>
+              {selectedTrade.viewMode === "compare" ? (
+                <div className="flex space-x-4">
+                  <img
+                    src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Live+Chart"}
+                    alt="Live Chart"
+                    className="w-1/2 rounded-lg"
+                  />
+                  <img
+                    src={findBacktestScreenshot(selectedTrade.pair, selectedTrade.date, selectedTrade.time) || "https://via.placeholder.com/400x200?text=No+Backtest+Chart"}
+                    alt="Backtest Chart"
+                    className="w-1/2 rounded-lg"
+                  />
+                </div>
+              ) : (
+                <img
+                  src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Chart"}
+                  alt="Trade Chart"
+                  className="w-full rounded-lg"
+                />
+              )}
+              <button
+                onClick={closeModal}
+                className="mt-4 bg-[#00ffa3] text-black font-semibold px-6 py-3 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#00ffa3]/50 transition-all duration-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
+
+  // Helper function to find backtest screenshot (simplified)
+  function findBacktestScreenshot(pair, date, time) {
+    const backtestTrade = backtestTrades.find(
+      (t) => t.pair === pair && t.date === date && t.time === time && t.screenshot
+    );
+    return backtestTrade?.screenshot;
+  }
 }

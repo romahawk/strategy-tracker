@@ -33,6 +33,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
+    screenshot: "", // New field for screenshot
   });
 
   useEffect(() => {
@@ -42,12 +43,24 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       setForm((prev) => ({
         ...prev,
         deposit: initialDeposit ? initialDeposit.toString() : "",
+        screenshot: "",
       }));
     }
   }, [editingTrade, initialDeposit]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm((prev) => ({ ...prev, screenshot: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -86,6 +99,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       tpTotal: "",
       pnl: "",
       nextDeposit: "",
+      screenshot: "",
     });
   };
 
@@ -150,7 +164,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       tp1Data = { percent: "", dollar: "0.00" };
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
-      setForm((prev) => ({ ...prev, result: "Loss" })); // Automatically set result to Loss when SL hit
+      setForm((prev) => ({ ...prev, result: "Loss" }));
     }
 
     setForm((prev) => ({
@@ -405,6 +419,22 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
             value={`TP3 $: $${form.tp3Dollar}`}
             className="bg-[#1e293b] border border-gray-600 text-white p-2 rounded-lg opacity-70"
           />
+        </div>
+      </div>
+
+      {/* Chart Screenshot Card */}
+      <div className="bg-[#1e293b] text-white rounded-2xl p-6 mb-6 shadow-lg hover:shadow-xl transition-all duration-300">
+        <h3 className="text-xl font-semibold text-[#00ffa3] mb-4">📸 Chart Screenshot</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
+          />
+          {form.screenshot && (
+            <img src={form.screenshot} alt="Uploaded Chart" className="mt-2 rounded-lg max-h-48" />
+          )}
         </div>
       </div>
 
