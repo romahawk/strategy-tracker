@@ -83,15 +83,19 @@ export default function App() {
 
     if (editingTrade) {
       setTradeFunc((prev) =>
-        prev.map((trade) =>
-          trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
-        )
+        [...prev]
+          .map((trade) =>
+            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
+          )
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
       );
       setEditingTrade(null);
     } else {
       setTradeFunc((prev) => {
         const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
-        return isDuplicate ? prev : [...prev, newTrade];
+        return [...prev, newTrade]
+          .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
       });
     }
   };
@@ -118,7 +122,9 @@ export default function App() {
     }
 
     if (confirm("Delete this trade?")) {
-      setTradeFunc((prev) => prev.filter((trade) => trade.id !== id));
+      setTradeFunc((prev) =>
+        prev.filter((trade) => trade.id !== id).sort((a, b) => new Date(a.date) - new Date(b.date))
+      );
     }
   };
 
