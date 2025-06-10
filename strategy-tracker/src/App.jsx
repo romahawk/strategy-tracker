@@ -59,11 +59,27 @@ export default function App() {
     }
   }, [historyTrades, hasLoaded]);
 
+  // Sync filters.mode with tabIndex on tab switch
+  useEffect(() => {
+    if (tabIndex === 0) setFilters((prev) => ({ ...prev, mode: "live" }));
+    else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
+    else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
+  }, [tabIndex]);
+
   const handleAddTrade = (newTrade) => {
-    const isBacktest = filters.mode === "backtest";
-    const isHistory = filters.mode === "history";
-    const setTradeFunc = isHistory ? setHistoryTrades : isBacktest ? setBacktestTrades : setTrades;
-    const currentTrades = isHistory ? historyTrades : isBacktest ? backtestTrades : trades;
+    const { mode } = filters;
+    let setTradeFunc, currentTrades;
+
+    if (mode === "backtest") {
+      setTradeFunc = setBacktestTrades;
+      currentTrades = backtestTrades;
+    } else if (mode === "history") {
+      setTradeFunc = setHistoryTrades;
+      currentTrades = historyTrades;
+    } else {
+      setTradeFunc = setTrades;
+      currentTrades = trades;
+    }
 
     if (editingTrade) {
       setTradeFunc((prev) =>
@@ -87,10 +103,19 @@ export default function App() {
   };
 
   const handleDeleteTrade = (id) => {
-    const isBacktest = filters.mode === "backtest";
-    const isHistory = filters.mode === "history";
-    const setTradeFunc = isHistory ? setHistoryTrades : isBacktest ? setBacktestTrades : setTrades;
-    const currentTrades = isHistory ? historyTrades : isBacktest ? backtestTrades : trades;
+    const { mode } = filters;
+    let setTradeFunc, currentTrades;
+
+    if (mode === "backtest") {
+      setTradeFunc = setBacktestTrades;
+      currentTrades = backtestTrades;
+    } else if (mode === "history") {
+      setTradeFunc = setHistoryTrades;
+      currentTrades = historyTrades;
+    } else {
+      setTradeFunc = setTrades;
+      currentTrades = trades;
+    }
 
     if (confirm("Delete this trade?")) {
       setTradeFunc((prev) => prev.filter((trade) => trade.id !== id));
