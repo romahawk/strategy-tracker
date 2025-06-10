@@ -150,6 +150,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       tp1Data = { percent: "", dollar: "0.00" };
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
+      setForm((prev) => ({ ...prev, result: "Loss" })); // Automatically set result to Loss when SL hit
     }
 
     setForm((prev) => ({
