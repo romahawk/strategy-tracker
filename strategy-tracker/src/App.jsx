@@ -7,7 +7,7 @@ import EquityCurveChart from './components/EquityCurveChart';
 
 const LOCAL_STORAGE_KEY = "strategy-trades";
 
-function App() {
+export default function App() {
   const [trades, setTrades] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
@@ -70,23 +70,38 @@ function App() {
   });
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">📈 Strategy Execution Tracker</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white flex flex-col">
+      <header className="px-6 py-4 shadow bg-white dark:bg-gray-800 flex justify-between items-center">
+        <h1 className="text-2xl font-bold">📈 Strategy Execution Tracker</h1>
+        <button
+          onClick={handleClearAll}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          🗑️ Clear All
+        </button>
+      </header>
 
-      <button
-        onClick={handleClearAll}
-        className="mb-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-      >
-        🗑️ Clear All Trades
-      </button>
+      <main className="p-4 flex-1 overflow-y-auto space-y-6">
+        <section>
+          <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
+        </section>
 
-      <TradeForm onAddTrade={handleAddTrade} editingTrade={editingTrade} />
-      <FilterBar filters={filters} setFilters={setFilters} />
-      <Metrics trades={filteredTrades} />
-      <EquityCurveChart trades={filteredTrades} />
-      <TradeTable trades={filteredTrades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
+        <section className="bg-white dark:bg-gray-800 p-4 rounded shadow">
+          <FilterBar filters={filters} setFilters={setFilters} />
+        </section>
+
+        <section>
+          <Metrics trades={filteredTrades} />
+        </section>
+
+        <section>
+          <EquityCurveChart trades={filteredTrades} />
+        </section>
+
+        <section>
+          <TradeTable trades={filteredTrades} onEdit={handleEditTrade} onDelete={handleDeleteTrade} />
+        </section>
+      </main>
     </div>
   );
 }
-
-export default App;
