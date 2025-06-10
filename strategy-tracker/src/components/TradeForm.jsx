@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function TradeForm({ onAddTrade, editingTrade }) {
+export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) {
   const [form, setForm] = useState({
     date: "",
     time: "",
@@ -38,8 +38,13 @@ export default function TradeForm({ onAddTrade, editingTrade }) {
   useEffect(() => {
     if (editingTrade) {
       setForm({ ...editingTrade });
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        deposit: initialDeposit ? initialDeposit.toString() : "",
+      }));
     }
-  }, [editingTrade]);
+  }, [editingTrade, initialDeposit]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -54,7 +59,7 @@ export default function TradeForm({ onAddTrade, editingTrade }) {
       time: "",
       pair: "",
       direction: "Long",
-      deposit: "",
+      deposit: initialDeposit ? initialDeposit.toString() : "",
       stTrend: "bull",
       usdtTrend: "bear",
       overlay: "blue",
