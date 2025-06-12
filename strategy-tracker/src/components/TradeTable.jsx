@@ -19,14 +19,27 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart }) {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Date formatter for dd-mm-yy
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}-${month}-${year}`;
+  };
+
   return (
     <div className="bg-[#0f172a] p-4 rounded-xl shadow-md mb-6 w-full">
-      <div className="relative bg-[#1e293b] rounded-xl shadow-lg overflow-x-auto w-full">
-        <table className="table-auto w-full text-xs" style={{ tableLayout: "fixed" }}>
+      <div className="relative bg-[#1e293b] rounded-xl shadow-lg w-full">
+        <table
+          className="table-auto w-full text-xs"
+          style={{ tableLayout: "fixed" }}
+          key={new Date().getTime()}
+        >
           <thead className="sticky top-0 bg-[#0f172a] text-left border-b border-gray-600 z-10">
             {/* Section Headers */}
             <tr>
-              <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px" }}>
+              <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px", width: "40px" }}>
                 #
               </th>
               <th colSpan="5" className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]">
@@ -44,33 +57,33 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart }) {
             </tr>
             {/* Column Headers */}
             <tr>
-              <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px" }}></th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "80px" }}>Date</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Time</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "80px" }}>Pair</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px" }}>Dir</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Depo $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Entry</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>SL</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>SL %</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>SL $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Risk %</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Risk $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>TPs Hit</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP1</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP1 %</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP1 $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP2</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP2 %</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP2 $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP3</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP3 %</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px" }}>TP3 $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Result</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>Comm $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px" }}>PnL $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px" }}>Next Depo $</th>
-              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px" }}>Actions</th>
+              <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px", width: "40px" }}></th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>Date</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Time</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "140px", width: "140px" }}>Pair</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px", width: "50px" }}>Dir</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Depo $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>Entry</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>SL</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL %</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk %</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TPs Hit</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1 %</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1 $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2 %</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2 $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 %</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Result</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Comm $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>PnL $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>Next Depo $</th>
+              <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>Actions</th>
             </tr>
           </thead>
           <tbody className="max-h-[60vh] overflow-y-auto">
@@ -81,42 +94,50 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart }) {
                     index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
                   }`}
                 >
-                  <td className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10" style={{ minWidth: "40px" }}>
+                  <td className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10" style={{ minWidth: "40px", width: "40px" }}>
                     {startIndex + index + 1}
                   </td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "80px" }}>{trade.date}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.time}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "80px" }}>{trade.pair}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "50px" }}>{trade.direction}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.deposit}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.entry}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.sl}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.slPercent}%</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>${trade.slDollar}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.riskPercent}%</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>${trade.riskDollar}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.tpsHit} TP(s)</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp1}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp1Percent}%</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>${trade.tp1Dollar}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp2}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp2Percent}%</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>${trade.tp2Dollar}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp3}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>{trade.tp3Percent}%</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "60px" }}>${trade.tp3Dollar}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>{trade.result}</td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "70px" }}>${trade.commission}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
+                    {formatDate(trade.date)}
+                  </td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.time}</td>
+                  <td 
+                    className="p-2 text-gray-300 truncate" 
+                    style={{ minWidth: "140px", width: "140px" }}
+                    title={trade.pair}
+                  >
+                    {trade.pair}
+                  </td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>{trade.direction}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.deposit}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.entry}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.sl}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>{trade.slPercent}%</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>${trade.slDollar}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.riskPercent}%</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>${trade.riskDollar}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tpsHit} TP(s)</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp1}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp1Percent}%</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>${trade.tp1Dollar}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp2}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp2Percent}%</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>${trade.tp2Dollar}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp3}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp3Percent}%</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>${trade.tp3Dollar}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.result}</td>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>${trade.commission}</td>
                   <td
                     className={`p-2 font-medium ${
                       parseFloat(trade.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
                     }`}
-                    style={{ minWidth: "70px" }}
+                    style={{ minWidth: "70px", width: "70px" }}
                   >
                     ${trade.pnl}
                   </td>
-                  <td className="p-2 text-gray-300" style={{ minWidth: "90px" }}>{trade.nextDeposit}</td>
-                  <td className="p-2 space-x-1" style={{ minWidth: "100px" }}>
+                  <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>{trade.nextDeposit}</td>
+                  <td className="p-2 space-x-1" style={{ minWidth: "100px", width: "100px" }}>
                     <button
                       onClick={() => onEdit(trade)}
                       className="px-1 py-0.5 bg-yellow-400 text-xs rounded hover:bg-yellow-500 text-black"
@@ -154,7 +175,7 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart }) {
                   <td colSpan="25" className="p-1">
                     <button
                       onClick={() => toggleRow(trade.id)}
-                      className="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs"
+                      className andato="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs"
                     >
                       {expandedRows[trade.id] ? "Hide Details" : "Show More"}
                     </button>

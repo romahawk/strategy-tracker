@@ -4,82 +4,82 @@
 
 /* App-wide custom styles */
 body {
-  @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white min-h-screen;
+ @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white min-h-screen;
 }
 
 h1 {
-  @apply text-3xl font-bold tracking-tight;
+ @apply text-3xl font-bold tracking-tight;
 }
 
 h2 {
-  @apply text-xl font-semibold mt-4 mb-2;
+ @apply text-xl font-semibold mt-4 mb-2;
 }
 
 button {
-  @apply rounded-lg px-4 py-2 font-medium transition duration-200 ease-in-out;
+ @apply rounded-lg px-4 py-2 font-medium transition duration-200 ease-in-out;
 }
 
 /* Utility examples (custom if needed) */
 .input-style {
-  @apply border p-2 rounded w-full;
+ @apply border p-2 rounded w-full;
 }
 
 .btn-clear {
-  @apply bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded;
+ @apply bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded;
 }
 
 .card {
-  @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
+ @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
 }
 
 /* Tab styles (from your original) */
 .react-tabs__tab--selected {
-  background-color: #00ffa3 !important;
-  color: black !important;
-  opacity: 1 !important;
-  border-bottom: 2px solid white !important;
+ background-color: #00ffa3 !important;
+ color: black !important;
+ opacity: 1 !important;
+ border-bottom: 2px solid white !important;
 }
 
 .react-tabs__tab {
-  transition: all 0.3s ease;
+ transition: all 0.3s ease;
 }
 
 .react-tabs__tab:hover {
-  background-color: #00ffa3 !important;
-  color: black !important;
+ background-color: #00ffa3 !important;
+ color: black !important;
 }
 
 /* TradeTable specific styles */
 table {
-  @apply table-auto w-full text-xs;
-  table-layout: fixed;
-  width: 100%;
+ @apply table-auto w-full text-xs;
+ table-layout: fixed;
+ width: 100%;
 }
 
 thead tr {
-  @apply sticky top-0 bg-[#0f172a] text-left border-b border-gray-600;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+ @apply sticky top-0 bg-[#0f172a] text-left border-b border-gray-600;
+ position: sticky;
+ top: 0;
+ z-index: 10;
 }
 
 th {
-  @apply p-2 font-semibold text-gray-300;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+ @apply p-2 font-semibold text-gray-300;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
 }
 
 th.sticky {
-  position: sticky;
-  left: 0;
-  background: inherit;
-  z-index: 11;
+ position: sticky;
+ left: 0;
+ background: inherit;
+ z-index: 11;
 }
 
 td {
-  @apply p-2 text-gray-300;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+ @apply p-2 text-gray-300;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
 }
