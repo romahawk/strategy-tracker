@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional: App-wide custom styles */
-
+/* App-wide custom styles */
 body {
   @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white min-h-screen;
 }
@@ -33,6 +32,7 @@ button {
   @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
 }
 
+/* Tab styles (from your original) */
 .react-tabs__tab--selected {
   background-color: #00ffa3 !important;
   color: black !important;
@@ -47,4 +47,39 @@ button {
 .react-tabs__tab:hover {
   background-color: #00ffa3 !important;
   color: black !important;
+}
+
+/* TradeTable specific styles */
+table {
+  @apply table-auto w-full text-xs;
+  table-layout: fixed;
+  width: 100%;
+}
+
+thead tr {
+  @apply sticky top-0 bg-[#0f172a] text-left border-b border-gray-600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+th {
+  @apply p-2 font-semibold text-gray-300;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th.sticky {
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 11;
+}
+
+td {
+  @apply p-2 text-gray-300;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
