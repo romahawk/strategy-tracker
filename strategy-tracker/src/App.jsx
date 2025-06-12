@@ -29,12 +29,14 @@ export default function App() {
   });
   const [tabIndex, setTabIndex] = useState(0); // 0 for Live, 1 for Backtest, 2 for History
   const [selectedTrade, setSelectedTrade] = useState(null); // For modal
+  const [initialDeposit, setInitialDeposit] = useState(1000); // State for initial deposit
 
   useEffect(() => {
     const storedTrades = localStorage.getItem(LOCAL_STORAGE_KEY);
     const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
+    console.log("Loading from local storage:", { storedTrades, storedBacktestTrades, storedLiveTrades, storedHistoryTrades }); // Debug log
     if (storedTrades) setTrades(JSON.parse(storedTrades));
     if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
     if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
@@ -66,6 +68,17 @@ export default function App() {
     else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
     else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
+
+  // Update initialDeposit based on the latest trade from the current tab
+  useEffect(() => {
+    const allTrades = [...trades, ...backtestTrades, ...historyTrades];
+    const currentTradesForTab = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
+    const filteredTradesForTab = filteredTrades(currentTradesForTab);
+    const latestTrade = [...filteredTradesForTab].sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))[0];
+    const newDeposit = latestTrade?.nextDeposit ? parseFloat(latestTrade.nextDeposit) : 1000;
+    console.log("Calculating initialDeposit:", { latestTrade, newDeposit }); // Debug log
+    setInitialDeposit(newDeposit);
+  }, [trades, backtestTrades, historyTrades, tabIndex, filters]);
 
   const handleAddTrade = (newTrade) => {
     const { mode } = filters;
@@ -162,11 +175,6 @@ export default function App() {
   const currentTrades = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
   const filteredCurrentTrades = filteredTrades(currentTrades);
 
-  // Get the latest trade's nextDeposit
-  const latestTrade = [...filteredCurrentTrades].sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))[0];
-  const initialDeposit = latestTrade?.nextDeposit ? parseFloat(latestTrade.nextDeposit) : 1000;
-
-  // Close modal
   const closeModal = () => setSelectedTrade(null);
 
   return (
