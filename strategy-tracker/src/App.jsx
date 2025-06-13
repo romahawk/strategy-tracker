@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
+import { toast, ToastContainer } from "react-toastify";
 import TradeForm from "./components/TradeForm";
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
 import Metrics from "./components/Metrics";
 import EquityCurveChart from "./components/EquityCurveChart";
-import "./index.css"; // Ensure index.css is imported
+import "./index.css";
 import "react-tabs/style/react-tabs.css";
 
-const LOCAL_STORAGE_KEY = "strategy-trades";
-const BACKTEST_STORAGE_KEY = "backtest-trades";
 const LIVE_STORAGE_KEY = "live-trades";
+const BACKTEST_STORAGE_KEY = "backtest-trades";
 const HISTORY_STORAGE_KEY = "history-trades";
 
 export default function App() {
-  const [trades, setTrades] = useState([]); // Live trades
-  const [backtestTrades, setBacktestTrades] = useState([]); // Backtest trades
-  const [historyTrades, setHistoryTrades] = useState([]); // History trades
+  const [trades, setTrades] = useState([]);
+  const [backtestTrades, setBacktestTrades] = useState([]);
+  const [historyTrades, setHistoryTrades] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "", mode: "live" });
@@ -27,26 +27,23 @@ export default function App() {
     equityCurve: true,
     tradeTable: true,
   });
-  const [tabIndex, setTabIndex] = useState(0); // 0 for Live, 1 for Backtest, 2 for History
-  const [selectedTrade, setSelectedTrade] = useState(null); // For modal
-  const [initialDeposit, setInitialDeposit] = useState(1000); // State for initial deposit
+  const [tabIndex, setTabIndex] = useState(0);
+  const [selectedTrade, setSelectedTrade] = useState(null);
+  const [initialDeposit, setInitialDeposit] = useState(1000);
 
   useEffect(() => {
-    const storedTrades = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
+    const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
-    console.log("Loading from local storage:", { storedTrades, storedBacktestTrades, storedLiveTrades, storedHistoryTrades }); // Debug log
-    if (storedTrades) setTrades(JSON.parse(storedTrades));
-    if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
+    console.log("Loading from local storage:", { storedLiveTrades, storedBacktestTrades, storedHistoryTrades });
     if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
+    if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
     if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
     setHasLoaded(true);
   }, []);
 
   useEffect(() => {
     if (hasLoaded) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trades));
       localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
     }
   }, [trades, hasLoaded]);
@@ -69,14 +66,12 @@ export default function App() {
     else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
 
-  // Update initialDeposit based on the latest trade from the current tab
   useEffect(() => {
-    const allTrades = [...trades, ...backtestTrades, ...historyTrades];
     const currentTradesForTab = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
     const filteredTradesForTab = filteredTrades(currentTradesForTab);
     const latestTrade = [...filteredTradesForTab].sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))[0];
     const newDeposit = latestTrade?.nextDeposit ? parseFloat(latestTrade.nextDeposit) : 1000;
-    console.log("Calculating initialDeposit:", { latestTrade, newDeposit }); // Debug log
+    console.log("Calculating initialDeposit:", { latestTrade, newDeposit });
     setInitialDeposit(newDeposit);
   }, [trades, backtestTrades, historyTrades, tabIndex, filters]);
 
@@ -152,10 +147,26 @@ export default function App() {
         localStorage.removeItem(HISTORY_STORAGE_KEY);
       } else {
         setTrades([]);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
         localStorage.removeItem(LIVE_STORAGE_KEY);
       }
+      toast.success("All trades cleared", { autoClose: 2000 });
     }
+  };
+
+  const handleUpdateTrades = (importedTrades) => {
+    const { mode } = filters;
+    console.log("handleUpdateTrades called with:", importedTrades, "mode:", mode);
+    let setTradeFunc;
+
+    if (mode === "backtest") {
+      setTradeFunc = setBacktestTrades;
+    } else if (mode === "history") {
+      setTradeFunc = setHistoryTrades;
+    } else {
+      setTradeFunc = setTrades;
+    }
+
+    setTradeFunc([...importedTrades].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
   };
 
   const filteredTrades = (tradesToFilter) => {
@@ -179,6 +190,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
+      <ToastContainer position="top-right" theme="dark" />
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
         <button
@@ -284,6 +296,7 @@ export default function App() {
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
                 />
               )}
             </section>
@@ -361,6 +374,7 @@ export default function App() {
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
                 />
               )}
             </section>
@@ -438,13 +452,13 @@ export default function App() {
                   onEdit={handleEditTrade}
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
                 />
               )}
             </section>
           </TabPanel>
         </Tabs>
 
-        {/* Modal for Chart View */}
         {selectedTrade && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
@@ -496,7 +510,6 @@ export default function App() {
     </div>
   );
 
-  // Helper function to find backtest screenshot (simplified)
   function findBacktestScreenshot(pair, date, time) {
     const backtestTrade = backtestTrades.find(
       (t) => t.pair === pair && t.date === date && t.time === time && t.screenshot
