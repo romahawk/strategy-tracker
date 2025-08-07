@@ -14,9 +14,9 @@ const BACKTEST_STORAGE_KEY = "backtest-trades";
 const HISTORY_STORAGE_KEY = "history-trades";
 
 export default function App() {
-  const [trades, setTrades] = useState([]);
-  const [backtestTrades, setBacktestTrades] = useState([]);
-  const [historyTrades, setHistoryTrades] = useState([]);
+  const [trades, setTrades] = useState({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
+  const [backtestTrades, setBacktestTrades] = useState({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
+  const [historyTrades, setHistoryTrades] = useState({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "", mode: "live" });
@@ -30,33 +30,65 @@ export default function App() {
   const [tabIndex, setTabIndex] = useState(0);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [initialDeposit, setInitialDeposit] = useState(1000);
+  const [currentStrategy, setCurrentStrategy] = useState("Supertrend"); // New state for strategy
 
   useEffect(() => {
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
     const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
     console.log("Loading from local storage:", { storedLiveTrades, storedBacktestTrades, storedHistoryTrades });
-    if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
-    if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
-    if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
+    const strategies = ["Supertrend", "MA200", "USDT.D Overlay"];
+    if (storedLiveTrades) {
+      const parsedTrades = JSON.parse(storedLiveTrades);
+      setTrades(
+        strategies.reduce((acc, strategy) => ({
+          ...acc,
+          [strategy]: parsedTrades.filter((trade) => trade.strategy === strategy || !trade.strategy),
+        }), { Supertrend: [], MA200: [], "USDT.D Overlay": [] })
+      );
+    }
+    if (storedBacktestTrades) {
+      const parsedTrades = JSON.parse(storedBacktestTrades);
+      setBacktestTrades(
+        strategies.reduce((acc, strategy) => ({
+          ...acc,
+          [strategy]: parsedTrades.filter((trade) => trade.strategy === strategy || !trade.strategy),
+        }), { Supertrend: [], MA200: [], "USDT.D Overlay": [] })
+      );
+    }
+    if (storedHistoryTrades) {
+      const parsedTrades = JSON.parse(storedHistoryTrades);
+      setHistoryTrades(
+        strategies.reduce((acc, strategy) => ({
+          ...acc,
+          [strategy]: parsedTrades.filter((trade) => trade.strategy === strategy || !trade.strategy),
+        }), { Supertrend: [], MA200: [], "USDT.D Overlay": [] })
+      );
+    }
     setHasLoaded(true);
   }, []);
 
   useEffect(() => {
     if (hasLoaded) {
-      localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
+      localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(
+        Object.values(trades).flat()
+      ));
     }
   }, [trades, hasLoaded]);
 
   useEffect(() => {
     if (hasLoaded) {
-      localStorage.setItem(BACKTEST_STORAGE_KEY, JSON.stringify(backtestTrades));
+      localStorage.setItem(BACKTEST_STORAGE_KEY, JSON.stringify(
+        Object.values(backtestTrades).flat()
+      ));
     }
   }, [backtestTrades, hasLoaded]);
 
   useEffect(() => {
     if (hasLoaded) {
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(
+        Object.values(historyTrades).flat()
+      ));
     }
   }, [historyTrades, hasLoaded]);
 
@@ -90,21 +122,33 @@ export default function App() {
       currentTrades = trades;
     }
 
+    // Debug log to inspect newTrade
+    console.log("New Trade Data:", newTrade);
+
     if (editingTrade) {
-      setTradeFunc((prev) =>
-        [...prev]
-          .map((trade) =>
-            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
-          )
-          .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
-      );
+      setTradeFunc((prev) => ({
+        ...prev,
+        [currentStrategy]: [
+          ...prev[currentStrategy]
+            .map((trade) =>
+              trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id, strategy: currentStrategy } : trade
+            )
+            .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)),
+        ],
+      }));
       setEditingTrade(null);
     } else {
       setTradeFunc((prev) => {
-        const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
-        return [...prev, newTrade]
-          .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
-          .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+        const isDuplicate = prev[currentStrategy].some((trade) => trade.id === newTrade.id);
+        return {
+          ...prev,
+          [currentStrategy]: [
+            ...prev[currentStrategy],
+            { ...newTrade, strategy: currentStrategy },
+          ]
+            .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
+            .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)),
+        };
       });
     }
   };
@@ -131,22 +175,23 @@ export default function App() {
     }
 
     if (confirm("Delete this trade?")) {
-      setTradeFunc((prev) =>
-        prev.filter((trade) => trade.id !== id).sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
-      );
+      setTradeFunc((prev) => ({
+        ...prev,
+        [currentStrategy]: prev[currentStrategy].filter((trade) => trade.id !== id).sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)),
+      }));
     }
   };
 
   const handleClearAll = () => {
     if (confirm("Delete ALL trades?")) {
       if (filters.mode === "backtest") {
-        setBacktestTrades([]);
+        setBacktestTrades({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
         localStorage.removeItem(BACKTEST_STORAGE_KEY);
       } else if (filters.mode === "history") {
-        setHistoryTrades([]);
+        setHistoryTrades({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
         localStorage.removeItem(HISTORY_STORAGE_KEY);
       } else {
-        setTrades([]);
+        setTrades({ Supertrend: [], MA200: [], "USDT.D Overlay": [] });
         localStorage.removeItem(LIVE_STORAGE_KEY);
       }
       toast.success("All trades cleared", { autoClose: 2000 });
@@ -166,11 +211,17 @@ export default function App() {
       setTradeFunc = setTrades;
     }
 
-    setTradeFunc([...importedTrades].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
+    const strategies = ["Supertrend", "MA200", "USDT.D Overlay"];
+    setTradeFunc(
+      strategies.reduce((acc, strategy) => ({
+        ...acc,
+        [strategy]: importedTrades.filter((trade) => trade.strategy === strategy || !trade.strategy),
+      }), { Supertrend: [], MA200: [], "USDT.D Overlay": [] })
+    );
   };
 
-  const filteredTrades = (tradesToFilter) => {
-    return tradesToFilter.filter((trade) => {
+  const filteredTrades = (tradesObj) => {
+    return tradesObj[currentStrategy].filter((trade) => {
       if (filters.result && trade.result !== filters.result) return false;
       if (filters.startDate && new Date(`${trade.date}T${trade.time}`) < new Date(filters.startDate)) return false;
       if (filters.endDate && new Date(`${trade.date}T${trade.time}`) > new Date(filters.endDate)) return false;
@@ -188,11 +239,29 @@ export default function App() {
 
   const closeModal = () => setSelectedTrade(null);
 
+  const findBacktestScreenshot = (pair, date, time) => {
+    const backtestTrade = backtestTrades[currentStrategy].find(
+      (t) => t.pair === pair && t.date === date && t.time === time && t.screenshot
+    );
+    return backtestTrade?.screenshot;
+  };
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
       <ToastContainer position="top-right" theme="dark" />
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
+          <select
+            value={currentStrategy}
+            onChange={(e) => setCurrentStrategy(e.target.value)}
+            className="bg-[#0f172a] text-white p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
+          >
+            <option value="Supertrend">Supertrend</option>
+            <option value="MA200">MA200</option>
+            <option value="USDT.D Overlay">USDT.D Overlay</option>
+          </select>
+        </div>
         <button
           onClick={handleClearAll}
           className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0]"
@@ -238,6 +307,7 @@ export default function App() {
                   onAddTrade={handleAddTrade}
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
+                  currentStrategy={currentStrategy}
                 />
               )}
             </section>
@@ -316,6 +386,7 @@ export default function App() {
                   onAddTrade={handleAddTrade}
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
+                  currentStrategy={currentStrategy}
                 />
               )}
             </section>
@@ -394,6 +465,7 @@ export default function App() {
                   onAddTrade={handleAddTrade}
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
+                  currentStrategy={currentStrategy}
                 />
               )}
             </section>
@@ -509,11 +581,4 @@ export default function App() {
       </main>
     </div>
   );
-
-  function findBacktestScreenshot(pair, date, time) {
-    const backtestTrade = backtestTrades.find(
-      (t) => t.pair === pair && t.date === date && t.time === time && t.screenshot
-    );
-    return backtestTrade?.screenshot;
-  }
 }
