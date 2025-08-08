@@ -1,7 +1,39 @@
 import { useState, useEffect } from "react";
-import { debounce } from "lodash"; // Ensure lodash is installed via npm install lodash
+import { debounce } from "lodash";
+import React, { Suspense } from "react";
 
-export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) {
+const DefaultEntryConditions = () => <div className="text-gray-300">Unsupported Strategy or Loading...</div>;
+
+export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, currentStrategy }) {
+  const [EntryConditions, setEntryConditions] = useState(() => DefaultEntryConditions);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadComponent = async () => {
+      try {
+        // Map "1 BoS Trend" to "BoSTrend" explicitly to match folder structure
+        const strategyPath = currentStrategy === "1 BoS Trend" ? "BoSTrend" : currentStrategy.replace(" ", "");
+        const module = await import(`../strategies/${strategyPath}/EntryConditions.jsx`);
+        if (mounted) {
+          setEntryConditions(() => module.default);
+        }
+      } catch (error) {
+        console.error("Failed to load EntryConditions:", error);
+        if (mounted) {
+          setEntryConditions(() => DefaultEntryConditions);
+        }
+      }
+    };
+
+    if (currentStrategy) {
+      loadComponent();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentStrategy]);
+
   const [form, setForm] = useState({
     date: "",
     time: "",
@@ -11,7 +43,11 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
-    ma200: "ranging",
+    ma200: "above",
+    bosTrend: "",
+    chochTrend: "",
+    peakType: "",
+    bos1mTrend: "",
     entry: "",
     sl: "",
     leverageAmount: "",
@@ -179,11 +215,15 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       time: "",
       pair: "",
       direction: "Long",
-      deposit: initialDeposit ? initialDeposit.toString() : "",
+      deposit: "",
       stTrend: "bull",
       usdtTrend: "bear",
       overlay: "blue",
-      ma200: "ranging",
+      ma200: "above",
+      bosTrend: "",
+      chochTrend: "",
+      peakType: "",
+      bos1mTrend: "",
       entry: "",
       sl: "",
       leverageAmount: "",
@@ -216,9 +256,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
         {editingTrade ? "✏️" : "➕"}
       </h2>
 
-      {/* Two-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Trade Info Card (Left Column) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📅 Trade Info</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -269,53 +307,15 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Entry Conditions Card (Right Column) */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📥 Entry Conditions</h3>
-          <div className="grid grid-cols-2 gap-1">
-            <select
-              name="stTrend"
-              value={form.stTrend}
-              onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="bull">15m ST: Bull</option>
-              <option value="bear">15m ST: Bear</option>
-            </select>
-            <select
-              name="usdtTrend"
-              value={form.usdtTrend}
-              onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="bull">15m USDT.D: Bull</option>
-              <option value="bear">15m USDT.D: Bear</option>
-            </select>
-            <select
-              name="overlay"
-              value={form.overlay}
-              onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="blue">Overlay: Blue</option>
-              <option value="red">Overlay: Red</option>
-            </select>
-            <select
-              name="ma200"
-              value={form.ma200}
-              onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="above">MA200: Above</option>
-              <option value="below">MA200: Below</option>
-              <option value="ranging">MA200: Ranging</option>
-            </select>
+        <Suspense fallback={<div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">Loading Entry Conditions...</div>}>
+          <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
+            <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📈 Entry Conditions</h3>
+            <EntryConditions form={form} onChange={handleChange} />
           </div>
-        </div>
+        </Suspense>
 
-        {/* Risk Setup Card (Left Column) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">💰 Risk Setup</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">💰 Risk & TP</h3>
           <div className="grid grid-cols-2 gap-1">
             <input
               name="entry"
@@ -326,7 +326,11 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
               min="0"
               step="0.01"
-              required
+            />
+            <input
+              disabled
+              value={`Lev: $${form.leverageAmount}`}
+              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
             />
             <input
               name="sl"
@@ -337,12 +341,6 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
               min="0"
               step="0.01"
-              required
-            />
-            <input
-              disabled
-              value={`Lev: $${form.leverageAmount}`}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
             />
             <input
               disabled
@@ -352,38 +350,16 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
             <input
               disabled
               value={`SL $: $${form.slDollar}`}
+              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
+            />
+            <input
+              disabled
+              value={`Risk $: $${form.riskDollar}`}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
             />
             <input
               disabled
               value={`Risk %: ${form.riskPercent}%`}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
-            />
-          </div>
-        </div>
-
-        {/* Targets Card (Right Column) */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">🎯 Targets</h3>
-          <div className="grid grid-cols-2 gap-1">
-            <select
-              name="tpsHit"
-              value={form.tpsHit}
-              onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="3">3 TPs</option>
-              <option value="2">2 TPs</option>
-              <option value="SL">SL</option>
-            </select>
-            <input
-              disabled
-              value={`SL %: ${form.slPercent}%`}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
-            />
-            <input
-              disabled
-              value={`SL $: $${form.slDollar}`}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
             />
             <input
@@ -449,7 +425,6 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Chart Screenshot Card (Left Column) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📸 Chart</h3>
           <div className="grid grid-cols-1 gap-1">
@@ -465,7 +440,6 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Result Card (Right Column) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📊 Result</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -503,7 +477,6 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
         </div>
       </div>
 
-      {/* Submit Button (Centered below columns) */}
       <div className="mt-3 text-center">
         <button
           type="submit"
