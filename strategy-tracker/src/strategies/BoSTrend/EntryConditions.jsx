@@ -8,8 +8,10 @@ export default function EntryConditions({ form, onChange }) {
         className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
       >
         <option value="">Select 15m BoS/CHoCH</option>
-        <option value="bull">15m BoS Bull, CHoCH Bull</option>
-        <option value="bear">15m BoS Bear, CHoCH Bear</option>
+        <option value="bull">15m CHoCH Bull</option>
+        <option value="bull">15m BoS Bull</option>
+        <option value="bear">15m CHoCH Bear</option>
+        <option value="bear">15m BoS Bear</option>
       </select>
       <select
         name="stTrend"
@@ -37,6 +39,7 @@ export default function EntryConditions({ form, onChange }) {
       >
         <option value="above">15m MA 200 Above</option>
         <option value="below">15m MA 200 Below</option>
+        <option value="below">15m MA 200 Ranging</option>
       </select>
       <select
         name="peakType"

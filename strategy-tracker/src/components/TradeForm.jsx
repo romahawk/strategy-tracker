@@ -94,7 +94,13 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, cu
     const d = parseFloat(deposit);
     if (isNaN(e) || isNaN(s) || isNaN(d) || d <= 0) return;
 
-    const lev = (d / 4) * 10;
+    let lev;
+    if (currentStrategy === "1 BoS Trend") {
+      lev = d * 10; // Full deposit with x10 leverage for 1 BoS Trend
+    } else {
+      lev = (d / 4) * 10; // Default logic for other strategies
+    }
+
     let slP = 0;
     if (direction === "Long") {
       slP = ((s / e - 1) * 100);
