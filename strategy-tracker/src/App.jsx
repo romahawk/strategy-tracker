@@ -8,12 +8,20 @@ import Metrics from "./components/Metrics";
 import EquityCurveChart from "./components/EquityCurveChart";
 import "./index.css";
 import "react-tabs/style/react-tabs.css";
+import { useParams } from "react-router-dom";
+import StrategyNav from "./components/StrategyNav";
 
-const LIVE_STORAGE_KEY = "live-trades";
-const BACKTEST_STORAGE_KEY = "backtest-trades";
-const HISTORY_STORAGE_KEY = "history-trades";
+
 
 export default function App() {
+const { id } = useParams();
+const strategyId = Number(id || 1);
+const KEY = (suffix) => `strategy:${strategyId}:${suffix}`;
+
+const LIVE_STORAGE_KEY = KEY("live-trades");
+const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
+const HISTORY_STORAGE_KEY = KEY("history-trades");
+
   const [trades, setTrades] = useState([]);
   const [backtestTrades, setBacktestTrades] = useState([]);
   const [historyTrades, setHistoryTrades] = useState([]);
@@ -35,12 +43,14 @@ export default function App() {
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
     const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
-    console.log("Loading from local storage:", { storedLiveTrades, storedBacktestTrades, storedHistoryTrades });
     if (storedLiveTrades) setTrades(JSON.parse(storedLiveTrades));
+    else setTrades([]);
     if (storedBacktestTrades) setBacktestTrades(JSON.parse(storedBacktestTrades));
+    else setBacktestTrades([]);
     if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
+    else setHistoryTrades([]);
     setHasLoaded(true);
-  }, []);
+    }, [strategyId]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -193,6 +203,7 @@ export default function App() {
       <ToastContainer position="top-right" theme="dark" />
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
+        <StrategyNav />
         <button
           onClick={handleClearAll}
           className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0]"
@@ -200,6 +211,7 @@ export default function App() {
           🗑️ Clear All
         </button>
       </header>
+
 
       <main className="p-4 flex-1 overflow-y-auto space-y-6">
         <Tabs selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
