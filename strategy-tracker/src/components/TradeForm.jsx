@@ -61,22 +61,26 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     const lev = (d / 4) * 10;
     let slP = 0;
     if (direction === "Long") {
-      slP = ((s / e - 1) * 100);
+      slP = (s / e - 1) * 100;
     } else {
-      slP = ((1 - s / e) * 100);
+      slP = (1 - s / e) * 100;
     }
     const slDollar = lev * (slP / 100);
     const riskD = slDollar;
     const riskP = (riskD / d) * 100;
 
-    setForm((prev) => ({
-      ...prev,
+    const updatedRisk = {
+      ...newForm,
       leverageAmount: lev.toFixed(2),
       slPercent: slP.toFixed(2),
       slDollar: slDollar.toFixed(2),
       riskDollar: riskD.toFixed(2),
       riskPercent: riskP.toFixed(2),
-    }));
+    };
+
+    setForm((prev) => ({ ...prev, ...updatedRisk }));
+    // Since leverage/SL changed, re-evaluate TPs → which will also update Result & PnL.
+    debouncedUpdateTP(updatedRisk);
   }, 300);
 
   const debouncedUpdateTP = debounce((newForm) => {
@@ -88,7 +92,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     const calc = (tp, factor) => {
       if (!tp) return { percent: "", dollar: "" };
       const t = parseFloat(tp);
-      const tpPct = direction === "Long" ? ((t / e - 1) * 100) : ((1 - t / e) * 100);
+      const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
       const tpDol = l * (tpPct / 100) * factor;
       return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
     };
@@ -106,34 +110,83 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       tp1Data = { percent: "", dollar: "0.00" };
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
-      setForm((prev) => ({ ...prev, result: "Loss" }));
+    } else {
+      // treat as only TP1 considered if unspecified/“1”
+      tp1Data = calc(tp1, 1.0);
+      tp2Data = { percent: "", dollar: "0.00" };
+      tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    setForm((prev) => ({
-      ...prev,
+    // Auto-derive result
+    let autoResult = newForm.result || "";
+    if (tpsHit === "SL") autoResult = "Loss";
+    else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+
+    const tpSum =
+      (parseFloat(tp1Data.dollar || 0) || 0) +
+      (parseFloat(tp2Data.dollar || 0) || 0) +
+      (parseFloat(tp3Data.dollar || 0) || 0);
+
+    if (!autoResult) autoResult = tpSum > 0 ? "Win" : "Break Even";
+
+    const updated = {
+      ...newForm,
       tp1Percent: tp1Data.percent,
       tp1Dollar: tp1Data.dollar,
       tp2Percent: tp2Data.percent,
       tp2Dollar: tp2Data.dollar,
       tp3Percent: tp3Data.percent,
       tp3Dollar: tp3Data.dollar,
-    }));
+      result: autoResult,
+    };
+
+    setForm(updated);
+    // Immediately compute commission / TP total / PnL / Next Deposit.
+    debouncedUpdateResult(updated);
   }, 300);
 
   const debouncedUpdateResult = debounce((newForm) => {
-    const { direction, tp1Dollar, tp2Dollar, tp3Dollar, slDollar, leverageAmount, result, deposit } = newForm;
+    const {
+      direction,
+      tp1Dollar,
+      tp2Dollar,
+      tp3Dollar,
+      slDollar,
+      leverageAmount,
+      result,
+      deposit,
+      tpsHit,
+    } = newForm;
+
     const lev = parseFloat(leverageAmount);
     const d = parseFloat(deposit);
     if (!lev || !d) return;
 
     const cRate = direction === "Long" ? 0.0002 : 0.0006;
     const commission = lev * cRate;
+
     const tp1 = parseFloat(tp1Dollar) || 0;
     const tp2 = parseFloat(tp2Dollar) || 0;
     const tp3 = parseFloat(tp3Dollar) || 0;
     const tpSum = tp1 + tp2 + tp3;
+
     const sl = Math.abs(parseFloat(slDollar)) || 0;
-    const pnl = result === "Win" ? tpSum - commission : -sl - commission;
+
+    // Infer result if missing
+    let res = result;
+    if (!res) {
+      if (tpsHit === "SL") res = "Loss";
+      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") res = "Win";
+      else res = tpSum > 0 ? "Win" : (sl > 0 ? "Loss" : "Break Even");
+    }
+
+    const pnl =
+      res === "Win"
+        ? tpSum - commission
+        : res === "Break Even"
+        ? -commission
+        : -sl - commission;
+
     const nextDeposit = d + pnl;
 
     setForm((prev) => ({
@@ -148,13 +201,31 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
   const handleChange = (e) => {
     const newForm = { ...form, [e.target.name]: e.target.value };
     setForm(newForm);
-    if (e.target.name === "entry" || e.target.name === "sl" || e.target.name === "deposit" || e.target.name === "direction") {
+
+    // Risk depends on entry/sl/deposit/direction
+    if (
+      e.target.name === "entry" ||
+      e.target.name === "sl" ||
+      e.target.name === "deposit" ||
+      e.target.name === "direction"
+    ) {
       debouncedUpdateRisk(newForm);
     }
-    if (e.target.name === "tp1" || e.target.name === "tp2" || e.target.name === "tp3" || e.target.name === "direction" || e.target.name === "tpsHit") {
+
+    // TP math depends on entry/leverageAmount (via risk), direction, TPs, tpsHit
+    if (
+      e.target.name === "tp1" ||
+      e.target.name === "tp2" ||
+      e.target.name === "tp3" ||
+      e.target.name === "direction" ||
+      e.target.name === "tpsHit" ||
+      e.target.name === "entry"
+    ) {
       debouncedUpdateTP(newForm);
     }
-    if (e.target.name === "tp1Dollar" || e.target.name === "tp2Dollar" || e.target.name === "tp3Dollar" || e.target.name === "slDollar" || e.target.name === "result") {
+
+    // Manual result change should immediately re-calc PnL
+    if (e.target.name === "result") {
       debouncedUpdateResult(newForm);
     }
   };
