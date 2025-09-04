@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { debounce } from "lodash"; // npm i lodash
 
 // Pass strategyId from App.jsx: <TradeForm strategyId={strategyId} ... />
-export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId }) {
+export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId, accountId }) {
   const sid = Number(strategyId) || 1; // normalize once and use everywhere
+  const aid = Number(accountId) || 1;
 
   const [form, setForm] = useState({
     // Trade info
@@ -273,7 +274,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
   const handleSubmit = (e) => {
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
-    onAddTrade({ ...form, id });
+    onAddTrade({ ...form, id, accountId: aid });
     setForm({
       date: "",
       time: "",

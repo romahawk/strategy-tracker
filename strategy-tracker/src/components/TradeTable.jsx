@@ -8,8 +8,10 @@ export default function TradeTable({
   onViewChart,
   onUpdateTrades,
   strategyId, // <-- pass from App.jsx
+  accountId
 }) {
   const sid = Number(strategyId) || 1; // normalize once
+  const aid = Number(accountId) || 1;
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState({});
 
@@ -62,7 +64,7 @@ export default function TradeTable({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `trades_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      llink.download = `trades_strategy${sid}_account${aid}_${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success("Backup downloaded successfully", { autoClose: 2000 });

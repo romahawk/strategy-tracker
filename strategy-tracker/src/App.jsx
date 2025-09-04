@@ -9,14 +9,16 @@ import EquityCurveChart from "./components/EquityCurveChart";
 import "./index.css";
 import "react-tabs/style/react-tabs.css";
 import { useParams } from "react-router-dom";
+import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
 
 
 
 export default function App() {
-const { id } = useParams();
-const strategyId = Number(id || 1);
-const KEY = (suffix) => `strategy:${strategyId}:${suffix}`;
+const { strategyId: sidParam, accountId: aidParam } = useParams();
+const strategyId = Number(sidParam || 1);
+const accountId = Number(aidParam || 1);
+const KEY = (suffix) => `strategy:${strategyId}:account:${accountId}:${suffix}`;
 
 const LIVE_STORAGE_KEY = KEY("live-trades");
 const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
@@ -50,7 +52,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
     if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
     else setHistoryTrades([]);
     setHasLoaded(true);
-    }, [strategyId]);
+    }, [strategyId, accountId]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -204,6 +206,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
         <StrategyNav />
+        <AccountNav />
         <button
           onClick={handleClearAll}
           className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0]"
@@ -251,6 +254,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>
@@ -311,6 +315,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>
@@ -331,6 +336,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>
@@ -391,6 +397,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>
@@ -411,6 +418,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>
@@ -471,6 +479,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
                   strategyId={strategyId}
+                  accountId={accountId}
                 />
               )}
             </section>

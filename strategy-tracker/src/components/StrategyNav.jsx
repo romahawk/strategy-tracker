@@ -1,25 +1,21 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useParams } from "react-router-dom";
 
 export default function StrategyNav() {
-  const items = [
-    { id: 1, name: "Strategy 1" },
-    { id: 2, name: "Strategy 2" },
-  ];
+  const { accountId } = useParams();
+  const aid = Number(accountId) || 1;
+
+  const base = (sid) => `/strategy/${sid}/account/${aid}`;
+
+  const linkCls = ({ isActive }) =>
+    `px-4 py-2 rounded-full border text-sm ${
+      isActive ? "border-purple-400 text-white" : "border-slate-600 text-gray-300"
+    } hover:border-purple-300`;
+
   return (
-    <div className="flex gap-2">
-      {items.map(s => (
-        <NavLink
-          key={s.id}
-          to={`/strategy/${s.id}`}
-          className={({ isActive }) =>
-            `px-4 py-1 rounded-full border ${
-              isActive ? "border-purple-400" : "border-slate-600"
-            }`
-          }
-        >
-          {s.name}
-        </NavLink>
-      ))}
-    </div>
+    <nav className="flex items-center gap-2">
+      <NavLink to={base(1)} className={linkCls}>Strategy 1</NavLink>
+      <NavLink to={base(2)} className={linkCls}>Strategy 2</NavLink>
+      {/* Add more strategies by duplicating the line above and changing the id */}
+    </nav>
   );
 }
