@@ -1,17 +1,24 @@
 import { useState, useEffect } from "react";
-import { debounce } from "lodash"; // Ensure lodash is installed via npm install lodash
+import { debounce } from "lodash"; // npm i lodash
 
-export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) {
+// NOTE: Pass `strategyId` from App.jsx: <TradeForm strategyId={strategyId} ... />
+export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId }) {
+  const sid = Number(strategyId) || 1;
   const [form, setForm] = useState({
+    // Basic info
     date: "",
     time: "",
     pair: "",
     direction: "Long",
     deposit: "",
+
+    // Entry conditions (existing)
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
     ma200: "ranging",
+
+    // Risk / sizing
     entry: "",
     sl: "",
     leverageAmount: "",
@@ -19,6 +26,8 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     slDollar: "",
     riskDollar: "",
     riskPercent: "",
+
+    // Targets
     tp1: "",
     tp2: "",
     tp3: "",
@@ -29,11 +38,15 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     tp1Dollar: "",
     tp2Dollar: "",
     tp3Dollar: "",
+
+    // Result section
     result: "Win",
     commission: "",
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
+
+    // Screenshot
     screenshot: "",
   });
 
@@ -49,6 +62,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     }
   }, [editingTrade, initialDeposit]);
 
+  // ---------- COMPUTATIONS ----------
+
+  // Risk block: computes leverage, SL%, SL$, risk$, risk%
   const debouncedUpdateRisk = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
     if (!entry || !sl || !deposit) return;
@@ -58,13 +74,23 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     const d = parseFloat(deposit);
     if (isNaN(e) || isNaN(s) || isNaN(d) || d <= 0) return;
 
-    const lev = (d / 4) * 10;
+    // Strategy-specific leverage
+    // Strategy 1 (default): lev = (d / 4) * 10
+    // Strategy 2         : lev = (d / 2) * 10
+    let lev;
+    if (sid=== 2) {
+      lev = (d / 2) * 10; // 50% of depo * 10
+    } else {
+      lev = (d / 4) * 10;
+    }
+
     let slP = 0;
     if (direction === "Long") {
       slP = (s / e - 1) * 100;
     } else {
       slP = (1 - s / e) * 100;
     }
+
     const slDollar = lev * (slP / 100);
     const riskD = slDollar;
     const riskP = (riskD / d) * 100;
@@ -79,10 +105,11 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     };
 
     setForm((prev) => ({ ...prev, ...updatedRisk }));
-    // Since leverage/SL changed, re-evaluate TPs → which will also update Result & PnL.
+    // Downstream calcs
     debouncedUpdateTP(updatedRisk);
   }, 300);
 
+  // TP block: computes TP% / TP$ for each TP; lightly infers result for smoother UX
   const debouncedUpdateTP = debounce((newForm) => {
     const { entry, tp1, tp2, tp3, direction, leverageAmount, tpsHit } = newForm;
     const e = parseFloat(entry);
@@ -111,13 +138,13 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     } else {
-      // treat as only TP1 considered if unspecified/“1”
+      // default: only TP1 considered
       tp1Data = calc(tp1, 1.0);
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    // Auto-derive result
+    // Soft auto-result for immediate feedback (user can override)
     let autoResult = newForm.result || "";
     if (tpsHit === "SL") autoResult = "Loss";
     else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
@@ -141,10 +168,10 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     };
 
     setForm(updated);
-    // Immediately compute commission / TP total / PnL / Next Deposit.
     debouncedUpdateResult(updated);
   }, 300);
 
+  // Result block: commission, TP total, PnL, next deposit
   const debouncedUpdateResult = debounce((newForm) => {
     const {
       direction,
@@ -198,6 +225,8 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     }));
   }, 300);
 
+  // ---------- HANDLERS ----------
+
   const handleChange = (e) => {
     const newForm = { ...form, [e.target.name]: e.target.value };
     setForm(newForm);
@@ -212,7 +241,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       debouncedUpdateRisk(newForm);
     }
 
-    // TP math depends on entry/leverageAmount (via risk), direction, TPs, tpsHit
+    // TP math depends on entry/leverage, direction, TPs, tpsHit
     if (
       e.target.name === "tp1" ||
       e.target.name === "tp2" ||
@@ -224,7 +253,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
       debouncedUpdateTP(newForm);
     }
 
-    // Manual result change should immediately re-calc PnL
+    // Manual result change → re-calc PnL
     if (e.target.name === "result") {
       debouncedUpdateResult(newForm);
     }
@@ -281,15 +310,16 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
     });
   };
 
+  // ---------- UI ----------
+
   return (
     <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
       <h2 className="text-xl font-bold text-white mb-3">
         {editingTrade ? "✏️" : "➕"}
       </h2>
 
-      {/* Two-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Trade Info Card (Left Column) */}
+        {/* Trade Info */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📅 Trade Info</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -340,7 +370,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Entry Conditions Card (Right Column) */}
+        {/* Entry Conditions (existing) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📥 Entry Conditions</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -384,7 +414,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Risk Setup Card (Left Column) */}
+        {/* Risk Setup */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">💰 Risk Setup</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -433,7 +463,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Targets Card (Right Column) */}
+        {/* Targets */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">🎯 Targets</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -520,7 +550,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Chart Screenshot Card (Left Column) */}
+        {/* Chart */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📸 Chart</h3>
           <div className="grid grid-cols-1 gap-1">
@@ -536,7 +566,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
           </div>
         </div>
 
-        {/* Result Card (Right Column) */}
+        {/* Result */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📊 Result</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -574,7 +604,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit }) 
         </div>
       </div>
 
-      {/* Submit Button (Centered below columns) */}
+      {/* Submit */}
       <div className="mt-3 text-center">
         <button
           type="submit"
