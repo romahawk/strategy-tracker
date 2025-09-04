@@ -310,6 +310,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
+                  strategyId={strategyId}
                 />
               )}
             </section>
@@ -389,6 +390,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
+                  strategyId={strategyId}
                 />
               )}
             </section>
@@ -468,6 +470,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onDelete={handleDeleteTrade}
                   onViewChart={(trade) => setSelectedTrade(trade)}
                   onUpdateTrades={handleUpdateTrades}
+                  strategyId={strategyId}
                 />
               )}
             </section>

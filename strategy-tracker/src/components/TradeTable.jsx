@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 
-export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUpdateTrades }) {
+export default function TradeTable({
+  trades,
+  onEdit,
+  onDelete,
+  onViewChart,
+  onUpdateTrades,
+  strategyId, // <-- pass from App.jsx
+}) {
+  const sid = Number(strategyId) || 1; // normalize once
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState({});
 
@@ -11,6 +19,14 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
   const endIndex = startIndex + rowsPerPage;
 
   const paginatedTrades = trades.slice(startIndex, endIndex);
+
+  // ---- dynamic table layout helpers ----
+  const baseCols = 27; // columns with Strategy 1 (default)
+  const extraS2Cols = sid === 2 ? 4 : 0; // Strategy 2 extra columns
+  const totalCols = baseCols + extraS2Cols;
+
+  const basicInfoBase = 5; // Date, Time, Pair, Dir, Depo
+  const basicInfoColspan = basicInfoBase + extraS2Cols;
 
   const toggleRow = (id) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -66,9 +82,7 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        console.log("Raw file content:", e.target.result);
         const importedTrades = JSON.parse(e.target.result);
-        console.log("Parsed trades:", importedTrades);
 
         if (!Array.isArray(importedTrades)) {
           throw new Error("Backup file must contain an array of trades");
@@ -86,7 +100,6 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
           }
         }
 
-        console.log("Validation passed, calling onUpdateTrades with:", importedTrades);
         onUpdateTrades(importedTrades);
         toast.success("Backup imported successfully", { autoClose: 2000 });
       } catch (error) {
@@ -133,35 +146,76 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
           >
             <thead className="sticky top-0 bg-[#0f172a] text-left border-b border-gray-600 z-10">
               <tr>
-                <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px", width: "40px" }}>
+                <th
+                  className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11"
+                  style={{ minWidth: "40px", width: "40px" }}
+                >
                   #
                 </th>
-                <th colSpan="5" className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]">
+                <th
+                  colSpan={basicInfoColspan}
+                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]"
+                >
                   Basic Info
                 </th>
-                <th colSpan="6" className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#ef4444]">
+                <th
+                  colSpan="6"
+                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#ef4444]"
+                >
                   Risk
                 </th>
-                <th colSpan="10" className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#10b981]">
+                <th
+                  colSpan="10"
+                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#10b981]"
+                >
                   Take Profit
                 </th>
-                <th colSpan="5" className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#7f5af0]">
+                <th
+                  colSpan="5"
+                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#7f5af0]"
+                >
                   Results
                 </th>
               </tr>
               <tr>
-                <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px", width: "40px" }}></th>
+                <th
+                  className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11"
+                  style={{ minWidth: "40px", width: "40px" }}
+                ></th>
+                {/* Basic info (base 5) */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>Date</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Time</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "140px", width: "140px" }}>Pair</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px", width: "50px" }}>Dir</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Depo $</th>
+
+                {/* Strategy 2 extra basic info */}
+                {sid === 2 && (
+                  <>
+                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "120px", width: "120px" }}>
+                      15m CHoCH/BoS
+                    </th>
+                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
+                      1m Overlay
+                    </th>
+                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
+                      1m BoS
+                    </th>
+                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
+                      1m MA200
+                    </th>
+                  </>
+                )}
+
+                {/* Risk */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>Entry</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>SL</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL %</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL $</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk %</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
+
+                {/* Take Profits */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TPs Hit</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1 %</th>
@@ -172,6 +226,8 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 %</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
+
+                {/* Results */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Result</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Comm $</th>
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>PnL $</th>
@@ -179,6 +235,7 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>Actions</th>
               </tr>
             </thead>
+
             <tbody className="max-h-[60vh] overflow-y-auto">
               {paginatedTrades.map((trade, index) => (
                 <React.Fragment key={trade.id}>
@@ -187,9 +244,14 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                       index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
                     }`}
                   >
-                    <td className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10" style={{ minWidth: "40px", width: "40px" }}>
+                    <td
+                      className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10"
+                      style={{ minWidth: "40px", width: "40px" }}
+                    >
                       {startIndex + index + 1}
                     </td>
+
+                    {/* Basic info */}
                     <td className="p-2 text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
                       {formatDate(trade.date)}
                     </td>
@@ -203,12 +265,34 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                     </td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>{trade.direction}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.deposit}</td>
+
+                    {/* Strategy 2 extra columns */}
+                    {sid === 2 && (
+                      <>
+                        <td className="p-2 text-gray-300" style={{ minWidth: "120px", width: "120px" }}>
+                          {trade.chochBos15m || "-"}
+                        </td>
+                        <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
+                          {trade.overlay1m || "-"}
+                        </td>
+                        <td className="p-2 text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
+                          {trade.bos1m || "-"}
+                        </td>
+                        <td className="p-2 text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
+                          {trade.ma2001m || "-"}
+                        </td>
+                      </>
+                    )}
+
+                    {/* Risk */}
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.entry}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.sl}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>{trade.slPercent}%</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>${trade.slDollar}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.riskPercent}%</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>${trade.riskDollar}</td>
+
+                    {/* TPs */}
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tpsHit} TP(s)</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp1}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp1Percent}%</td>
@@ -219,6 +303,8 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp3}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>{trade.tp3Percent}%</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>${trade.tp3Dollar}</td>
+
+                    {/* Results */}
                     <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>{trade.result}</td>
                     <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>${trade.commission}</td>
                     <td
@@ -252,20 +338,31 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
                       </button>
                     </td>
                   </tr>
+
                   {expandedRows[trade.id] && (
                     <tr className="bg-[#0f172a]/70">
-                      <td colSpan="25" className="p-2 text-gray-300">
+                      <td colSpan={totalCols} className="p-2 text-gray-300">
                         <div className="flex flex-wrap gap-2">
                           <span>ST: {trade.stTrend}</span>
                           <span>USDT.D: {trade.usdtTrend}</span>
                           <span>Overlay: {trade.overlay}</span>
                           <span>MA200: {trade.ma200}</span>
+
+                          {sid === 2 && (
+                            <>
+                              <span>15m CHoCH/BoS: {trade.chochBos15m || "-"}</span>
+                              <span>1m Overlay: {trade.overlay1m || "-"}</span>
+                              <span>1m BoS: {trade.bos1m || "-"}</span>
+                              <span>1m MA200: {trade.ma2001m || "-"}</span>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
                   )}
+
                   <tr>
-                    <td colSpan="25" className="p-1">
+                    <td colSpan={totalCols} className="p-1">
                       <button
                         onClick={() => toggleRow(trade.id)}
                         className="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs"
@@ -278,6 +375,7 @@ export default function TradeTable({ trades, onEdit, onDelete, onViewChart, onUp
               ))}
             </tbody>
           </table>
+
           {totalPages > 0 && (
             <div className="flex justify-between items-center p-2 text-gray-300 w-full">
               <div className="flex space-x-2">
