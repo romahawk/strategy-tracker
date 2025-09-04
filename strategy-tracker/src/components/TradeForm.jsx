@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
 import { debounce } from "lodash"; // npm i lodash
+import {
+  PlusCircle, CalendarDays, Clock3, Coins, ArrowUpRight, ArrowDownLeft,
+  Layers, LineChart, Shield, Target as TargetIcon, BarChart3, Image as ImageIcon,
+  Check
+} from "lucide-react";
+
 
 // Pass strategyId from App.jsx: <TradeForm strategyId={strategyId} ... />
 export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId, accountId }) {
@@ -321,15 +327,18 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
-      <h2 className="text-xl font-bold text-white mb-3">
-        {editingTrade ? "✏️" : "➕"}
+      <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+        <PlusCircle className="w-5 h-5 text-[#00ffa3]" />
+        {editingTrade ? "Edit trade" : "Add new trade"}
       </h2>
 
       {/* Two-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
         {/* Trade Info */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📅 Trade Info</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <CalendarDays className="w-5 h-5" /> Trade Info
+          </h3>
           <div className="grid grid-cols-2 gap-1">
             <input
               name="date"
@@ -380,7 +389,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
         {/* Entry Conditions (shared + Strategy 2 extras) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📥 Entry Conditions</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <Layers className="w-5 h-5" /> Entry Conditions
+          </h3>
           <div className="grid grid-cols-2 gap-1">
             <select
               name="stTrend"
@@ -475,7 +486,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
         {/* Risk Setup */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">💰 Risk Setup</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <Shield className="w-5 h-5" /> Risk Setup
+          </h3>
           <div className="grid grid-cols-2 gap-1">
             <input
               name="entry"
@@ -524,7 +537,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
         {/* Targets */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">🎯 Targets</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <TargetIcon className="w-5 h-5" /> Targets
+          </h3>
           <div className="grid grid-cols-2 gap-1">
             <select
               name="tpsHit"
@@ -611,7 +626,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
         {/* Chart */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📸 Chart</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <LineChart className="w-5 h-5" /> Chart
+          </h3>
           <div className="grid grid-cols-1 gap-1">
             <input
               type="file"
@@ -627,7 +644,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
 
         {/* Result */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📊 Result</h3>
+          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" /> Result
+          </h3>
           <div className="grid grid-cols-2 gap-1">
             <select
               name="result"
