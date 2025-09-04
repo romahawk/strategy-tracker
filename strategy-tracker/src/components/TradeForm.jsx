@@ -1,24 +1,31 @@
 import { useState, useEffect } from "react";
 import { debounce } from "lodash"; // npm i lodash
 
-// NOTE: Pass `strategyId` from App.jsx: <TradeForm strategyId={strategyId} ... />
+// Pass strategyId from App.jsx: <TradeForm strategyId={strategyId} ... />
 export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId }) {
-  const sid = Number(strategyId) || 1;
+  const sid = Number(strategyId) || 1; // normalize once and use everywhere
+
   const [form, setForm] = useState({
-    // Basic info
+    // Trade info
     date: "",
     time: "",
     pair: "",
     direction: "Long",
     deposit: "",
 
-    // Entry conditions (existing)
+    // Entry conditions (shared)
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
     ma200: "ranging",
 
-    // Risk / sizing
+    // Strategy 2 – extra entry conditions
+    chochBos15m: "",
+    overlay1m: "",
+    bos1m: "",
+    ma2001m: "",
+
+    // Risk
     entry: "",
     sl: "",
     leverageAmount: "",
@@ -39,14 +46,14 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     tp2Dollar: "",
     tp3Dollar: "",
 
-    // Result section
+    // Result
     result: "Win",
     commission: "",
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
 
-    // Screenshot
+    // Chart
     screenshot: "",
   });
 
@@ -62,7 +69,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     }
   }, [editingTrade, initialDeposit]);
 
-  // ---------- COMPUTATIONS ----------
+  // ------------------------
+  // COMPUTATIONS
+  // ------------------------
 
   // Risk block: computes leverage, SL%, SL$, risk$, risk%
   const debouncedUpdateRisk = debounce((newForm) => {
@@ -74,23 +83,12 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     const d = parseFloat(deposit);
     if (isNaN(e) || isNaN(s) || isNaN(d) || d <= 0) return;
 
-    // Strategy-specific leverage
-    // Strategy 1 (default): lev = (d / 4) * 10
-    // Strategy 2         : lev = (d / 2) * 10
-    let lev;
-    if (sid=== 2) {
-      lev = (d / 2) * 10; // 50% of depo * 10
-    } else {
-      lev = (d / 4) * 10;
-    }
+    // Strategy-specific leverage:
+    // Strategy 1 (default): (d / 4) * 10
+    // Strategy 2         : (d / 2) * 10
+    const lev = (sid === 2 ? (d / 2) * 10 : (d / 4) * 10);
 
-    let slP = 0;
-    if (direction === "Long") {
-      slP = (s / e - 1) * 100;
-    } else {
-      slP = (1 - s / e) * 100;
-    }
-
+    const slP = direction === "Long" ? ((s / e - 1) * 100) : ((1 - s / e) * 100);
     const slDollar = lev * (slP / 100);
     const riskD = slDollar;
     const riskP = (riskD / d) * 100;
@@ -105,11 +103,11 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     };
 
     setForm((prev) => ({ ...prev, ...updatedRisk }));
-    // Downstream calcs
+    // Risk changes affect TPs & PnL → recompute
     debouncedUpdateTP(updatedRisk);
   }, 300);
 
-  // TP block: computes TP% / TP$ for each TP; lightly infers result for smoother UX
+  // TP block: computes TP% / TP$ and sets an auto result for immediate feedback
   const debouncedUpdateTP = debounce((newForm) => {
     const { entry, tp1, tp2, tp3, direction, leverageAmount, tpsHit } = newForm;
     const e = parseFloat(entry);
@@ -119,7 +117,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     const calc = (tp, factor) => {
       if (!tp) return { percent: "", dollar: "" };
       const t = parseFloat(tp);
-      const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
+      const tpPct = direction === "Long" ? ((t / e - 1) * 100) : ((1 - t / e) * 100);
       const tpDol = l * (tpPct / 100) * factor;
       return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
     };
@@ -138,13 +136,13 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     } else {
-      // default: only TP1 considered
+      // treat as only TP1 considered if unspecified/“1”
       tp1Data = calc(tp1, 1.0);
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    // Soft auto-result for immediate feedback (user can override)
+    // Auto-derive result
     let autoResult = newForm.result || "";
     if (tpsHit === "SL") autoResult = "Loss";
     else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
@@ -225,7 +223,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     }));
   }, 300);
 
-  // ---------- HANDLERS ----------
+  // ------------------------
+  // HANDLERS
+  // ------------------------
 
   const handleChange = (e) => {
     const newForm = { ...form, [e.target.name]: e.target.value };
@@ -284,6 +284,10 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
       usdtTrend: "bear",
       overlay: "blue",
       ma200: "ranging",
+      chochBos15m: "",
+      overlay1m: "",
+      bos1m: "",
+      ma2001m: "",
       entry: "",
       sl: "",
       leverageAmount: "",
@@ -310,7 +314,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     });
   };
 
-  // ---------- UI ----------
+  // ------------------------
+  // RENDER
+  // ------------------------
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
@@ -318,6 +324,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
         {editingTrade ? "✏️" : "➕"}
       </h2>
 
+      {/* Two-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
         {/* Trade Info */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
@@ -370,7 +377,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
           </div>
         </div>
 
-        {/* Entry Conditions (existing) */}
+        {/* Entry Conditions (shared + Strategy 2 extras) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2">📥 Entry Conditions</h3>
           <div className="grid grid-cols-2 gap-1">
@@ -411,6 +418,57 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
               <option value="below">MA200: Below</option>
               <option value="ranging">MA200: Ranging</option>
             </select>
+
+            {sid === 2 && (
+              <>
+                <select
+                  name="chochBos15m"
+                  value={form.chochBos15m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                >
+                  <option value="">15m CHoCH/BoS</option>
+                  <option value="bull CHoCH">Bull CHoCH</option>
+                  <option value="bull BoS">Bull BoS</option>
+                  <option value="bear CHoCH">Bear CHoCH</option>
+                  <option value="bear BoS">Bear BoS</option>
+                </select>
+
+                <select
+                  name="overlay1m"
+                  value={form.overlay1m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                >
+                  <option value="">1m Overlay</option>
+                  <option value="blue">Blue</option>
+                  <option value="red">Red</option>
+                </select>
+
+                <select
+                  name="bos1m"
+                  value={form.bos1m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                >
+                  <option value="">1m BoS</option>
+                  <option value="bull BoS">Bull BoS</option>
+                  <option value="bear BoS">Bear BoS</option>
+                </select>
+
+                <select
+                  name="ma2001m"
+                  value={form.ma2001m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                >
+                  <option value="">1m MA200</option>
+                  <option value="above">Above</option>
+                  <option value="below">Below</option>
+                  <option value="ranging">Ranging</option>
+                </select>
+              </>
+            )}
           </div>
         </div>
 
