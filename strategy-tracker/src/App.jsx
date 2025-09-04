@@ -329,6 +329,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onAddTrade={handleAddTrade}
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
+                  strategyId={strategyId}
                 />
               )}
             </section>
@@ -407,6 +408,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                   onAddTrade={handleAddTrade}
                   editingTrade={editingTrade}
                   initialDeposit={initialDeposit}
+                  strategyId={strategyId}
                 />
               )}
             </section>
