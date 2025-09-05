@@ -16,7 +16,7 @@ export default function TradeTable({
   onDelete,
   onViewChart,
   onUpdateTrades,
-  strategyId,
+  strategyId, // passed from App.jsx
   accountId,
 }) {
   const sid = Number(strategyId) || 1;
@@ -31,10 +31,31 @@ export default function TradeTable({
   const endIndex = startIndex + rowsPerPage;
   const paginatedTrades = trades.slice(startIndex, endIndex);
 
+  // ---- helpers for chart handling ----
+  const isDataImage = (src) => /^data:image\//i.test(src || "");
+  const isDirectImageUrl = (src) =>
+    /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(src || "");
+  const isHttpUrl = (src) => /^https?:\/\//i.test(src || "");
+
+  const handleViewChart = (trade) => {
+    const src = trade?.screenshot;
+    if (!src) {
+      toast.info("No chart attached.");
+      return;
+    }
+    if (isDataImage(src) || isDirectImageUrl(src)) {
+      onViewChart(trade); // open modal image viewer as before
+    } else if (isHttpUrl(src)) {
+      window.open(src, "_blank", "noopener,noreferrer"); // open non-image links in a new tab
+    } else {
+      toast.error("Invalid chart URL.");
+    }
+  };
+
   // ---- dynamic table layout helpers ----
-  // NOTE: We removed the Actions column from the main row → baseCols - 1
-  const baseCols = 26; // columns with Strategy 1 (default), no Actions column
-  const extraS2Cols = sid === 2 ? 4 : 0; // Strategy 2: +4 extra columns
+  // Actions column removed from main row → baseCols reduced by 1
+  const baseCols = 26; // Strategy 1 default visible columns (no Actions)
+  const extraS2Cols = sid === 2 ? 4 : 0; // Strategy 2 adds 4 columns
   const totalCols = baseCols + extraS2Cols;
 
   const basicInfoBase = 5; // Date, Time, Pair, Dir, Depo
@@ -294,6 +315,7 @@ export default function TradeTable({
             <tbody className="max-h-[60vh] overflow-y-auto">
               {paginatedTrades.map((trade, index) => (
                 <React.Fragment key={trade.id}>
+                  {/* MAIN ROW */}
                   <tr
                     className={`border-b border-gray-600 transition-all duration-200 ${
                       index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
@@ -417,11 +439,12 @@ export default function TradeTable({
                     </td>
                   </tr>
 
+                  {/* EXPANDED ROW (with actions on the right) */}
                   {expandedRows[trade.id] && (
                     <tr className="bg-[#0f172a]/70">
                       <td colSpan={totalCols} className="p-2 text-gray-300">
                         <div className="flex flex-wrap items-start justify-between gap-2">
-                          {/* Left: conditions */}
+                          {/* Left: detailed conditions */}
                           <div className="flex flex-wrap gap-2">
                             <span>ST: {trade.stTrend}</span>
                             <span>USDT.D: {trade.usdtTrend}</span>
@@ -437,7 +460,7 @@ export default function TradeTable({
                             )}
                           </div>
 
-                          {/* Right: actions moved here */}
+                          {/* Right: actions */}
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => onEdit(trade)}
@@ -454,7 +477,7 @@ export default function TradeTable({
                               <Trash2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => onViewChart(trade)}
+                              onClick={() => handleViewChart(trade)}
                               className="px-2 py-1 border border-[#00ffa3] text-[#00ffa3] text-xs rounded hover:bg-[#00ffa3] hover:text-black flex items-center justify-center"
                               title="View Chart"
                             >
@@ -466,6 +489,7 @@ export default function TradeTable({
                     </tr>
                   )}
 
+                  {/* TOGGLE ROW */}
                   <tr>
                     <td colSpan={totalCols} className="p-1">
                       <button
@@ -489,6 +513,7 @@ export default function TradeTable({
             </tbody>
           </table>
 
+          {/* Pagination & backup controls */}
           {totalPages > 0 && (
             <div className="flex justify-between items-center p-2 text-gray-300 w-full">
               <div className="flex space-x-2">

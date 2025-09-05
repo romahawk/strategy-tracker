@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { debounce } from "lodash"; // npm i lodash
+import { debounce } from "lodash";
 import {
-  PlusCircle, CalendarDays, Clock3, Coins, ArrowUpRight, ArrowDownLeft,
-  Layers, LineChart, Shield, Target as TargetIcon, BarChart3, Image as ImageIcon,
-  Check
+  PlusCircle,
+  CalendarDays,
+  Layers,
+  LineChart,
+  Shield,
+  Target as TargetIcon,
+  BarChart3,
+  Check,
 } from "lucide-react";
 
-
 // Pass strategyId from App.jsx: <TradeForm strategyId={strategyId} ... />
-export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, strategyId, accountId }) {
+export default function TradeForm({
+  onAddTrade,
+  editingTrade,
+  initialDeposit,
+  strategyId,
+  accountId,
+}) {
   const sid = Number(strategyId) || 1; // normalize once and use everywhere
   const aid = Number(accountId) || 1;
 
@@ -60,7 +70,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     pnl: "",
     nextDeposit: "",
 
-    // Chart
+    // Chart (now URL)
     screenshot: "",
   });
 
@@ -93,9 +103,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     // Strategy-specific leverage:
     // Strategy 1 (default): (d / 4) * 10
     // Strategy 2         : (d / 2) * 10
-    const lev = (sid === 2 ? (d / 2) * 10 : (d / 4) * 10);
+    const lev = sid === 2 ? (d / 2) * 10 : (d / 4) * 10;
 
-    const slP = direction === "Long" ? ((s / e - 1) * 100) : ((1 - s / e) * 100);
+    const slP = direction === "Long" ? (s / e - 1) * 100 : (1 - s / e) * 100;
     const slDollar = lev * (slP / 100);
     const riskD = slDollar;
     const riskP = (riskD / d) * 100;
@@ -124,7 +134,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     const calc = (tp, factor) => {
       if (!tp) return { percent: "", dollar: "" };
       const t = parseFloat(tp);
-      const tpPct = direction === "Long" ? ((t / e - 1) * 100) : ((1 - t / e) * 100);
+      const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
       const tpDol = l * (tpPct / 100) * factor;
       return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
     };
@@ -209,7 +219,7 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     if (!res) {
       if (tpsHit === "SL") res = "Loss";
       else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") res = "Win";
-      else res = tpSum > 0 ? "Win" : (sl > 0 ? "Loss" : "Break Even");
+      else res = tpSum > 0 ? "Win" : sl > 0 ? "Loss" : "Break Even";
     }
 
     const pnl =
@@ -266,17 +276,6 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm((prev) => ({ ...prev, screenshot: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
@@ -324,6 +323,8 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
   // ------------------------
   // RENDER
   // ------------------------
+
+  const isLikelyUrl = (v) => /^https?:\/\/\S{5,}$/i.test(v || "");
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
@@ -624,20 +625,28 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
           </div>
         </div>
 
-        {/* Chart */}
+        {/* Chart (URL) */}
         <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
             <LineChart className="w-5 h-5" /> Chart
           </h3>
-          <div className="grid grid-cols-1 gap-1">
+          <div className="grid grid-cols-1 gap-2">
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="bg-[#0f172a] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              name="screenshot"
+              type="url"
+              placeholder="https://imgsh.net/i/dcc85420eb"
+              value={form.screenshot}
+              onChange={handleChange}
+              className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              pattern="https?://.*"
+              title="Enter a valid URL starting with http(s)://"
             />
             {form.screenshot && (
-              <img src={form.screenshot} alt="Chart" className="mt-1 rounded max-h-24" />
+              <img
+                src={form.screenshot}
+                alt="Chart"
+                className="mt-1 rounded max-h-32 object-contain"
+              />
             )}
           </div>
         </div>
@@ -686,8 +695,9 @@ export default function TradeForm({ onAddTrade, editingTrade, initialDeposit, st
       <div className="mt-3 text-center">
         <button
           type="submit"
-          className="bg-[#00ffa3] text-black font-semibold px-3 py-1 rounded hover:brightness-110 focus:ring-1 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_5px_#00ffa3] hover:shadow-[0_0_10px_#00ffa3]"
+          className="bg-[#00ffa3] text-black font-semibold px-3 py-1 rounded hover:brightness-110 focus:ring-1 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_5px_#00ffa3] hover:shadow-[0_0_10px_#00ffa3] inline-flex items-center gap-2"
         >
+          <Check className="w-4 h-4" />
           {editingTrade ? "Update" : "Save"}
         </button>
       </div>
