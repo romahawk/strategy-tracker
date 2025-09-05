@@ -67,6 +67,9 @@ export default function AccountNav() {
         : "border-slate-600 text-gray-300 hover:border-orange-400"
     }`;
 
+  const addBtnCls =
+    "px-4 py-1.5 rounded-full border border-slate-600 text-sm text-gray-300 " +
+    "hover:border-orange-400 hover:text-orange-400 transition cursor-pointer";
 
   return (
     <div className="flex items-center gap-2">
@@ -87,12 +90,10 @@ export default function AccountNav() {
         </NavLink>
       ))}
 
-      <button
-        onClick={addAccount}
-        className="px-4 py-1.5 rounded-full border border-slate-600 text-sm text-gray-300 hover:border-purple-300"
-      >
+      <button onClick={addAccount} className={addBtnCls}>
         + Account
       </button>
+
     </div>
   );
 }
