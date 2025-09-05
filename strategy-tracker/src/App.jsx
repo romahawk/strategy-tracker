@@ -12,24 +12,38 @@ import { useParams } from "react-router-dom";
 import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
 
-
+// 🔶 Lucide icons
+import {
+  Trash2,
+  BarChart3,
+  PlusCircle,
+  Search,
+  TrendingUp,
+  Table as TableIcon,
+} from "lucide-react";
 
 export default function App() {
-const { strategyId: sidParam, accountId: aidParam } = useParams();
-const strategyId = Number(sidParam || 1);
-const accountId = Number(aidParam || 1);
-const KEY = (suffix) => `strategy:${strategyId}:account:${accountId}:${suffix}`;
+  const { strategyId: sidParam, accountId: aidParam } = useParams();
+  const strategyId = Number(sidParam || 1);
+  const accountId = Number(aidParam || 1);
+  const KEY = (suffix) => `strategy:${strategyId}:account:${accountId}:${suffix}`;
 
-const LIVE_STORAGE_KEY = KEY("live-trades");
-const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
-const HISTORY_STORAGE_KEY = KEY("history-trades");
+  const LIVE_STORAGE_KEY = KEY("live-trades");
+  const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
+  const HISTORY_STORAGE_KEY = KEY("history-trades");
 
   const [trades, setTrades] = useState([]);
   const [backtestTrades, setBacktestTrades] = useState([]);
   const [historyTrades, setHistoryTrades] = useState([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
-  const [filters, setFilters] = useState({ result: "", startDate: "", endDate: "", pair: "", mode: "live" });
+  const [filters, setFilters] = useState({
+    result: "",
+    startDate: "",
+    endDate: "",
+    pair: "",
+    mode: "live",
+  });
   const [sections, setSections] = useState({
     tradeForm: true,
     filters: true,
@@ -52,7 +66,7 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
     if (storedHistoryTrades) setHistoryTrades(JSON.parse(storedHistoryTrades));
     else setHistoryTrades([]);
     setHasLoaded(true);
-    }, [strategyId, accountId]);
+  }, [strategyId, accountId]);
 
   useEffect(() => {
     if (hasLoaded) {
@@ -79,10 +93,16 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
   }, [tabIndex]);
 
   useEffect(() => {
-    const currentTradesForTab = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
+    const currentTradesForTab =
+      tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
     const filteredTradesForTab = filteredTrades(currentTradesForTab);
-    const latestTrade = [...filteredTradesForTab].sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))[0];
-    const newDeposit = latestTrade?.nextDeposit ? parseFloat(latestTrade.nextDeposit) : 1000;
+    const latestTrade = [...filteredTradesForTab].sort(
+      (a, b) =>
+        new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`)
+    )[0];
+    const newDeposit = latestTrade?.nextDeposit
+      ? parseFloat(latestTrade.nextDeposit)
+      : 1000;
     console.log("Calculating initialDeposit:", { latestTrade, newDeposit });
     setInitialDeposit(newDeposit);
   }, [trades, backtestTrades, historyTrades, tabIndex, filters]);
@@ -106,9 +126,15 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
       setTradeFunc((prev) =>
         [...prev]
           .map((trade) =>
-            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
+            trade.id === editingTrade.id
+              ? { ...newTrade, id: editingTrade.id }
+              : trade
           )
-          .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+          .sort(
+            (a, b) =>
+              new Date(`${a.date}T${a.time}`) -
+              new Date(`${b.date}T${b.time}`)
+          )
       );
       setEditingTrade(null);
     } else {
@@ -116,7 +142,11 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
         const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
         return [...prev, newTrade]
           .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
-          .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+          .sort(
+            (a, b) =>
+              new Date(`${a.date}T${a.time}`) -
+              new Date(`${b.date}T${b.time}`)
+          );
       });
     }
   };
@@ -144,7 +174,13 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
 
     if (confirm("Delete this trade?")) {
       setTradeFunc((prev) =>
-        prev.filter((trade) => trade.id !== id).sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+        prev
+          .filter((trade) => trade.id !== id)
+          .sort(
+            (a, b) =>
+              new Date(`${a.date}T${a.time}`) -
+              new Date(`${b.date}T${b.time}`)
+          )
       );
     }
   };
@@ -178,15 +214,32 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
       setTradeFunc = setTrades;
     }
 
-    setTradeFunc([...importedTrades].sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)));
+    setTradeFunc(
+      [...importedTrades].sort(
+        (a, b) =>
+          new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`)
+      )
+    );
   };
 
   const filteredTrades = (tradesToFilter) => {
     return tradesToFilter.filter((trade) => {
       if (filters.result && trade.result !== filters.result) return false;
-      if (filters.startDate && new Date(`${trade.date}T${trade.time}`) < new Date(filters.startDate)) return false;
-      if (filters.endDate && new Date(`${trade.date}T${trade.time}`) > new Date(filters.endDate)) return false;
-      if (filters.pair && !trade.pair.toLowerCase().includes(filters.pair.toLowerCase())) return false;
+      if (
+        filters.startDate &&
+        new Date(`${trade.date}T${trade.time}`) < new Date(filters.startDate)
+      )
+        return false;
+      if (
+        filters.endDate &&
+        new Date(`${trade.date}T${trade.time}`) > new Date(filters.endDate)
+      )
+        return false;
+      if (
+        filters.pair &&
+        !trade.pair.toLowerCase().includes(filters.pair.toLowerCase())
+      )
+        return false;
       return true;
     });
   };
@@ -195,7 +248,8 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
     setSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const currentTrades = tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
+  const currentTrades =
+    tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
   const filteredCurrentTrades = filteredTrades(currentTrades);
 
   const closeModal = () => setSelectedTrade(null);
@@ -204,17 +258,21 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
     <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
       <ToastContainer position="top-right" theme="dark" />
       <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white">📈 Strategy Execution Tracker</h1>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <BarChart3 className="w-6 h-6 text-[#7f5af0]" />
+          Strategy Execution Tracker
+        </h1>
         <StrategyNav />
         <AccountNav />
         <button
           onClick={handleClearAll}
-          className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0]"
+          className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0] flex items-center gap-2"
+          title="Clear All"
         >
-          🗑️ Clear All
+          <Trash2 className="w-4 h-4" />
+          Clear All
         </button>
       </header>
-
 
       <main className="p-4 flex-1 overflow-y-auto space-y-6">
         <Tabs selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
@@ -239,13 +297,17 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
             </Tab>
           </TabList>
 
+          {/* LIVE */}
           <TabPanel>
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
               <div
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <PlusCircle className="w-5 h-5" />
+                  Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
@@ -264,7 +326,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -282,7 +347,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -293,10 +361,15 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -304,7 +377,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TableIcon className="w-5 h-5" />
+                  All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (
@@ -321,13 +397,17 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
             </section>
           </TabPanel>
 
+          {/* BACKTEST */}
           <TabPanel>
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
               <div
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <PlusCircle className="w-5 h-5" />
+                  Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
@@ -346,7 +426,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -364,7 +447,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -375,10 +461,15 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -386,7 +477,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TableIcon className="w-5 h-5" />
+                  All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (
@@ -403,13 +497,17 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
             </section>
           </TabPanel>
 
+          {/* HISTORY */}
           <TabPanel>
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
               <div
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeForm")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">➕ Add new trade</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <PlusCircle className="w-5 h-5" />
+                  Add new trade
+                </span>
                 <span>{sections.tradeForm ? "▼" : "▲"}</span>
               </div>
               {sections.tradeForm && (
@@ -428,7 +526,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("filters")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">🔍 Filter trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  Filter trades
+                </span>
                 <span>{sections.filters ? "▼" : "▲"}</span>
               </div>
               {sections.filters && (
@@ -446,7 +547,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("metrics")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📊 KPIs</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  KPIs
+                </span>
                 <span>{sections.metrics ? "▼" : "▲"}</span>
               </div>
               {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
@@ -457,10 +561,15 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("equityCurve")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📈 Equity curve</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Equity curve
+                </span>
                 <span>{sections.equityCurve ? "▼" : "▲"}</span>
               </div>
-              {sections.equityCurve && <EquityCurveChart trades={filteredCurrentTrades} />}
+              {sections.equityCurve && (
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
             </section>
 
             <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
@@ -468,7 +577,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
                 className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
                 onClick={() => toggleSection("tradeTable")}
               >
-                <span className="text-xl font-semibold text-[#00ffa3]">📋 All trades</span>
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <TableIcon className="w-5 h-5" />
+                  All trades
+                </span>
                 <span>{sections.tradeTable ? "▼" : "▲"}</span>
               </div>
               {sections.tradeTable && (
@@ -489,7 +601,10 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
         {selectedTrade && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
-              <h2 className="text-2xl font-bold text-white mb-4">📊 Trade Chart</h2>
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <BarChart3 className="w-6 h-6" />
+                Trade Chart
+              </h2>
               <div className="mb-4">
                 <select
                   className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
@@ -507,19 +622,32 @@ const HISTORY_STORAGE_KEY = KEY("history-trades");
               {selectedTrade.viewMode === "compare" ? (
                 <div className="flex space-x-4">
                   <img
-                    src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Live+Chart"}
+                    src={
+                      selectedTrade.screenshot ||
+                      "https://via.placeholder.com/400x200?text=No+Live+Chart"
+                    }
                     alt="Live Chart"
                     className="w-1/2 rounded-lg"
                   />
                   <img
-                    src={findBacktestScreenshot(selectedTrade.pair, selectedTrade.date, selectedTrade.time) || "https://via.placeholder.com/400x200?text=No+Backtest+Chart"}
+                    src={
+                      findBacktestScreenshot(
+                        selectedTrade.pair,
+                        selectedTrade.date,
+                        selectedTrade.time
+                      ) ||
+                      "https://via.placeholder.com/400x200?text=No+Backtest+Chart"
+                    }
                     alt="Backtest Chart"
                     className="w-1/2 rounded-lg"
                   />
                 </div>
               ) : (
                 <img
-                  src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Chart"}
+                  src={
+                    selectedTrade.screenshot ||
+                    "https://via.placeholder.com/400x200?text=No+Chart"
+                  }
                   alt="Trade Chart"
                   className="w-full rounded-lg"
                 />
