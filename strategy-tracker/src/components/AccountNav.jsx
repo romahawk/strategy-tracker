@@ -62,8 +62,11 @@ export default function AccountNav() {
 
   const pill = ({ isActive }) =>
     `px-4 py-1.5 rounded-full border text-sm transition cursor-pointer ${
-      isActive ? "border-purple-400 text-white" : "border-slate-600 text-gray-300 hover:border-purple-300"
+      isActive
+        ? "border-orange-500 text-white"
+        : "border-slate-600 text-gray-300 hover:border-orange-400"
     }`;
+
 
   return (
     <div className="flex items-center gap-2">
