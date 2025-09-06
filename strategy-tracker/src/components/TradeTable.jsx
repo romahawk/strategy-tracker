@@ -16,7 +16,7 @@ export default function TradeTable({
   onDelete,
   onViewChart,
   onUpdateTrades,
-  strategyId, // passed from App.jsx
+  strategyId,
   accountId,
 }) {
   const sid = Number(strategyId) || 1;
@@ -31,7 +31,7 @@ export default function TradeTable({
   const endIndex = startIndex + rowsPerPage;
   const paginatedTrades = trades.slice(startIndex, endIndex);
 
-  // ---- helpers for chart handling ----
+  // ---- chart helpers ----
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
     /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(src || "");
@@ -44,22 +44,22 @@ export default function TradeTable({
       return;
     }
     if (isDataImage(src) || isDirectImageUrl(src)) {
-      onViewChart(trade); // open modal image viewer as before
+      onViewChart(trade);
     } else if (isHttpUrl(src)) {
-      window.open(src, "_blank", "noopener,noreferrer"); // open non-image links in a new tab
+      window.open(src, "_blank", "noopener,noreferrer");
     } else {
       toast.error("Invalid chart URL.");
     }
   };
 
   // ---- dynamic table layout helpers ----
-  // Actions column removed from main row → baseCols reduced by 1
-  const baseCols = 26; // Strategy 1 default visible columns (no Actions)
-  const extraS2Cols = sid === 2 ? 4 : 0; // Strategy 2 adds 4 columns
-  const totalCols = baseCols + extraS2Cols;
+  // Actions are in expanded row, so baseCols excludes Actions.
+  // Strategy 2 extra columns are removed from the main row/header now.
+  const baseCols = 26; // number of visible columns in main row (across all strategies)
+  const totalCols = baseCols;
 
   const basicInfoBase = 5; // Date, Time, Pair, Dir, Depo
-  const basicInfoColspan = basicInfoBase + extraS2Cols;
+  const basicInfoColspan = basicInfoBase;
 
   const toggleRow = (id) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -73,7 +73,7 @@ export default function TradeTable({
     return `${day}-${month}-${year}`;
   };
 
-  // light local backups
+  // ---- light local backup ----
   useEffect(() => {
     if (trades.length > 0) {
       try {
@@ -116,11 +116,9 @@ export default function TradeTable({
     reader.onload = (e) => {
       try {
         const importedTrades = JSON.parse(e.target.result);
-
         if (!Array.isArray(importedTrades)) {
           throw new Error("Backup file must contain an array of trades");
         }
-
         for (const [index, trade] of importedTrades.entries()) {
           if (!trade.id) throw new Error(`Trade at index ${index} missing 'id' field`);
           if (!trade.date) throw new Error(`Trade at index ${index} missing 'date' field`);
@@ -135,7 +133,6 @@ export default function TradeTable({
             throw new Error(`Trade at index ${index} has invalid 'date' format: ${trade.date}`);
           }
         }
-
         onUpdateTrades(importedTrades);
         toast.success("Backup imported successfully", { autoClose: 2000 });
       } catch (error) {
@@ -226,24 +223,7 @@ export default function TradeTable({
                   Depo $
                 </th>
 
-                {/* Strategy 2 extra basic info */}
-                {sid === 2 && (
-                  <>
-                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "120px", width: "120px" }}>
-                      15m CHoCH/BoS
-                    </th>
-                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                      1m Overlay
-                    </th>
-                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
-                      1m BoS
-                    </th>
-                    <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
-                      1m MA200
-                    </th>
-                  </>
-                )}
-
+                {/* Note: Strategy 2 extra columns removed from header */}
                 {/* Risk */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
                   Entry
@@ -296,7 +276,7 @@ export default function TradeTable({
                   TP3 $
                 </th>
 
-                {/* Results (now 4 columns total) */}
+                {/* Results */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
                   Result
                 </th>
@@ -349,23 +329,7 @@ export default function TradeTable({
                       {trade.deposit}
                     </td>
 
-                    {/* Strategy 2 extra columns */}
-                    {sid === 2 && (
-                      <>
-                        <td className="p-2 text-gray-300" style={{ minWidth: "120px", width: "120px" }}>
-                          {trade.chochBos15m || "-"}
-                        </td>
-                        <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                          {trade.overlay1m || "-"}
-                        </td>
-                        <td className="p-2 text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
-                          {trade.bos1m || "-"}
-                        </td>
-                        <td className="p-2 text-gray-300" style={{ minWidth: "110px", width: "110px" }}>
-                          {trade.ma2001m || "-"}
-                        </td>
-                      </>
-                    )}
+                    {/* Strategy-2 extra columns intentionally removed from main row */}
 
                     {/* Risk */}
                     <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
@@ -439,7 +403,7 @@ export default function TradeTable({
                     </td>
                   </tr>
 
-                  {/* EXPANDED ROW (with actions on the right) */}
+                  {/* EXPANDED ROW (shows strategy entry details + actions) */}
                   {expandedRows[trade.id] && (
                     <tr className="bg-[#0f172a]/70">
                       <td colSpan={totalCols} className="p-2 text-gray-300">

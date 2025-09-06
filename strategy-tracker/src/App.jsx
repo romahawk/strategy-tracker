@@ -517,6 +517,7 @@ export default function App() {
                   initialDeposit={initialDeposit}
                   strategyId={strategyId}
                   accountId={accountId}
+                  showTitle={false}
                 />
               )}
             </section>

@@ -18,6 +18,7 @@ export default function TradeForm({
   initialDeposit,
   strategyId,
   accountId,
+  showTitle = true,
 }) {
   const sid = Number(strategyId) || 1; // normalize once and use everywhere
   const aid = Number(accountId) || 1;
@@ -327,11 +328,15 @@ export default function TradeForm({
   const isLikelyUrl = (v) => /^https?:\/\/\S{5,}$/i.test(v || "");
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
+    <form 
+    onSubmit={handleSubmit} 
+    className="bg-[#0f172a] p-3 rounded-xl shadow-md">
+      {showTitle && (
       <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
         <PlusCircle className="w-5 h-5 text-[#00ffa3]" />
         {editingTrade ? "Edit trade" : "Add new trade"}
       </h2>
+      )}
 
       {/* Two-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
