@@ -11,6 +11,8 @@ import "react-tabs/style/react-tabs.css";
 import { useParams } from "react-router-dom";
 import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
+import WeeklyCompounding from "./components/WeeklyCompounding";
+
 
 // 🔶 Lucide icons
 import {
@@ -20,6 +22,7 @@ import {
   Search,
   TrendingUp,
   Table as TableIcon,
+  HandCoins,
 } from "lucide-react";
 
 export default function App() {
@@ -50,6 +53,7 @@ export default function App() {
     metrics: true,
     equityCurve: true,
     tradeTable: true,
+    weeklyCompounding: true,
   });
   const [tabIndex, setTabIndex] = useState(0);
   const [selectedTrade, setSelectedTrade] = useState(null);
@@ -369,6 +373,31 @@ export default function App() {
               </div>
               {sections.equityCurve && (
                 <EquityCurveChart trades={filteredCurrentTrades} />
+              )}
+            </section>
+
+            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div
+                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
+                onClick={() => toggleSection("weeklyCompounding")}
+              >
+                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
+                  <HandCoins className="w-5 h-5" />Compounding
+                </span>
+                <span>{sections.weeklyCompounding ? "▼" : "▲"}</span>
+              </div>
+              {sections.weeklyCompounding && (
+                <WeeklyCompounding
+                  strategyId={strategyId}
+                  accountId={accountId}
+                  mode="live"
+                  defaultWeeks={0}
+                  defaultDeposit={0}
+                  defaultPnlPct={10}      // leave 0 and use defaultPnlDollar to switch to fixed-$ mode
+                  defaultPnlDollar={0}
+                  includeCurrentWeek={true}
+                  refreshKey={JSON.stringify(trades)}
+                />
               )}
             </section>
 
