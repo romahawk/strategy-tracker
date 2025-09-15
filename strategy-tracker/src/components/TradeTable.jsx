@@ -31,7 +31,7 @@ export default function TradeTable({
   const endIndex = startIndex + rowsPerPage;
   const paginatedTrades = trades.slice(startIndex, endIndex);
 
-  // ---- chart helpers ----
+  // ---- helpers for chart links ----
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
     /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(src || "");
@@ -52,13 +52,67 @@ export default function TradeTable({
     }
   };
 
+  // ---- FIX: normalize money/signs per row before rendering ----
+  const n = (v, d = 0) => Number(v ?? d);
+  const fx = (v, d = 2) => Number(n(v).toFixed(d));
+
+  const normalizeTrade = (trade) => {
+    const deposit = n(trade.deposit);
+    const commission = Math.abs(n(trade.commission)); // cost, shown positive
+
+    // Risk $ should be a negative cost
+    let riskDollar =
+      trade.riskDollar !== undefined
+        ? n(trade.riskDollar)
+        : -(deposit * n(trade.riskPercent) / 100);
+
+    if (riskDollar > 0) riskDollar = -Math.abs(riskDollar);
+
+    // SL $ should mirror risk side (negative cost if expressed in $)
+    let slDollar =
+      trade.slDollar !== undefined ? n(trade.slDollar) : riskDollar;
+    if (slDollar > 0) slDollar = -Math.abs(slDollar);
+
+    // SL % should be negative for a stop-loss distance (optional)
+    let slPercent =
+      trade.slPercent !== undefined ? n(trade.slPercent) : undefined;
+    if (slPercent !== undefined && slPercent > 0) {
+      slPercent = -Math.abs(slPercent);
+    }
+
+    // PnL recompute for losses if needed
+    let pnl = n(trade.pnl);
+    if (String(trade.result).toLowerCase() === "loss") {
+      const expected = riskDollar - commission; // negative
+      // if stored pnl looks wrong (>=0 or far from expected), fix it
+      if (pnl >= 0 || Math.abs(pnl - expected) > 0.01) {
+        pnl = expected;
+      }
+    }
+
+    // Next deposit consistency
+    let nextDeposit =
+      trade.nextDeposit !== undefined ? n(trade.nextDeposit) : deposit + pnl;
+    if (Math.abs(nextDeposit - (deposit + pnl)) > 0.01) {
+      nextDeposit = deposit + pnl;
+    }
+
+    return {
+      ...trade,
+      commission: fx(commission),
+      riskDollar: fx(riskDollar),
+      slDollar: fx(slDollar),
+      slPercent: slPercent !== undefined ? fx(slPercent) : trade.slPercent,
+      pnl: fx(pnl),
+      nextDeposit: fx(nextDeposit),
+    };
+  };
+
   // ---- dynamic table layout helpers ----
-  // Actions are in expanded row, so baseCols excludes Actions.
-  // Strategy 2 extra columns are removed from the main row/header now.
-  const baseCols = 26; // number of visible columns in main row (across all strategies)
+  const baseCols = 26;
   const totalCols = baseCols;
 
-  const basicInfoBase = 5; // Date, Time, Pair, Dir, Depo
+  const basicInfoBase = 5;
   const basicInfoColspan = basicInfoBase;
 
   const toggleRow = (id) => {
@@ -223,7 +277,6 @@ export default function TradeTable({
                   Depo $
                 </th>
 
-                {/* Note: Strategy 2 extra columns removed from header */}
                 {/* Risk */}
                 <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
                   Entry
@@ -293,187 +346,186 @@ export default function TradeTable({
             </thead>
 
             <tbody className="max-h-[60vh] overflow-y-auto">
-              {paginatedTrades.map((trade, index) => (
-                <React.Fragment key={trade.id}>
-                  {/* MAIN ROW */}
-                  <tr
-                    className={`border-b border-gray-600 transition-all duration-200 ${
-                      index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
-                    }`}
-                  >
-                    <td
-                      className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10"
-                      style={{ minWidth: "40px", width: "40px" }}
-                    >
-                      {startIndex + index + 1}
-                    </td>
-
-                    {/* Basic info */}
-                    <td className="p-2 text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
-                      {formatDate(trade.date)}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      {trade.time}
-                    </td>
-                    <td
-                      className="p-2 text-gray-300 truncate"
-                      style={{ minWidth: "140px", width: "140px" }}
-                      title={trade.pair}
-                    >
-                      {trade.pair}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
-                      {trade.direction}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      {trade.deposit}
-                    </td>
-
-                    {/* Strategy-2 extra columns intentionally removed from main row */}
-
-                    {/* Risk */}
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.entry}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.sl}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                      {trade.slPercent}%
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                      ${trade.slDollar}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      {trade.riskPercent}%
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      ${trade.riskDollar}
-                    </td>
-
-                    {/* TPs */}
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tpsHit} TP(s)
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp1}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp1Percent}%
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      ${trade.tp1Dollar}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp2}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp2Percent}%
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      ${trade.tp2Dollar}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp3}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      {trade.tp3Percent}%
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                      ${trade.tp3Dollar}
-                    </td>
-
-                    {/* Results */}
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      {trade.result}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                      ${trade.commission}
-                    </td>
-                    <td
-                      className={`p-2 font-medium ${
-                        parseFloat(trade.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
+              {paginatedTrades.map((trade, index) => {
+                const t = normalizeTrade(trade); // <<< use normalized values
+                return (
+                  <React.Fragment key={t.id}>
+                    {/* MAIN ROW */}
+                    <tr
+                      className={`border-b border-gray-600 transition-all duration-200 ${
+                        index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
                       }`}
-                      style={{ minWidth: "70px", width: "70px" }}
                     >
-                      ${trade.pnl}
-                    </td>
-                    <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                      {trade.nextDeposit}
-                    </td>
-                  </tr>
+                      <td
+                        className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10"
+                        style={{ minWidth: "40px", width: "40px" }}
+                      >
+                        {startIndex + index + 1}
+                      </td>
 
-                  {/* EXPANDED ROW (shows strategy entry details + actions) */}
-                  {expandedRows[trade.id] && (
-                    <tr className="bg-[#0f172a]/70">
-                      <td colSpan={totalCols} className="p-2 text-gray-300">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          {/* Left: detailed conditions */}
-                          <div className="flex flex-wrap gap-2">
-                            <span>ST: {trade.stTrend}</span>
-                            <span>USDT.D: {trade.usdtTrend}</span>
-                            <span>Overlay: {trade.overlay}</span>
-                            <span>MA200: {trade.ma200}</span>
-                            {sid === 2 && (
-                              <>
-                                <span>15m CHoCH/BoS: {trade.chochBos15m || "-"}</span>
-                                <span>1m Overlay: {trade.overlay1m || "-"}</span>
-                                <span>1m BoS: {trade.bos1m || "-"}</span>
-                                <span>1m MA200: {trade.ma2001m || "-"}</span>
-                              </>
-                            )}
-                          </div>
+                      {/* Basic info */}
+                      <td className="p-2 text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
+                        {formatDate(t.date)}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        {t.time}
+                      </td>
+                      <td
+                        className="p-2 text-gray-300 truncate"
+                        style={{ minWidth: "140px", width: "140px" }}
+                        title={t.pair}
+                      >
+                        {t.pair}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
+                        {t.direction}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        {t.deposit}
+                      </td>
 
-                          {/* Right: actions */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => onEdit(trade)}
-                              className="px-2 py-1 bg-yellow-400 text-black text-xs rounded hover:bg-yellow-500 flex items-center justify-center"
-                              title="Edit"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => onDelete(trade.id)}
-                              className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 flex items-center justify-center"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleViewChart(trade)}
-                              className="px-2 py-1 border border-[#00ffa3] text-[#00ffa3] text-xs rounded hover:bg-[#00ffa3] hover:text-black flex items-center justify-center"
-                              title="View Chart"
-                            >
-                              <LineChart className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                      {/* Risk */}
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.entry}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.sl}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
+                        {t.slPercent}%
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
+                        ${t.slDollar}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        {t.riskPercent}%
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        ${t.riskDollar}
+                      </td>
+
+                      {/* TPs */}
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tpsHit} TP(s)
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp1}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp1Percent}%
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        ${t.tp1Dollar}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp2}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp2Percent}%
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        ${t.tp2Dollar}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp3}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        {t.tp3Percent}%
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                        ${t.tp3Dollar}
+                      </td>
+
+                      {/* Results */}
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        {t.result}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                        ${t.commission}
+                      </td>
+                      <td
+                        className={`p-2 font-medium ${
+                          parseFloat(t.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
+                        }`}
+                        style={{ minWidth: "70px", width: "70px" }}
+                      >
+                        ${t.pnl}
+                      </td>
+                      <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
+                        {t.nextDeposit}
                       </td>
                     </tr>
-                  )}
 
-                  {/* TOGGLE ROW */}
-                  <tr>
-                    <td colSpan={totalCols} className="p-1">
-                      <button
-                        onClick={() => toggleRow(trade.id)}
-                        className="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs flex items-center justify-center gap-1"
-                      >
-                        {expandedRows[trade.id] ? (
-                          <>
-                            <ChevronUp className="w-4 h-4" /> Hide Details
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-4 h-4" /> Show More
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                </React.Fragment>
-              ))}
+                    {/* EXPANDED ROW */}
+                    {expandedRows[t.id] && (
+                      <tr className="bg-[#0f172a]/70">
+                        <td colSpan={totalCols} className="p-2 text-gray-300">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              <span>ST: {t.stTrend}</span>
+                              <span>USDT.D: {t.usdtTrend}</span>
+                              <span>Overlay: {t.overlay}</span>
+                              <span>MA200: {t.ma200}</span>
+                              {sid === 2 && (
+                                <>
+                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
+                                  <span>1m Overlay: {t.overlay1m || "-"}</span>
+                                  <span>1m BoS: {t.bos1m || "-"}</span>
+                                  <span>1m MA200: {t.ma2001m || "-"}</span>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => onEdit(t)}
+                                className="px-2 py-1 bg-yellow-400 text-black text-xs rounded hover:bg-yellow-500 flex items-center justify-center"
+                                title="Edit"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => onDelete(t.id)}
+                                className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 flex items-center justify-center"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleViewChart(t)}
+                                className="px-2 py-1 border border-[#00ffa3] text-[#00ffa3] text-xs rounded hover:bg-[#00ffa3] hover:text-black flex items-center justify-center"
+                                title="View Chart"
+                              >
+                                <LineChart className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* TOGGLE ROW */}
+                    <tr>
+                      <td colSpan={totalCols} className="p-1">
+                        <button
+                          onClick={() => toggleRow(t.id)}
+                          className="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs flex items-center justify-center gap-1"
+                        >
+                          {expandedRows[t.id] ? (
+                            <>
+                              <ChevronUp className="w-4 h-4" /> Hide Details
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4" /> Show More
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
 

@@ -1,7 +1,7 @@
 import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const LS_KEY = "strategy:names"; // stores { "1": "Strategy 1", "2": "Strategy 2", ... }
+const LS_KEY = "strategy:names"; // stores { "1": "Strategy 1", "2": "Strategy 2", "3": "FX Lots" }
 
 export default function StrategyNav() {
   const { strategyId, accountId } = useParams();
@@ -11,7 +11,6 @@ export default function StrategyNav() {
 
   const [names, setNames] = useState({});
 
-  // Load (or bootstrap) strategy names
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -23,7 +22,7 @@ export default function StrategyNav() {
         }
       }
     } catch {}
-    const def = { "1": "Strategy 1", "2": "Strategy 2" };
+    const def = { "1": "Strategy 1", "2": "Strategy 2", "3": "FX Lots" };
     localStorage.setItem(LS_KEY, JSON.stringify(def));
     setNames(def);
   }, []);
@@ -36,17 +35,13 @@ export default function StrategyNav() {
   const renameStrategy = (id) => {
     const current = names?.[id] || `Strategy ${id}`;
     const proposed = window.prompt("Enter new strategy name", current);
-    if (proposed === null) return; // cancelled
+    if (proposed === null) return;
     const trimmed = proposed.trim();
     if (!trimmed || trimmed === current) return;
-
-    const confirmed = window.confirm(`Rename strategy to "${trimmed}"?`);
-    if (!confirmed) return;
+    if (!window.confirm(`Rename strategy to "${trimmed}"?`)) return;
 
     const next = { ...names, [id]: trimmed };
     persist(next);
-
-    // keep current account, stay on same route but with new label (no nav change needed)
     navigate(`/strategy/${id}/account/${aid}`, { replace: true });
   };
 
@@ -57,8 +52,8 @@ export default function StrategyNav() {
         : "border-slate-600 text-gray-300 hover:border-purple-300"
     }`;
 
-  // If you have more than 2 strategies later, extend this array.
-  const strategyIds = [1, 2];
+  // now we have 3 strategies
+  const strategyIds = [1, 2, 3];
 
   return (
     <div className="flex items-center gap-2">
