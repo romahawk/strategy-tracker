@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { LineChart, Calendar, PiggyBank, BadgePercent, DollarSign, Table as TableIcon } from "lucide-react";
+import {
+  LineChart,
+  Calendar,
+  PiggyBank,
+  BadgePercent,
+  DollarSign,
+  Table as TableIcon,
+} from "lucide-react";
 
 /** LocalStorage keys (align with App/TradeTable) */
 const LS_TRADES_KEY = (sid, aid, mode) =>
@@ -56,7 +63,9 @@ function buildReferenceDynamic({ weeks, deposit, pnlPct }) {
 function aggregateByWeek(trades) {
   const map = new Map();
   const sorted = [...trades].sort(
-    (a, b) => new Date(`${a.date}T${a.time || "00:00"}`) - new Date(`${b.date}T${b.time || "00:00"}`)
+    (a, b) =>
+      new Date(`${a.date}T${a.time || "00:00"}`) -
+      new Date(`${b.date}T${b.time || "00:00"}`)
   );
 
   for (const t of sorted) {
@@ -85,14 +94,14 @@ function aggregateByWeek(trades) {
 
 export default function WeeklyCompounding({
   strategyId,
-  accountId,                 // anchor start on this account's first trade week
-  mode = "live",             // "live" | "backtest" | "history"
+  accountId, // anchor start on this account's first trade week
+  mode = "live", // "live" | "backtest" | "history"
   // Defaults for the dynamic Reference
   defaultWeeks = 50,
   defaultDeposit = 250,
   defaultPnlPct = 10,
   includeCurrentWeek = true, // include ongoing week in real table
-  refreshKey = 0,            // bump when trades change to re-read localStorage
+  refreshKey = 0, // bump when trades change to re-read localStorage
 }) {
   const sid = Number(strategyId) || 1;
   const aid = Number(accountId) || 1;
@@ -111,18 +120,46 @@ export default function WeeklyCompounding({
 
   const [accounts, setAccounts] = useState([]);
 
+  // 🔄 internal nonce to force LS re-reads
+  const [lsNonce, setLsNonce] = useState(0);
+
+  // Listen for same-tab custom events, cross-tab storage events, and tab focus
+  useEffect(() => {
+    const bump = () => setLsNonce((n) => n + 1);
+
+    const onTradesChanged = () => bump();
+    window.addEventListener("trades-changed", onTradesChanged);
+
+    const onStorage = (e) => {
+      if (!e.key) return;
+      if (e.key.startsWith(`strategy:${sid}:`)) bump();
+    };
+    window.addEventListener("storage", onStorage);
+
+    const onFocus = () => bump();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("trades-changed", onTradesChanged);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [sid]);
+
   // Load accounts list
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_ACCOUNTS_KEY(sid));
       const parsed = raw ? JSON.parse(raw) : [{ id: 1, name: "Account 1" }];
-      setAccounts(Array.isArray(parsed) && parsed.length ? parsed : [{ id: 1, name: "Account 1" }]);
+      setAccounts(
+        Array.isArray(parsed) && parsed.length ? parsed : [{ id: 1, name: "Account 1" }]
+      );
     } catch {
       setAccounts([{ id: 1, name: "Account 1" }]);
     }
   }, [sid]);
 
-  // Load trades for each account (reactive to refreshKey)
+  // Load trades for each account (reactive to refreshKey + lsNonce)
   const accountWeekly = useMemo(() => {
     const out = {};
     for (const a of accounts) {
@@ -138,18 +175,22 @@ export default function WeeklyCompounding({
       out[a.id] = { account: a, weeks: aggregateByWeek(trades) };
     }
     return out;
-  }, [accounts, sid, mode, refreshKey]);
+  }, [accounts, sid, mode, refreshKey, lsNonce]);
 
   // Seed = selected account's first trade week (fallbacks)
   const calendarSeed = useMemo(() => {
     const selWeeks = accountWeekly[aid]?.weeks || [];
     if (selWeeks.length) return { wy: selWeeks[0].wy, wk: selWeeks[0].wk };
 
-    let minY = Infinity, minW = Infinity;
+    let minY = Infinity,
+      minW = Infinity;
     Object.values(accountWeekly).forEach(({ weeks }) => {
       if (weeks.length) {
         const { wy, wk } = weeks[0];
-        if (wy < minY || (wy === minY && wk < minW)) { minY = wy; minW = wk; }
+        if (wy < minY || (wy === minY && wk < minW)) {
+          minY = wy;
+          minW = wk;
+        }
       }
     });
     if (isFinite(minY)) return { wy: minY, wk: minW };
@@ -194,7 +235,8 @@ export default function WeeklyCompounding({
         accounts: accounts.map((a) => {
           const aw = accountWeekly[a.id]?.weeks || [];
           const found = aw.find((w) => w.wy === labelWY && w.wk === labelWK);
-          if (!found) return { id: a.id, name: a.name, deposit: "", pnlDollar: "", pnlPct: "" };
+          if (!found)
+            return { id: a.id, name: a.name, deposit: "", pnlDollar: "", pnlPct: "" };
           const dep = round2(found.depositAtStart);
           const pnl$ = round2(found.pnlSum);
           const pnlPct = dep > 0 ? `${round2((pnl$ / dep) * 100)}%` : "–";
@@ -207,17 +249,6 @@ export default function WeeklyCompounding({
 
   return (
     <div className="bg-[#0b1220] border border-[#00ffa3]/20 rounded-2xl shadow-[0_0_30px_rgba(0,255,163,0.08)] p-4">
-      {/* HEADER */}
-      {/* <div className="flex items-center gap-2 mb-3">
-        <div className="rounded-xl bg-[#00ffa3]/10 p-2">
-          <LineChart className="w-5 h-5 text-[#00ffa3]" />
-        </div>
-        <h3 className="text-xl font-semibold text-[#00ffa3]">
-          Weekly Compounding
-        </h3>
-        <span className="ml-2 text-xs text-gray-400">Reference & Real Accounts</span>
-      </div> */}
-
       {/* Reference controls */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="flex flex-col">
@@ -231,7 +262,9 @@ export default function WeeklyCompounding({
               min={1}
               max={99}
               value={refWeeks}
-              onChange={(e) => setRefWeeks(Math.max(1, Math.min(99, Number(e.target.value) || 1)))}
+              onChange={(e) =>
+                setRefWeeks(Math.max(1, Math.min(99, Number(e.target.value) || 1)))
+              }
               className="w-full bg-[#0f172a] text-gray-200 rounded-lg pl-10 pr-3 py-2 outline-none focus:ring-2 focus:ring-[#00ffa3]/60"
               placeholder="50"
             />
@@ -318,7 +351,10 @@ export default function WeeklyCompounding({
           </thead>
           <tbody>
             {reference.map((r) => (
-              <tr key={`ref-${r.week}`} className={r.week % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"}>
+              <tr
+                key={`ref-${r.week}`}
+                className={r.week % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"}
+              >
                 <td className="p-2 text-gray-200">Week {r.week}</td>
                 <td className="p-2 text-gray-300">
                   {r.deposit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -382,18 +418,38 @@ export default function WeeklyCompounding({
           </thead>
           <tbody>
             {realRows.map((r) => (
-              <tr key={r.tradingWeek} className={r.tradingWeek % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"}>
+              <tr
+                key={r.tradingWeek}
+                className={r.tradingWeek % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"}
+              >
                 <td className="p-2 text-gray-200">{r.calendar}</td>
                 <td className="p-2 text-gray-200">Week {r.tradingWeek}</td>
 
                 {r.accounts.map((a) => (
                   <td key={`d-${r.tradingWeek}-${a.id}`} className="p-2 text-gray-300">
-                    {a.deposit === "" ? "" : a.deposit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {a.deposit === ""
+                      ? ""
+                      : a.deposit.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
                   </td>
                 ))}
                 {r.accounts.map((a) => (
-                  <td key={`p-${r.tradingWeek}-${a.id}`} className={`p-2 ${a.pnlDollar === "" ? "text-gray-300" : Number(a.pnlDollar) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}>
-                    {a.pnlDollar === "" ? "" : a.pnlDollar.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  <td
+                    key={`p-${r.tradingWeek}-${a.id}`}
+                    className={`p-2 ${
+                      a.pnlDollar === ""
+                        ? "text-gray-300"
+                        : Number(a.pnlDollar) >= 0
+                        ? "text-[#10b981]"
+                        : "text-[#ef4444]"
+                    }`}
+                  >
+                    {a.pnlDollar === ""
+                      ? ""
+                      : a.pnlDollar.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })}
                   </td>
                 ))}
                 {r.accounts.map((a) => (
@@ -407,8 +463,10 @@ export default function WeeklyCompounding({
         </table>
 
         <p className="text-[11px] text-gray-400 mt-2">
-          * Rows appear from the selected account’s first trade week, limited to {includeCurrentWeek ? "the current week inclusive" : "completed weeks only"}.
-          Deposit = first trade’s deposit of that ISO week; PnL, $ = sum of that week’s trades; PnL, % = PnL / Deposit.
+          * Rows appear from the selected account’s first trade week, limited to{" "}
+          {includeCurrentWeek ? "the current week inclusive" : "completed weeks only"}. Deposit =
+          first trade’s deposit of that ISO week; PnL, $ = sum of that week’s trades; PnL, % =
+          PnL / Deposit.
         </p>
       </div>
     </div>
