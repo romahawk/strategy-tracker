@@ -1,4 +1,5 @@
 import { Line } from 'react-chartjs-2';
+import "chart.js/auto";
 import {
   Chart as ChartJS,
   LineElement,

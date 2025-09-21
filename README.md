@@ -1,42 +1,12 @@
-# 📈 Strategy Execution Tracker
+# React + Vite
 
-A React-based trading log app that helps traders manually track and analyze the performance of their strategies with full context, precision, and clarity.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## ✅ Features
+Currently, two official plugins are available:
 
-- 🎯 Log every trade with:
-  - Strategy context (Supertrend, MA200, USDT.D overlay, etc.)
-  - Entry, SL, TP1–TP3
-  - Direction, risk %, leverage, result
-- 💰 Calculates:
-  - SL %, SL $, TP % and $
-  - Risk exposure
-  - Commission
-  - Realized PnL and simulated next deposit
-- 🧠 Built-in logic for:
-  - Win/loss handling
-  - SL-only trades
-  - Partial TP exits (2/3 hit)
-- 💡 Intuitive layout using Tailwind CSS
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## 📦 Tech Stack
+## Expanding the ESLint configuration
 
-- React (Vite)
-- Tailwind CSS
-- Vanilla JS for calculations
-- GitHub Desktop + VS Code for version control
-
-## 🚀 Planned (Sprint 2+)
-
-- [ ] Save trades to localStorage / Firebase
-- [ ] Add filters, charts, and export options
-- [ ] Mobile responsiveness
-- [ ] Strategy-based analytics
-
----
-
-## 🛠️ Setup
-
-```bash
-npm install
-npm run dev
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
