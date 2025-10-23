@@ -69,6 +69,10 @@ export default function TradeForm({
     overlay: "blue",
     ma200: "ranging",
 
+    // NEW (Strategy 1 only): 5m signal + 5m MA200
+    buySell5m: "buy",     // "buy" | "sell"
+    ma2005m: "above",     // "above" | "below"
+
     // Strategy 2 – extra entry conditions
     chochBos15m: "",
     overlay1m: "",
@@ -445,6 +449,11 @@ export default function TradeForm({
       usdtTrend: "bear",
       overlay: "blue",
       ma200: "ranging",
+
+      // reset new S1 fields too
+      buySell5m: "buy",
+      ma2005m: "above",
+
       chochBos15m: "",
       overlay1m: "",
       bos1m: "",
@@ -561,6 +570,32 @@ export default function TradeForm({
               <option value="below">MA200: Below</option>
               <option value="ranging">MA200: Ranging</option>
             </select>
+
+            {/* NEW — Strategy 1 specific 5m toggles */}
+            {sid === 1 && (
+              <>
+                <select
+                  name="buySell5m"
+                  value={form.buySell5m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                  title="5m signal: Buy/Sell"
+                >
+                  <option value="buy">5m Signal: Buy</option>
+                  <option value="sell">5m Signal: Sell</option>
+                </select>
+                <select
+                  name="ma2005m"
+                  value={form.ma2005m}
+                  onChange={handleChange}
+                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+                  title="5m MA200 position"
+                >
+                  <option value="above">5m MA200: Above</option>
+                  <option value="below">5m MA200: Below</option>
+                </select>
+              </>
+            )}
 
             {sid === 2 && (
               <>
