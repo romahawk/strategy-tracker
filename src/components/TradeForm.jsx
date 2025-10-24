@@ -40,6 +40,39 @@ function pipValuePerLot(pair, entry) {
   return null;
 }
 
+// ------------------------
+function parseDateTimeToEpoch(dateStr, timeStr) {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const s = dateStr.replace(/\//g, "-").trim();
+
+  // YYYY-MM-DD
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const [_, y, mo, d] = m;
+    const [HH="0", MM="0", SS="0"] = (timeStr || "").split(":");
+    return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+  }
+  // DD-MM-YYYY
+  m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m) {
+    const [_, d, mo, y] = m;
+    const [HH="0", MM="0", SS="0"] = (timeStr || "").split(":");
+    return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+  }
+  // DD-MM-YY -> 20YY
+  m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/);
+  if (m) {
+    const [_, d, mo, yy] = m;
+    const y = 2000 + +yy;
+    const [HH="0", MM="0", SS="0"] = (timeStr || "").split(":");
+    return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+  }
+  return null;
+}
+
+
+// ------------------------
+
 export default function TradeForm({
   onAddTrade,
   editingTrade,
@@ -115,16 +148,63 @@ export default function TradeForm({
   });
 
   useEffect(() => {
-    if (editingTrade) {
-      setForm({ ...editingTrade });
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        deposit: initialDeposit ? initialDeposit.toString() : "",
-        screenshot: "",
-      }));
+  // robust parser: supports YYYY-MM-DD, DD-MM-YYYY, DD-MM-YY and "/" separators
+  const parseDateTimeToEpoch = (dateStr, timeStr) => {
+    if (!dateStr || typeof dateStr !== "string") return null;
+    const s = dateStr.replace(/\//g, "-").trim();
+
+    // YYYY-MM-DD
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [_, y, mo, d] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
     }
-  }, [editingTrade, initialDeposit]);
+    // DD-MM-YYYY
+    m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (m) {
+      const [_, d, mo, y] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    // DD-MM-YY -> 20YY
+    m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [_, d, mo, yy] = m;
+      const y = 2000 + +yy;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    return null;
+  };
+
+  if (editingTrade) {
+    // Ensure both timestamps exist and are correct when editing
+    const openedAtMs =
+      typeof editingTrade.openedAtMs === "number" && editingTrade.openedAtMs > 0
+        ? editingTrade.openedAtMs
+        : parseDateTimeToEpoch(editingTrade.date, editingTrade.time);
+
+    const createdAtMs =
+      typeof editingTrade.createdAtMs === "number" && editingTrade.createdAtMs > 0
+        ? editingTrade.createdAtMs
+        : Date.now();
+
+    setForm({ ...editingTrade, openedAtMs, createdAtMs });
+  } else {
+    // Seed new form with deposit + canonical timestamps
+    setForm((prev) => ({
+      ...prev,
+      deposit: initialDeposit ? String(initialDeposit) : (prev.deposit ?? ""),
+      screenshot: "",
+      openedAtMs:
+        parseDateTimeToEpoch(prev.date, prev.time) ??
+        (typeof prev.openedAtMs === "number" ? prev.openedAtMs : null),
+      createdAtMs:
+        typeof prev.createdAtMs === "number" ? prev.createdAtMs : Date.now(),
+    }));
+  }
+}, [editingTrade, initialDeposit]);
 
   // ------------------------
   // COMPUTATIONS
@@ -405,105 +485,198 @@ export default function TradeForm({
   // HANDLERS
   // ------------------------
 
-  const handleChange = (e) => {
-    const newForm = { ...form, [e.target.name]: e.target.value };
-    setForm(newForm);
+  // --- inside TradeForm.jsx ---
 
-    if (
-      e.target.name === "entry" ||
-      e.target.name === "sl" ||
-      e.target.name === "deposit" ||
-      e.target.name === "direction" ||
-      e.target.name === "pair" ||
-      e.target.name === "riskTargetPercent" ||
-      e.target.name === "usedDepositPercent" ||
-      e.target.name === "leverageX"
-    ) {
-      if (sid === 3) debouncedUpdateRisk_S3(newForm);
-      else debouncedUpdateRisk_S1_S2(newForm);
-    }
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
-    if (
-      e.target.name === "tp1" ||
-      e.target.name === "tp2" ||
-      e.target.name === "tp3" ||
-      e.target.name === "direction" ||
-      e.target.name === "tpsHit" ||
-      e.target.name === "entry" ||
-      e.target.name === "lots" ||
-      e.target.name === "result"
-    ) {
-      debouncedUpdateTP(newForm);
-      debouncedUpdateResult(newForm);
+  // robust local parser (supports YYYY-MM-DD, DD-MM-YYYY, DD-MM-YY and "/" separators)
+  const parseDateTimeToEpoch = (dateStr, timeStr) => {
+    if (!dateStr || typeof dateStr !== "string") return null;
+    const s = dateStr.replace(/\//g, "-").trim();
+
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); // YYYY-MM-DD
+    if (m) {
+      const [_, y, mo, d] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
     }
+    m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/); // DD-MM-YYYY
+    if (m) {
+      const [_, d, mo, y] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/); // DD-MM-YY -> 20YY
+    if (m) {
+      const [_, d, mo, yy] = m;
+      const y = 2000 + +yy;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    return null;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const id = editingTrade?.id ?? Date.now();
-    onAddTrade({ ...form, id, accountId: aid });
+  // keep openedAtMs in sync if date or time changes
+  const patch = { [name]: value };
+  if (name === "date" || name === "time") {
+    const newDate = name === "date" ? value : form.date;
+    const newTime = name === "time" ? value : form.time;
+    patch.openedAtMs = parseDateTimeToEpoch(newDate, newTime);
+  }
 
-    const carryOverDeposit =
-      form?.nextDeposit && !Number.isNaN(Number(form.nextDeposit))
-        ? String(Number(form.nextDeposit))
-        : initialDeposit
-        ? String(initialDeposit)
-        : "";
+  const newForm = { ...form, ...patch };
+  setForm(newForm);
 
-    setForm({
-      date: "",
-      time: "",
-      pair: "",
-      direction: "Long",
-      deposit: carryOverDeposit,
+  // risk recompute triggers
+  if (
+    name === "entry" ||
+    name === "sl" ||
+    name === "deposit" ||
+    name === "direction" ||
+    name === "pair" ||
+    name === "riskTargetPercent" ||
+    name === "usedDepositPercent" ||
+    name === "leverageX"
+  ) {
+    if (sid === 3) debouncedUpdateRisk_S3(newForm);
+    else debouncedUpdateRisk_S1_S2(newForm);
+  }
 
-      usedDepositPercent: "25",
-      leverageX: "5",
+  // TP / result recompute triggers
+  if (
+    name === "tp1" ||
+    name === "tp2" ||
+    name === "tp3" ||
+    name === "direction" ||
+    name === "tpsHit" ||
+    name === "entry" ||
+    name === "lots" ||
+    name === "result"
+  ) {
+    debouncedUpdateTP(newForm);
+    debouncedUpdateResult(newForm);
+  }
+};
 
-      stTrend: "bull",
-      usdtTrend: "bear",
-      overlay: "blue",
-      ma200: "ranging",
+const handleSubmit = (e) => {
+  e.preventDefault();
 
-      buySell5m: "buy",
-      ma2005m: "above",
+  // robust local parser (same as in handleChange)
+  const parseDateTimeToEpoch = (dateStr, timeStr) => {
+    if (!dateStr || typeof dateStr !== "string") return null;
+    const s = dateStr.replace(/\//g, "-").trim();
 
-      chochBos15m: "",
-      overlay1m: "",
-      bos1m: "",
-      ma2001m: "",
-
-      entry: "",
-      sl: "",
-      leverageAmount: "",
-      slPercent: "",
-      slDollar: "",
-      riskDollar: "",
-      riskPercent: "",
-      riskTargetPercent: "",
-      lots: "",
-      pipValue: "",
-
-      tp1: "",
-      tp2: "",
-      tp3: "",
-      tpsHit: "OPEN",
-      tp1Percent: "",
-      tp2Percent: "",
-      tp3Percent: "",
-      tp1Dollar: "",
-      tp2Dollar: "",
-      tp3Dollar: "",
-
-      result: "Open",
-      commission: "",
-      tpTotal: "",
-      pnl: "",
-      nextDeposit: "",
-
-      screenshot: "",
-    });
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); // YYYY-MM-DD
+    if (m) {
+      const [_, y, mo, d] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/); // DD-MM-YYYY
+    if (m) {
+      const [_, d, mo, y] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/); // DD-MM-YY -> 20YY
+    if (m) {
+      const [_, d, mo, yy] = m;
+      const y = 2000 + +yy;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    return null;
   };
+
+  const id = editingTrade?.id ?? Date.now();
+
+  // preserve createdAtMs on edit; set if new
+  const createdAtMs = typeof form.createdAtMs === "number"
+    ? form.createdAtMs
+    : (editingTrade?.createdAtMs ?? Date.now());
+
+  // always compute openedAtMs from current date/time
+  const openedAtMs =
+    parseDateTimeToEpoch(form.date, form.time) ??
+    editingTrade?.openedAtMs ??
+    Date.now();
+
+  onAddTrade({
+    ...form,
+    id,
+    accountId: aid,
+    createdAtMs,
+    openedAtMs,
+  });
+
+  const carryOverDeposit =
+    form?.nextDeposit && !Number.isNaN(Number(form.nextDeposit))
+      ? String(Number(form.nextDeposit))
+      : initialDeposit
+      ? String(initialDeposit)
+      : "";
+
+  // reset state for the next entry (keep defaults you use)
+  setForm({
+    date: "",
+    time: "",
+    pair: "",
+    direction: "Long",
+    deposit: carryOverDeposit,
+
+    usedDepositPercent: "25",
+    leverageX: "5",
+
+    stTrend: "bull",
+    usdtTrend: "bear",
+    overlay: "blue",
+    ma200: "ranging",
+
+    buySell5m: "buy",
+    ma2005m: "above",
+
+    chochBos15m: "",
+    overlay1m: "",
+    bos1m: "",
+    ma2001m: "",
+
+    entry: "",
+    sl: "",
+    leverageAmount: "",
+    slPercent: "",
+    slDollar: "",
+    riskDollar: "",
+    riskPercent: "",
+    riskTargetPercent: "",
+    lots: "",
+    pipValue: "",
+
+    tp1: "",
+    tp2: "",
+    tp3: "",
+    tpsHit: "OPEN",
+    tp1Percent: "",
+    tp1Dollar: "",
+    tp2Percent: "",
+    tp2Dollar: "",
+    tp3Percent: "",
+    tp3Dollar: "",
+
+    result: "Open",
+    commission: "",
+    tpTotal: "",
+    pnl: "",
+    nextDeposit: "",
+
+    screenshot: "",
+
+    // seed timestamps for the next trade
+    openedAtMs: null,
+    createdAtMs: Date.now(),
+  });
+};
+
 
   // ------------------------
   // RENDER

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
 import {
   Pencil,
@@ -26,10 +26,76 @@ export default function TradeTable({
   const [expandedRows, setExpandedRows] = useState({});
 
   const rowsPerPage = 10;
-  const totalPages = Math.ceil(trades.length / rowsPerPage);
+
+  // ---------- bulletproof parser ----------
+  const parseDateTimeToEpoch = (dateStr, timeStr) => {
+    if (!dateStr || typeof dateStr !== "string") return 0;
+    const s = dateStr.replace(/\//g, "-").trim();
+
+    // YYYY-MM-DD
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [_, y, mo, d] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    // DD-MM-YYYY
+    m = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (m) {
+      const [_, d, mo, y] = m;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    // DD-MM-YY -> 20YY
+    m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [_, d, mo, yy] = m;
+      const y = 2000 + +yy;
+      const [HH = "0", MM = "0", SS = "0"] = (timeStr || "").split(":");
+      return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
+    }
+    return 0;
+  };
+
+  const safeOpenedAtMs = (t) => {
+    // Prefer stored canonical epoch
+    if (typeof t?.openedAtMs === "number" && t.openedAtMs > 0) return t.openedAtMs;
+    // Backfill from date/time (supports legacy formats)
+    const ms = parseDateTimeToEpoch(t?.date, t?.time);
+    if (ms > 0) return ms;
+    // Last resort: createdAtMs/id
+    if (typeof t?.createdAtMs === "number" && t.createdAtMs > 0) return t.createdAtMs;
+    return 0;
+  };
+
+  // ---------- ALWAYS sort BEFORE using trades ----------
+  const sortedTrades = useMemo(() => {
+    const copy = Array.isArray(trades) ? [...trades] : [];
+    copy.sort((a, b) => {
+      const A = safeOpenedAtMs(a);
+      const B = safeOpenedAtMs(b);
+      if (A !== B) return A - B;
+
+      // tie-breakers for deterministic order
+      const ca = typeof a.createdAtMs === "number" ? a.createdAtMs : 0;
+      const cb = typeof b.createdAtMs === "number" ? b.createdAtMs : 0;
+      if (ca !== cb) return ca - cb;
+
+      const idA = typeof a.id === "number" ? a.id : Number(a.id) || 0;
+      const idB = typeof b.id === "number" ? b.id : Number(b.id) || 0;
+      if (idA !== idB) return idA - idB;
+
+      const sa = `${a?.pair ?? ""}${a?.direction ?? ""}`;
+      const sb = `${b?.pair ?? ""}${b?.direction ?? ""}`;
+      return sa.localeCompare(sb);
+    });
+    return copy;
+  }, [trades]);
+
+  const totalPages = Math.ceil(sortedTrades.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedTrades = trades.slice(startIndex, endIndex);
+  const paginatedTrades = sortedTrades.slice(startIndex, endIndex);
 
   // ---- helpers for chart links ----
   const isDataImage = (src) => /^data:image\//i.test(src || "");
@@ -52,45 +118,35 @@ export default function TradeTable({
     }
   };
 
-  // ---- FIX: normalize money/signs per row before rendering ----
+  // ---- display helpers / normalization ----
   const n = (v, d = 0) => Number(v ?? d);
   const fx = (v, d = 2) => Number(n(v).toFixed(d));
 
   const normalizeTrade = (trade) => {
     const deposit = n(trade.deposit);
-    const commission = Math.abs(n(trade.commission)); // cost, shown positive
-
-    // Risk $ should be a negative cost
+    const commission = Math.abs(n(trade.commission));
     let riskDollar =
       trade.riskDollar !== undefined
         ? n(trade.riskDollar)
         : -(deposit * n(trade.riskPercent) / 100);
-
     if (riskDollar > 0) riskDollar = -Math.abs(riskDollar);
 
-    // SL $ should mirror risk side (negative cost if expressed in $)
-    let slDollar =
-      trade.slDollar !== undefined ? n(trade.slDollar) : riskDollar;
+    let slDollar = trade.slDollar !== undefined ? n(trade.slDollar) : riskDollar;
     if (slDollar > 0) slDollar = -Math.abs(slDollar);
 
-    // SL % should be negative for a stop-loss distance (optional)
-    let slPercent =
-      trade.slPercent !== undefined ? n(trade.slPercent) : undefined;
+    let slPercent = trade.slPercent !== undefined ? n(trade.slPercent) : undefined;
     if (slPercent !== undefined && slPercent > 0) {
       slPercent = -Math.abs(slPercent);
     }
 
-    // PnL recompute for losses if needed
     let pnl = n(trade.pnl);
     if (String(trade.result).toLowerCase() === "loss") {
-      const expected = riskDollar - commission; // negative
-      // if stored pnl looks wrong (>=0 or far from expected), fix it
+      const expected = riskDollar - commission;
       if (pnl >= 0 || Math.abs(pnl - expected) > 0.01) {
         pnl = expected;
       }
     }
 
-    // Next deposit consistency
     let nextDeposit =
       trade.nextDeposit !== undefined ? n(trade.nextDeposit) : deposit + pnl;
     if (Math.abs(nextDeposit - (deposit + pnl)) > 0.01) {
@@ -108,44 +164,42 @@ export default function TradeTable({
     };
   };
 
-  // ---- dynamic table layout helpers ----
-  const baseCols = 26;
-  const totalCols = baseCols;
-
-  const basicInfoBase = 5;
-  const basicInfoColspan = basicInfoBase;
+  const totalCols = 26;
+  const basicInfoColspan = 5;
 
   const toggleRow = (id) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = String(date.getFullYear()).slice(-2);
-    return `${day}-${month}-${year}`;
+    if (!dateString) return "";
+    const s = dateString.replace(/\//g, "-");
+    if (/^\d{2}-\d{2}-\d{2,4}$/.test(s)) return s;
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [_, y, mo, d] = m;
+      return `${d}-${mo}-${String(y).slice(-2)}`;
+    }
+    return s;
   };
 
-  // ---- light local backup ----
+  // ---- light local backup of the *sorted* list ----
   useEffect(() => {
-    if (trades.length > 0) {
+    if (sortedTrades.length > 0) {
       try {
         const backups = JSON.parse(localStorage.getItem("tradeBackups") || "[]");
-        backups.push({ trades, timestamp: new Date().toISOString() });
+        backups.push({ trades: sortedTrades, timestamp: new Date().toISOString() });
         if (backups.length > 10) backups.shift();
         localStorage.setItem("tradeBackups", JSON.stringify(backups));
-        toast.success("Backup saved to local storage", { autoClose: 2000 });
-      } catch (error) {
-        console.error("Backup save error:", error);
-        toast.error("Failed to save backup to local storage", { autoClose: 3000 });
+      } catch {
+        /* ignore backup errors */
       }
     }
-  }, [trades]);
+  }, [sortedTrades]);
 
   const exportBackup = () => {
     try {
-      const dataStr = JSON.stringify(trades, null, 2);
+      const dataStr = JSON.stringify(sortedTrades, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -155,10 +209,9 @@ export default function TradeTable({
         .slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success("Backup downloaded successfully", { autoClose: 2000 });
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to download backup", { autoClose: 3000 });
+      toast.success("Backup downloaded");
+    } catch {
+      toast.error("Failed to download backup");
     }
   };
 
@@ -171,39 +224,29 @@ export default function TradeTable({
       try {
         const importedTrades = JSON.parse(e.target.result);
         if (!Array.isArray(importedTrades)) {
-          throw new Error("Backup file must contain an array of trades");
+          throw new Error("Backup must contain an array of trades");
         }
-        for (const [index, trade] of importedTrades.entries()) {
-          if (!trade.id) throw new Error(`Trade at index ${index} missing 'id' field`);
-          if (!trade.date) throw new Error(`Trade at index ${index} missing 'date' field`);
-          if (trade.pair === undefined)
-            throw new Error(`Trade at index ${index} missing 'pair' field`);
-          if (typeof trade.id !== "string" && typeof trade.id !== "number") {
-            throw new Error(
-              `Trade at index ${index} has invalid 'id' type: ${typeof trade.id}`
-            );
-          }
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(trade.date)) {
-            throw new Error(`Trade at index ${index} has invalid 'date' format: ${trade.date}`);
-          }
+        for (const [index, t] of importedTrades.entries()) {
+          if (!t.id) throw new Error(`Trade #${index} missing 'id'`);
+          if (!t.date) throw new Error(`Trade #${index} missing 'date'`);
+          // ensure canonical timestamps exist
+          const ms = parseDateTimeToEpoch(t.date, t.time);
+          if (ms > 0) t.openedAtMs = ms;
+          if (typeof t.createdAtMs !== "number") t.createdAtMs = Date.now();
         }
         onUpdateTrades(importedTrades);
-        toast.success("Backup imported successfully", { autoClose: 2000 });
-      } catch (error) {
-        console.error("Import error:", error.message, error.stack);
-        toast.error(`Failed to import backup: ${error.message}`, { autoClose: 5000 });
+        toast.success("Backup imported");
+      } catch (err) {
+        toast.error(`Import failed: ${err.message}`);
       }
     };
-    reader.onerror = () => {
-      console.error("File reading error");
-      toast.error("Error reading backup file", { autoClose: 5000 });
-    };
+    reader.onerror = () => toast.error("Error reading backup file");
     reader.readAsText(file);
   };
 
   return (
     <div className="bg-[#0f172a] p-4 rounded-xl shadow-md mb-6 w-full">
-      {trades.length === 0 ? (
+      {sortedTrades.length === 0 ? (
         <div className="text-center py-4">
           <p className="text-gray-300 italic mb-4">No trades yet.</p>
           <div className="flex justify-center space-x-2">
@@ -230,124 +273,59 @@ export default function TradeTable({
                 >
                   #
                 </th>
-                <th
-                  colSpan={basicInfoColspan}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]"
-                >
+                <th colSpan={basicInfoColspan} className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]">
                   Basic Info
                 </th>
-                <th
-                  colSpan={6}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#ef4444]"
-                >
+                <th colSpan={6} className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#ef4444]">
                   Risk
                 </th>
-                <th
-                  colSpan={10}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#10b981]"
-                >
+                <th colSpan={10} className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#10b981]">
                   Take Profit
                 </th>
-                <th
-                  colSpan={4}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#7f5af0]"
-                >
+                <th colSpan={4} className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#7f5af0]">
                   Results
                 </th>
               </tr>
               <tr>
-                <th
-                  className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11"
-                  style={{ minWidth: "40px", width: "40px" }}
-                />
-                {/* Basic info (base 5) */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
-                  Date
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Time
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "140px", width: "140px" }}>
-                  Pair
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
-                  Dir
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Depo $
-                </th>
+                <th className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11" style={{ minWidth: "40px", width: "40px" }} />
+                {/* Basic info */}
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>Date</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Time</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "140px", width: "140px" }}>Pair</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px", width: "50px" }}>Dir</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Depo $</th>
 
                 {/* Risk */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  Entry
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  SL
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                  SL %
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                  SL $
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Risk %
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Risk $
-                </th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>Entry</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>SL</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL %</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>SL $</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk %</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
 
-                {/* Take Profits */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TPs Hit
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1 %
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1 $
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2 %
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2 $
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP3
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP3 %
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                  TP3 $
-                </th>
+                {/* TPs */}
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TPs Hit</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1 %</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP1 $</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2 %</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP2 $</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 %</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
 
                 {/* Results */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Result
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  Comm $
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                  PnL $
-                </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                  Next Depo $
-                </th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Result</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>Comm $</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>PnL $</th>
+                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>Next Depo $</th>
               </tr>
             </thead>
 
             <tbody className="max-h-[60vh] overflow-y-auto">
               {paginatedTrades.map((trade, index) => {
-                const t = normalizeTrade(trade); // <<< use normalized values
+                const t = normalizeTrade(trade);
                 return (
                   <React.Fragment key={t.id}>
                     {/* MAIN ROW */}
@@ -356,10 +334,7 @@ export default function TradeTable({
                         index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
                       }`}
                     >
-                      <td
-                        className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10"
-                        style={{ minWidth: "40px", width: "40px" }}
-                      >
+                      <td className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10" style={{ minWidth: "40px", width: "40px" }}>
                         {startIndex + index + 1}
                       </td>
 
@@ -370,11 +345,7 @@ export default function TradeTable({
                       <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
                         {t.time}
                       </td>
-                      <td
-                        className="p-2 text-gray-300 truncate"
-                        style={{ minWidth: "140px", width: "140px" }}
-                        title={t.pair}
-                      >
+                      <td className="p-2 text-gray-300 truncate" style={{ minWidth: "140px", width: "140px" }} title={t.pair}>
                         {t.pair}
                       </td>
                       <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
@@ -406,7 +377,7 @@ export default function TradeTable({
 
                       {/* TPs */}
                       <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tpsHit} TP(s)
+                        {t.tpsHit === "OPEN" ? "Not closed yet" : `${t.tpsHit} TP(s)`}
                       </td>
                       <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
                         {t.tp1}
@@ -444,9 +415,7 @@ export default function TradeTable({
                         ${t.commission}
                       </td>
                       <td
-                        className={`p-2 font-medium ${
-                          parseFloat(t.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
-                        }`}
+                        className={`p-2 font-medium ${parseFloat(t.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"}`}
                         style={{ minWidth: "70px", width: "70px" }}
                       >
                         ${t.pnl}
@@ -466,14 +435,6 @@ export default function TradeTable({
                               <span>USDT.D: {t.usdtTrend}</span>
                               <span>Overlay: {t.overlay}</span>
                               <span>MA200: {t.ma200}</span>
-                              {sid === 2 && (
-                                <>
-                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
-                                  <span>1m Overlay: {t.overlay1m || "-"}</span>
-                                  <span>1m BoS: {t.bos1m || "-"}</span>
-                                  <span>1m MA200: {t.ma2001m || "-"}</span>
-                                </>
-                              )}
                             </div>
 
                             <div className="flex items-center gap-2">
