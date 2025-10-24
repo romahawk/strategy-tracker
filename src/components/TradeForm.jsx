@@ -609,7 +609,7 @@ export default function TradeForm({
                 >
                   <option value="above">5m MA200: Above</option>
                   <option value="below">5m MA200: Below</option>
-                  <option value="ranging">5m MA200: Below</option>
+                  <option value="ranging">5m MA200: Ranging</option>
                 </select>
               </>
             )}
