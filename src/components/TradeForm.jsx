@@ -102,11 +102,15 @@ export default function TradeForm({
     overlay: "blue",
     ma200: "ranging",
 
+<<<<<<< HEAD
     // Strategy 1 specific
     buySell5m: "buy",
     ma2005m: "above",
 
     // Strategy 2 extras
+=======
+    // Strategy 2 – extra entry conditions
+>>>>>>> parent of e104997 (Updated TradeForm.jsx)
     chochBos15m: "",
     overlay1m: "",
     bos1m: "",
@@ -559,6 +563,7 @@ const handleChange = (e) => {
   }
 };
 
+<<<<<<< HEAD
 const handleSubmit = (e) => {
   e.preventDefault();
 
@@ -587,6 +592,43 @@ const handleSubmit = (e) => {
       return Date.UTC(+y, +mo - 1, +d, +HH, +MM, +SS);
     }
     return null;
+=======
+      stTrend: "bull",
+      usdtTrend: "bear",
+      overlay: "blue",
+      ma200: "ranging",
+      chochBos15m: "",
+      overlay1m: "",
+      bos1m: "",
+      ma2001m: "",
+      entry: "",
+      sl: "",
+      leverageAmount: "",
+      slPercent: "",
+      slDollar: "",
+      riskDollar: "",
+      riskPercent: "",
+      riskTargetPercent: "",
+      lots: "",
+      pipValue: "",
+      tp1: "",
+      tp2: "",
+      tp3: "",
+      tpsHit: "3",
+      tp1Percent: "",
+      tp2Percent: "",
+      tp3Percent: "",
+      tp1Dollar: "",
+      tp2Dollar: "",
+      tp3Dollar: "",
+      result: "Win",
+      commission: "",
+      tpTotal: "",
+      pnl: "",
+      nextDeposit: "",
+      screenshot: "",
+    });
+>>>>>>> parent of e104997 (Updated TradeForm.jsx)
   };
 
   const id = editingTrade?.id ?? Date.now();
@@ -761,6 +803,7 @@ const handleSubmit = (e) => {
               <option value="ranging">MA200: Ranging</option>
             </select>
 
+<<<<<<< HEAD
             {sid === 1 && (
               <>
                 <select
@@ -786,6 +829,8 @@ const handleSubmit = (e) => {
               </>
             )}
 
+=======
+>>>>>>> parent of e104997 (Updated TradeForm.jsx)
             {sid === 2 && (
               <>
                 <select name="chochBos15m" value={form.chochBos15m} onChange={handleChange}
