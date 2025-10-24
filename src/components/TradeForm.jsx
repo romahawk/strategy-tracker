@@ -59,9 +59,9 @@ export default function TradeForm({
     direction: "Long",
     deposit: "",
 
-    // NEW: position sizing for Strategy 1/2
-    usedDepositPercent: "25", // % of deposit used to size the position
-    leverageX: "5",           // leverage multiplier (x2, x5, x10...)
+    // Position sizing (S1/S2)
+    usedDepositPercent: "25",
+    leverageX: "5",
 
     // Entry conditions (shared)
     stTrend: "bull",
@@ -69,11 +69,11 @@ export default function TradeForm({
     overlay: "blue",
     ma200: "ranging",
 
-    // NEW (Strategy 1 only): 5m signal + 5m MA200
-    buySell5m: "buy",     // "buy" | "sell"
-    ma2005m: "above",     // "above" | "below"
+    // Strategy 1 specific
+    buySell5m: "buy",
+    ma2005m: "above",
 
-    // Strategy 2 – extra entry conditions
+    // Strategy 2 extras
     chochBos15m: "",
     overlay1m: "",
     bos1m: "",
@@ -82,20 +82,20 @@ export default function TradeForm({
     // Risk
     entry: "",
     sl: "",
-    leverageAmount: "", // $ position size after % and x are applied
+    leverageAmount: "",
     slPercent: "",
     slDollar: "",
     riskDollar: "",
-    riskPercent: "",         // % of deposit at risk (absolute)
-    riskTargetPercent: "",   // S3 input
-    lots: "",                // S3 output
-    pipValue: "",            // S3 display
+    riskPercent: "",
+    riskTargetPercent: "",
+    lots: "",
+    pipValue: "",
 
     // Targets
     tp1: "",
     tp2: "",
     tp3: "",
-    tpsHit: "3",
+    tpsHit: "OPEN", // NEW default: not closed yet
     tp1Percent: "",
     tp2Percent: "",
     tp3Percent: "",
@@ -104,7 +104,7 @@ export default function TradeForm({
     tp3Dollar: "",
 
     // Result
-    result: "Win",
+    result: "Open", // NEW default: result unknown
     commission: "",
     tpTotal: "",
     pnl: "",
@@ -130,7 +130,6 @@ export default function TradeForm({
   // COMPUTATIONS
   // ------------------------
 
-  // Strategy 1/2 (crypto-style) — compute using selected % of depo and Leverage X
   const debouncedUpdateRisk_S1_S2 = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
     if (!entry || !sl || !deposit) return;
@@ -140,30 +139,24 @@ export default function TradeForm({
     const d = parseFloat(deposit);
     if (isNaN(e) || isNaN(s) || isNaN(d) || d <= 0) return;
 
-    // NEW: position sizing
     const usedPct = Math.max(0, parseFloat(newForm.usedDepositPercent || "25"));
     const levX = Math.max(1, parseFloat(newForm.leverageX || "5"));
 
-    // position size in $ = deposit * (used% / 100) * leverageX
     const positionSize = d * (usedPct / 100) * levX;
 
-    // % move from entry to SL (negative if SL < entry for Long)
     const slP = direction === "Long" ? (s / e - 1) * 100 : (1 - s / e) * 100;
-
-    // $ at SL = positionSize × (SL%/100)  (will be negative for a loss)
     const slDollar = positionSize * (slP / 100);
 
-    // Risk $ mirrors the SL $ (we keep sign, but risk% uses absolute)
     const riskD = slDollar;
     const riskPabs = Math.abs(riskD) / d * 100;
 
     const updatedRisk = {
       ...newForm,
-      leverageAmount: positionSize.toFixed(2), // show $ size
+      leverageAmount: positionSize.toFixed(2),
       slPercent: slP.toFixed(2),
       slDollar: slDollar.toFixed(2),
       riskDollar: riskD.toFixed(2),
-      riskPercent: riskPabs.toFixed(2), // absolute % of deposit
+      riskPercent: riskPabs.toFixed(2),
       lots: "",
       pipValue: "",
     };
@@ -172,7 +165,6 @@ export default function TradeForm({
     debouncedUpdateTP(updatedRisk);
   }, 200);
 
-  // Strategy 3 (FX Lots from Risk%)
   const debouncedUpdateRisk_S3 = debounce((newForm) => {
     const { pair, entry, sl, deposit, direction, riskTargetPercent } = newForm;
     if (!pair || !entry || !sl || !deposit || !riskTargetPercent) return;
@@ -210,13 +202,26 @@ export default function TradeForm({
     debouncedUpdateTP(updatedRisk);
   }, 200);
 
-  // TP block (branch by strategy)
   const debouncedUpdateTP = debounce((newForm) => {
-    const { entry, tp1, tp2, tp3, direction, tpsHit } = newForm;
+    const { entry, tp1, tp2, tp3, direction, tpsHit, result } = newForm;
     const e = parseFloat(entry);
     if (!e) return;
 
-    // Strategy 1/2: percent × positionSize
+    // Skip computing realized TPs for open trades
+    if (tpsHit === "OPEN" || result === "Open") {
+      const updated = {
+        ...newForm,
+        tp1Percent: "",
+        tp1Dollar: "",
+        tp2Percent: "",
+        tp2Dollar: "",
+        tp3Percent: "",
+        tp3Dollar: "",
+      };
+      setForm(updated);
+      return;
+    }
+
     if (sid === 1 || sid === 2) {
       const posSize = parseFloat(newForm.leverageAmount);
       if (!posSize) return;
@@ -248,16 +253,19 @@ export default function TradeForm({
         tp3Data = { percent: "", dollar: "0.00" };
       }
 
-      let autoResult = newForm.result || "";
-      if (tpsHit === "SL") autoResult = "Loss";
-      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+      // Only auto-set result if user hasn't explicitly chosen Open
+      let autoResult = result;
+      if (result !== "Open") {
+        if (tpsHit === "SL") autoResult = "Loss";
+        else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+      }
 
       const tpSum =
         (parseFloat(tp1Data.dollar || 0) || 0) +
         (parseFloat(tp2Data.dollar || 0) || 0) +
         (parseFloat(tp3Data.dollar || 0) || 0);
 
-      if (!autoResult) autoResult = tpSum > 0 ? "Win" : "Break Even";
+      if (!autoResult || autoResult === "") autoResult = tpSum > 0 ? "Win" : "Break Even";
 
       const updated = {
         ...newForm,
@@ -274,7 +282,7 @@ export default function TradeForm({
       return;
     }
 
-    // Strategy 3: FX — dollars from (lots × pipValue × pips_to_TP)
+    // Strategy 3 (FX)
     const pair = newForm.pair;
     const lots = parseFloat(newForm.lots);
     const pv = parseFloat(newForm.pipValue);
@@ -309,16 +317,18 @@ export default function TradeForm({
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    let autoResult = newForm.result || "";
-    if (tpsHit === "SL") autoResult = "Loss";
-    else if (tpsHit === "1" || tpsHit === "2" || "3") autoResult = "Win";
+    let autoResult = newForm.result;
+    if (autoResult !== "Open") {
+      if (tpsHit === "SL") autoResult = "Loss";
+      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+    }
 
     const tpSum =
       (parseFloat(tp1Data.dollar || 0) || 0) +
       (parseFloat(tp2Data.dollar || 0) || 0) +
       (parseFloat(tp3Data.dollar || 0) || 0);
 
-    if (!autoResult) autoResult = tpSum > 0 ? "Win" : "Break Even";
+    if (!autoResult || autoResult === "") autoResult = tpSum > 0 ? "Win" : "Break Even";
 
     const updated = {
       ...newForm,
@@ -334,21 +344,31 @@ export default function TradeForm({
     debouncedUpdateResult(updated);
   }, 200);
 
-  // Result block
   const debouncedUpdateResult = debounce((newForm) => {
-    const { deposit, tpsHit } = newForm;
+    const { deposit, tpsHit, result } = newForm;
     const d = parseFloat(deposit);
     if (!d) return;
 
-    // Commission (preserve your old logic)
+    // If trade is open, keep realized metrics empty
+    if (result === "Open" || tpsHit === "OPEN") {
+      setForm((prev) => ({
+        ...prev,
+        commission: "",
+        tpTotal: "",
+        pnl: "",
+        nextDeposit: "",
+      }));
+      return;
+    }
+
+    // Commission (if you want it when closed; keep simple model)
     let commission = 0;
     if (sid === 1 || sid === 2) {
       const posSize = parseFloat(newForm.leverageAmount);
-      if (!posSize) return;
-      // simple fee model: maker/taker rate on notional
-      // keep same asymmetry by direction if you had it earlier
-      const cRate = 0.0004; // 0.04% — tweak if you used another
-      commission = posSize * cRate;
+      if (posSize) {
+        const cRate = 0.0004;
+        commission = posSize * cRate;
+      }
     }
 
     const tp1 = parseFloat(newForm.tp1Dollar) || 0;
@@ -359,7 +379,7 @@ export default function TradeForm({
     const slAtRisk = Math.abs(parseFloat(newForm.riskDollar) || 0);
 
     let res = newForm.result;
-    if (!res) {
+    if (!res || res === "Open") {
       if (tpsHit === "SL") res = "Loss";
       else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") res = "Win";
       else res = tpSum > 0 ? "Win" : slAtRisk > 0 ? "Loss" : "Break Even";
@@ -389,7 +409,6 @@ export default function TradeForm({
     const newForm = { ...form, [e.target.name]: e.target.value };
     setForm(newForm);
 
-    // Risk depends on entry/sl/deposit/direction and NEW controls for S1/S2
     if (
       e.target.name === "entry" ||
       e.target.name === "sl" ||
@@ -397,14 +416,13 @@ export default function TradeForm({
       e.target.name === "direction" ||
       e.target.name === "pair" ||
       e.target.name === "riskTargetPercent" ||
-      e.target.name === "usedDepositPercent" || // NEW
-      e.target.name === "leverageX"              // NEW
+      e.target.name === "usedDepositPercent" ||
+      e.target.name === "leverageX"
     ) {
       if (sid === 3) debouncedUpdateRisk_S3(newForm);
       else debouncedUpdateRisk_S1_S2(newForm);
     }
 
-    // TP math depends on entry, direction, TPs, tpsHit (+ lots & pipValue for S3)
     if (
       e.target.name === "tp1" ||
       e.target.name === "tp2" ||
@@ -412,13 +430,10 @@ export default function TradeForm({
       e.target.name === "direction" ||
       e.target.name === "tpsHit" ||
       e.target.name === "entry" ||
-      e.target.name === "lots"
+      e.target.name === "lots" ||
+      e.target.name === "result"
     ) {
       debouncedUpdateTP(newForm);
-    }
-
-    // Manual result change → re-calc PnL
-    if (e.target.name === "result") {
       debouncedUpdateResult(newForm);
     }
   };
@@ -450,7 +465,6 @@ export default function TradeForm({
       overlay: "blue",
       ma200: "ranging",
 
-      // reset new S1 fields too
       buySell5m: "buy",
       ma2005m: "above",
 
@@ -458,6 +472,7 @@ export default function TradeForm({
       overlay1m: "",
       bos1m: "",
       ma2001m: "",
+
       entry: "",
       sl: "",
       leverageAmount: "",
@@ -468,21 +483,24 @@ export default function TradeForm({
       riskTargetPercent: "",
       lots: "",
       pipValue: "",
+
       tp1: "",
       tp2: "",
       tp3: "",
-      tpsHit: "3",
+      tpsHit: "OPEN",
       tp1Percent: "",
       tp2Percent: "",
       tp3Percent: "",
       tp1Dollar: "",
       tp2Dollar: "",
       tp3Dollar: "",
-      result: "Win",
+
+      result: "Open",
       commission: "",
       tpTotal: "",
       pnl: "",
       nextDeposit: "",
+
       screenshot: "",
     });
   };
@@ -524,7 +542,6 @@ export default function TradeForm({
             <input name="deposit" type="number" placeholder="Depo $" value={form.deposit} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.01" required />
 
-            {/* NEW: % of deposit used */}
             {(sid === 1 || sid === 2) ? (
               <select
                 name="usedDepositPercent"
@@ -571,7 +588,6 @@ export default function TradeForm({
               <option value="ranging">MA200: Ranging</option>
             </select>
 
-            {/* NEW — Strategy 1 specific 5m toggles */}
             {sid === 1 && (
               <>
                 <select
@@ -642,7 +658,6 @@ export default function TradeForm({
             <input name="sl" type="number" placeholder="SL (price)" value={form.sl} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" required />
 
-            {/* NEW: Leverage X selector for Strategy 1/2 */}
             {(sid === 1 || sid === 2) ? (
               <>
                 <select
@@ -685,11 +700,11 @@ export default function TradeForm({
               disabled
               value={`Risk %: ${form.riskPercent}%`}
               className={`bg-[#1e293b] p-1 rounded opacity-70 focus:outline-none ${
-                riskTooHigh
+                Number(form.riskPercent) > 10
                   ? "border border-red-500 ring-1 ring-red-500 text-red-300"
                   : "border border-gray-600 text-white"
               }`}
-              title={riskTooHigh ? "Risk per trade exceeds 10% of deposit" : ""}
+              title={Number(form.riskPercent) > 10 ? "Risk per trade exceeds 10% of deposit" : ""}
             />
           </div>
         </div>
@@ -702,6 +717,7 @@ export default function TradeForm({
           <div className="grid grid-cols-2 gap-1">
             <select name="tpsHit" value={form.tpsHit} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
+              <option value="OPEN">Not closed yet</option>
               <option value="3">3 TPs</option>
               <option value="2">2 TPs</option>
               <option value="SL">SL</option>
@@ -711,18 +727,18 @@ export default function TradeForm({
 
             <input name="tp1" type="number" placeholder="TP1" value={form.tp1} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP1 %: ${form.tp1Percent}%`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP1 $: $${form.tp1Dollar}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP1 %: ${form.tp1Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP1 $: ${form.tp1Dollar ? `$${form.tp1Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
 
             <input name="tp2" type="number" placeholder="TP2" value={form.tp2} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP2 %: ${form.tp2Percent}%`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP2 $: $${form.tp2Dollar}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP2 %: ${form.tp2Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP2 $: ${form.tp2Dollar ? `$${form.tp2Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
 
             <input name="tp3" type="number" placeholder="TP3" value={form.tp3} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP3 %: ${form.tp3Percent}%`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP3 $: $${form.tp3Dollar}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP3 %: ${form.tp3Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP3 $: ${form.tp3Dollar ? `$${form.tp3Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
           </div>
         </div>
 
@@ -748,14 +764,15 @@ export default function TradeForm({
           <div className="grid grid-cols-2 gap-1">
             <select name="result" value={form.result} onChange={handleChange}
               className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
+              <option value="Open">Open (result unknown)</option>
               <option value="Win">Win</option>
               <option value="Loss">Loss</option>
               <option value="Break Even">Break Even</option>
             </select>
-            <input disabled value={`Comm: $${form.commission}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP Tot: $${form.tpTotal}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`PnL: $${form.pnl}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`Next Dep: $${form.nextDeposit}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`Comm: ${form.commission ? `$${form.commission}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`TP Tot: ${form.tpTotal ? `$${form.tpTotal}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`PnL: ${form.pnl ? `$${form.pnl}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
+            <input disabled value={`Next Dep: ${form.nextDeposit ? `$${form.nextDeposit}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
           </div>
         </div>
       </div>
@@ -765,7 +782,7 @@ export default function TradeForm({
           type="submit"
           className="bg-[#00ffa3] text-black font-semibold px-3 py-1 rounded hover:brightness-110 focus:ring-1 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_5px_#00ffa3] hover:shadow-[0_0_10px_#00ffa3] inline-flex items-center gap-2"
         >
-          <Check className="w-4 h-4" />
+        <Check className="w-4 h-4" />
           {editingTrade ? "Update" : "Save"}
         </button>
       </div>
