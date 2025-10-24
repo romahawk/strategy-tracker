@@ -103,12 +103,15 @@ export default function TradeForm({
     ma200: "ranging",
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     // Strategy 1 specific
     buySell5m: "buy",
     ma2005m: "above",
 
     // Strategy 2 extras
 =======
+=======
+>>>>>>> parent of e104997 (Updated TradeForm.jsx)
     // Strategy 2 – extra entry conditions
 >>>>>>> parent of e104997 (Updated TradeForm.jsx)
     chochBos15m: "",
@@ -804,6 +807,7 @@ const handleSubmit = (e) => {
             </select>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             {sid === 1 && (
               <>
                 <select
@@ -829,6 +833,8 @@ const handleSubmit = (e) => {
               </>
             )}
 
+=======
+>>>>>>> parent of e104997 (Updated TradeForm.jsx)
 =======
 >>>>>>> parent of e104997 (Updated TradeForm.jsx)
             {sid === 2 && (
