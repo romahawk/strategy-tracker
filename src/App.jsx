@@ -317,7 +317,7 @@ export default function App() {
 
         <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
           {/* ===== NAVBAR ===== */}
-          <header className="h-14 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
+          <header className="h-16 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
             {/* Brand */}
             <div className="flex items-center gap-2 min-w-fit">
               <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
@@ -329,37 +329,40 @@ export default function App() {
             </div>
 
             {/* Main Tabs */}
-            <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2">
+            <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2 h-9">
               <Tab
-                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
                 selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
               >
                 Live
               </Tab>
               <Tab
-                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
                 selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
               >
                 Backtest
               </Tab>
               <Tab
-                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
                 selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
               >
                 History
               </Tab>
             </TabList>
 
+            {/* Divider right after main tabs */}
+            <div className="h-7 w-px bg-white/10 mx-2" />
+
             {/* Strategy Filters */}
-            <div className="flex items-center gap-2 ml-3">
+            <div className="flex items-center gap-2 h-8">
               <StrategyNav />
             </div>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-white/10 mx-1" />
+            <div className="h-7 w-px bg-white/10 mx-1" />
 
             {/* Accounts */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 h-8">
               <AccountNav />
               <button className="h-8 w-8 rounded-full border border-white/10 text-white/80 hover:bg-white/5 flex items-center justify-center text-base leading-none">
                 +
@@ -398,7 +401,6 @@ export default function App() {
 
               {innerTabs.live === "all" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  
                   <FilterBar
                     filters={filters}
                     setFilters={(newFilters) => {
@@ -419,7 +421,6 @@ export default function App() {
 
               {innerTabs.live === "kpis" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  
                   <Metrics trades={filteredCurrentTrades} />
                 </div>
               )}
@@ -427,7 +428,6 @@ export default function App() {
               {innerTabs.live === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 
@@ -471,7 +471,6 @@ export default function App() {
 
               {innerTabs.backtest === "all" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  
                   <FilterBar
                     filters={filters}
                     setFilters={(newFilters) => {
@@ -492,7 +491,6 @@ export default function App() {
 
               {innerTabs.backtest === "kpis" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  
                   <Metrics trades={filteredCurrentTrades} />
                 </div>
               )}
@@ -500,7 +498,6 @@ export default function App() {
               {innerTabs.backtest === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 
@@ -569,7 +566,6 @@ export default function App() {
               {innerTabs.history === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 

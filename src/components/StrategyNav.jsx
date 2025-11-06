@@ -1,14 +1,12 @@
 import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const LS_KEY = "strategy:names"; // stores { "1": "Strategy 1", "2": "Strategy 2", "3": "FX Lots" }
+const LS_KEY = "strategy:names";
 
 export default function StrategyNav() {
-  const { strategyId, accountId } = useParams();
-  const sid = Number(strategyId) || 1;
+  const { accountId } = useParams();
   const aid = Number(accountId) || 1;
   const navigate = useNavigate();
-
   const [names, setNames] = useState({});
 
   useEffect(() => {
@@ -21,8 +19,8 @@ export default function StrategyNav() {
           return;
         }
       }
-    } catch {}
-    const def = { "1": "Strategy 1", "2": "Strategy 2", "3": "FX Lots" };
+    } catch (_) {}
+    const def = { "1": "15m ST", "2": "1m BoS", "3": "Fx" };
     localStorage.setItem(LS_KEY, JSON.stringify(def));
     setNames(def);
   }, []);
@@ -39,40 +37,45 @@ export default function StrategyNav() {
     const trimmed = proposed.trim();
     if (!trimmed || trimmed === current) return;
     if (!window.confirm(`Rename strategy to "${trimmed}"?`)) return;
-
     const next = { ...names, [id]: trimmed };
     persist(next);
     navigate(`/strategy/${id}/account/${aid}`, { replace: true });
   };
 
-  const linkCls = ({ isActive }) =>
-    `px-4 py-1.5 rounded-full border text-sm transition cursor-pointer ${
-      isActive
-        ? "border-purple-400 text-white"
-        : "border-slate-600 text-gray-300 hover:border-purple-300"
-    }`;
-
-  // now we have 3 strategies
   const strategyIds = [1, 2, 3];
 
+  const pillClasses = ({ isActive }) =>
+    [
+      "px-4 h-7 flex items-center rounded-full text-xs font-medium transition",
+      isActive
+        ? "bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+        : "text-slate-200/80 hover:text-white hover:bg-white/5",
+    ].join(" ");
+
   return (
-    <div className="flex items-center gap-2">
-      {strategyIds.map((id) => (
-        <NavLink
-          key={id}
-          to={`/strategy/${id}/account/${aid}`}
-          className={linkCls}
-          title="Double-click to rename"
-          onClick={(e) => {
-            if (e.detail === 2) {
-              e.preventDefault();
-              renameStrategy(String(id));
-            }
-          }}
-        >
-          {names?.[id] || `Strategy ${id}`}
-        </NavLink>
-      ))}
+    <div className="relative flex items-center">
+      <div className="flex items-center gap-1 bg-[#101726] rounded-full px-1 py-1 border border-white/5 h-8">
+        {strategyIds.map((id) => (
+          <NavLink
+            key={id}
+            to={`/strategy/${id}/account/${aid}`}
+            className={pillClasses}
+            title="Double-click to rename"
+            onClick={(e) => {
+              if (e.detail === 2) {
+                e.preventDefault();
+                renameStrategy(String(id));
+              }
+            }}
+          >
+            {names?.[id] || `Strategy ${id}`}
+          </NavLink>
+        ))}
+      </div>
+      {/* label floats lower, doesn’t push pills down */}
+      <span className="absolute left-1/2 -bottom-4 -translate-x-1/2 text-[9px] uppercase tracking-wide text-slate-300/80 pointer-events-none">
+        Strategies
+      </span>
     </div>
   );
 }
