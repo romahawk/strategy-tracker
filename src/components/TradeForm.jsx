@@ -1,15 +1,14 @@
+// src/components/trades/TradeForm.jsx
 import { useState, useEffect } from "react";
 import { debounce } from "lodash";
-import {
-  PlusCircle,
-  CalendarDays,
-  Layers,
-  LineChart,
-  Shield,
-  Target as TargetIcon,
-  BarChart3,
-  Check,
-} from "lucide-react";
+import { PlusCircle } from "lucide-react";
+
+import TradeInfoSection from "./trades/TradeInfoSection";
+import EntryConditionsSection from "./trades/EntryConditionsSection";
+import RiskSetupSection from "./trades/RiskSetupSection";
+import TargetsSection from "./trades/TargetsSection";
+import ChartSection from "./trades/ChartSection";
+import ResultSection from "./trades/ResultSection";
 
 // ---- FX helpers ----
 const SUPPORTED_FX = new Set([
@@ -95,7 +94,7 @@ export default function TradeForm({
     tp1: "",
     tp2: "",
     tp3: "",
-    tpsHit: "OPEN", // NEW default: not closed yet
+    tpsHit: "OPEN",
     tp1Percent: "",
     tp2Percent: "",
     tp3Percent: "",
@@ -104,7 +103,7 @@ export default function TradeForm({
     tp3Dollar: "",
 
     // Result
-    result: "Open", // NEW default: result unknown
+    result: "Open",
     commission: "",
     tpTotal: "",
     pnl: "",
@@ -114,6 +113,9 @@ export default function TradeForm({
     screenshot: "",
   });
 
+  // ------------------------
+  // INIT / EDIT
+  // ------------------------
   useEffect(() => {
     if (editingTrade) {
       setForm({ ...editingTrade });
@@ -127,7 +129,7 @@ export default function TradeForm({
   }, [editingTrade, initialDeposit]);
 
   // ------------------------
-  // COMPUTATIONS
+  // DEBOUNCED CALCS
   // ------------------------
 
   const debouncedUpdateRisk_S1_S2 = debounce((newForm) => {
@@ -207,7 +209,7 @@ export default function TradeForm({
     const e = parseFloat(entry);
     if (!e) return;
 
-    // Skip computing realized TPs for open trades
+    // open trades – no realized TPs
     if (tpsHit === "OPEN" || result === "Open") {
       const updated = {
         ...newForm,
@@ -253,7 +255,6 @@ export default function TradeForm({
         tp3Data = { percent: "", dollar: "0.00" };
       }
 
-      // Only auto-set result if user hasn't explicitly chosen Open
       let autoResult = result;
       if (result !== "Open") {
         if (tpsHit === "SL") autoResult = "Loss";
@@ -349,7 +350,6 @@ export default function TradeForm({
     const d = parseFloat(deposit);
     if (!d) return;
 
-    // If trade is open, keep realized metrics empty
     if (result === "Open" || tpsHit === "OPEN") {
       setForm((prev) => ({
         ...prev,
@@ -361,7 +361,6 @@ export default function TradeForm({
       return;
     }
 
-    // Commission (if you want it when closed; keep simple model)
     let commission = 0;
     if (sid === 1 || sid === 2) {
       const posSize = parseFloat(newForm.leverageAmount);
@@ -402,9 +401,8 @@ export default function TradeForm({
   }, 200);
 
   // ------------------------
-  // HANDLERS
+  // CHANGE HANDLER
   // ------------------------
-
   const handleChange = (e) => {
     const newForm = { ...form, [e.target.name]: e.target.value };
     setForm(newForm);
@@ -438,6 +436,9 @@ export default function TradeForm({
     }
   };
 
+  // ------------------------
+  // SUBMIT
+  // ------------------------
   const handleSubmit = (e) => {
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
@@ -506,10 +507,39 @@ export default function TradeForm({
   };
 
   // ------------------------
-  // RENDER
+  // INVALID FLAGS FOR ENTRY CONDITIONS
   // ------------------------
+  const isLong = form.direction === "Long";
+
+  const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
+  const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
+  const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
+  const ma200Invalid = isLong ? form.ma200 !== "above" : form.ma200 !== "below";
+
+  const buySell5mInvalid =
+    sid === 1
+      ? isLong
+        ? form.buySell5m !== "buy"
+        : form.buySell5m !== "sell"
+      : false;
+
+  const ma2005mInvalid =
+    sid === 1
+      ? isLong
+        ? form.ma2005m !== "above"
+        : form.ma2005m !== "below"
+      : false;
 
   const riskTooHigh = Number(form.riskPercent) > 10;
+
+  const invalidFlags = {
+    stInvalid,
+    usdtInvalid,
+    overlayInvalid,
+    ma200Invalid,
+    buySell5mInvalid,
+    ma2005mInvalid,
+  };
 
   return (
     <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
@@ -521,261 +551,31 @@ export default function TradeForm({
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {/* Trade Info */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5" /> Trade Info
-          </h3>
-          <div className="grid grid-cols-2 gap-1">
-            <input name="date" type="date" value={form.date} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" required />
-            <input name="time" type="time" value={form.time} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" required />
-            <input name="pair" placeholder="Pair (e.g. EURUSD)" value={form.pair} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" required />
-            <select name="direction" value={form.direction} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="Long">Long</option>
-              <option value="Short">Short</option>
-            </select>
+        <TradeInfoSection
+          form={form}
+          onChange={handleChange}
+          strategyId={sid}
+        />
 
-            <input name="deposit" type="number" placeholder="Depo $" value={form.deposit} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.01" required />
+        <EntryConditionsSection
+          form={form}
+          onChange={handleChange}
+          strategyId={sid}
+          invalidFlags={invalidFlags}
+        />
 
-            {(sid === 1 || sid === 2) ? (
-              <select
-                name="usedDepositPercent"
-                value={form.usedDepositPercent}
-                onChange={handleChange}
-                className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-                title="% of deposit used for position size"
-              >
-                {[10, 15, 20, 25, 33, 50, 75, 100].map((p) => (
-                  <option key={p} value={p}>{p}% of deposit</option>
-                ))}
-              </select>
-            ) : (
-              <div className="hidden md:block" />
-            )}
-          </div>
-        </div>
+        <RiskSetupSection
+          form={form}
+          onChange={handleChange}
+          strategyId={sid}
+          riskTooHigh={riskTooHigh}
+        />
 
-        {/* Entry Conditions */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <Layers className="w-5 h-5" /> Entry Conditions
-          </h3>
-          <div className="grid grid-cols-2 gap-1">
-            <select name="stTrend" value={form.stTrend} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="bull">15m ST: Bull</option>
-              <option value="bear">15m ST: Bear</option>
-            </select>
-            <select name="usdtTrend" value={form.usdtTrend} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="bull">15m USDT.D: Bull</option>
-              <option value="bear">15m USDT.D: Bear</option>
-            </select>
-            <select name="overlay" value={form.overlay} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="blue">Overlay: Blue</option>
-              <option value="red">Overlay: Red</option>
-            </select>
-            <select name="ma200" value={form.ma200} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="above">MA200: Above</option>
-              <option value="below">MA200: Below</option>
-              <option value="ranging">MA200: Ranging</option>
-            </select>
+        <TargetsSection form={form} onChange={handleChange} />
 
-            {sid === 1 && (
-              <>
-                <select
-                  name="buySell5m"
-                  value={form.buySell5m}
-                  onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-                  title="5m signal: Buy/Sell"
-                >
-                  <option value="buy">5m Signal: Buy</option>
-                  <option value="sell">5m Signal: Sell</option>
-                </select>
-                <select
-                  name="ma2005m"
-                  value={form.ma2005m}
-                  onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-                  title="5m MA200 position"
-                >
-                  <option value="above">5m MA200: Above</option>
-                  <option value="below">5m MA200: Below</option>
-                  <option value="ranging">5m MA200: Ranging</option>
-                </select>
-              </>
-            )}
+        <ChartSection form={form} onChange={handleChange} />
 
-            {sid === 2 && (
-              <>
-                <select name="chochBos15m" value={form.chochBos15m} onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-                  <option value="">15m CHoCH/BoS</option>
-                  <option value="bull CHoCH">Bull CHoCH</option>
-                  <option value="bull BoS">Bull BoS</option>
-                  <option value="bear CHoCH">Bear CHoCH</option>
-                  <option value="bear BoS">Bear BoS</option>
-                </select>
-                <select name="overlay1m" value={form.overlay1m} onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-                  <option value="">1m Overlay</option>
-                  <option value="blue">Blue</option>
-                  <option value="red">Red</option>
-                </select>
-                <select name="bos1m" value={form.bos1m} onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-                  <option value="">1m BoS</option>
-                  <option value="bull BoS">Bull BoS</option>
-                  <option value="bear BoS">Bear BoS</option>
-                </select>
-                <select name="ma2001m" value={form.ma2001m} onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-                  <option value="">1m MA200</option>
-                  <option value="above">Above</option>
-                  <option value="below">Below</option>
-                  <option value="ranging">Ranging</option>
-                </select>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Risk Setup */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <Shield className="w-5 h-5" /> Risk Setup
-          </h3>
-          <div className="grid grid-cols-2 gap-1">
-            <input name="entry" type="number" placeholder="Entry" value={form.entry} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" required />
-            <input name="sl" type="number" placeholder="SL (price)" value={form.sl} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" required />
-
-            {(sid === 1 || sid === 2) ? (
-              <>
-                <select
-                  name="leverageX"
-                  value={form.leverageX}
-                  onChange={handleChange}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-                  title="Leverage multiplier"
-                >
-                  {[1, 2, 3, 5, 10, 15, 20].map((x) => (
-                    <option key={x} value={x}>Leverage ×{x}</option>
-                  ))}
-                </select>
-                <input
-                  disabled
-                  value={`Lev $: ${form.leverageAmount || "-"}`}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
-                />
-              </>
-            ) : (
-              <>
-                <input
-                  disabled
-                  value={`Lots: ${form.lots || "-"}`}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
-                />
-                <input
-                  disabled
-                  value={`Pip $/lot: ${form.pipValue || "-"}`}
-                  className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70"
-                />
-              </>
-            )}
-
-            <input disabled value={`SL %: ${form.slPercent}%`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`SL $: $${form.slDollar}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-
-            {/* Risk % with conditional red highlight when > 10% */}
-            <input
-              disabled
-              value={`Risk %: ${form.riskPercent}%`}
-              className={`bg-[#1e293b] p-1 rounded opacity-70 focus:outline-none ${
-                Number(form.riskPercent) > 10
-                  ? "border border-red-500 ring-1 ring-red-500 text-red-300"
-                  : "border border-gray-600 text-white"
-              }`}
-              title={Number(form.riskPercent) > 10 ? "Risk per trade exceeds 10% of deposit" : ""}
-            />
-          </div>
-        </div>
-
-        {/* Targets */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <TargetIcon className="w-5 h-5" /> Targets
-          </h3>
-          <div className="grid grid-cols-2 gap-1">
-            <select name="tpsHit" value={form.tpsHit} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="OPEN">Not closed yet</option>
-              <option value="3">3 TPs</option>
-              <option value="2">2 TPs</option>
-              <option value="SL">SL</option>
-            </select>
-            <input disabled value={`SL %: ${form.slPercent}%`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`SL $: $${form.slDollar}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-
-            <input name="tp1" type="number" placeholder="TP1" value={form.tp1} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP1 %: ${form.tp1Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP1 $: ${form.tp1Dollar ? `$${form.tp1Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-
-            <input name="tp2" type="number" placeholder="TP2" value={form.tp2} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP2 %: ${form.tp2Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP2 $: ${form.tp2Dollar ? `$${form.tp2Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-
-            <input name="tp3" type="number" placeholder="TP3" value={form.tp3} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" min="0" step="0.00001" />
-            <input disabled value={`TP3 %: ${form.tp3Percent}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP3 $: ${form.tp3Dollar ? `$${form.tp3Dollar}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-          </div>
-        </div>
-
-        {/* Chart (URL) */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <LineChart className="w-5 h-5" /> Chart
-          </h3>
-          <div className="grid grid-cols-1 gap-2">
-            <input name="screenshot" type="url" placeholder="https://imgsh.net/i/dcc85420eb" value={form.screenshot} onChange={handleChange}
-              className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none" pattern="https?://.*" title="Enter a valid URL starting with http(s)://" />
-            {form.screenshot && (
-              <img src={form.screenshot} alt="Chart" className="mt-1 rounded max-h-32 object-contain" />
-            )}
-          </div>
-        </div>
-
-        {/* Result */}
-        <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-          <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" /> Result
-          </h3>
-          <div className="grid grid-cols-2 gap-1">
-            <select name="result" value={form.result} onChange={handleChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none">
-              <option value="Open">Open (result unknown)</option>
-              <option value="Win">Win</option>
-              <option value="Loss">Loss</option>
-              <option value="Break Even">Break Even</option>
-            </select>
-            <input disabled value={`Comm: ${form.commission ? `$${form.commission}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`TP Tot: ${form.tpTotal ? `$${form.tpTotal}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`PnL: ${form.pnl ? `$${form.pnl}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-            <input disabled value={`Next Dep: ${form.nextDeposit ? `$${form.nextDeposit}` : ""}`} className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded opacity-70" />
-          </div>
-        </div>
+        <ResultSection form={form} onChange={handleChange} />
       </div>
 
       <div className="mt-3 text-center">
@@ -783,7 +583,6 @@ export default function TradeForm({
           type="submit"
           className="bg-[#00ffa3] text-black font-semibold px-3 py-1 rounded hover:brightness-110 focus:ring-1 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_5px_#00ffa3] hover:shadow-[0_0_10px_#00ffa3] inline-flex items-center gap-2"
         >
-        <Check className="w-4 h-4" />
           {editingTrade ? "Update" : "Save"}
         </button>
       </div>
