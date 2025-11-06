@@ -31,7 +31,6 @@ export default function TradeTable({
   const endIndex = startIndex + rowsPerPage;
   const paginatedTrades = trades.slice(startIndex, endIndex);
 
-  // ---- helpers for chart links ----
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
     /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(src || "");
@@ -52,45 +51,37 @@ export default function TradeTable({
     }
   };
 
-  // ---- FIX: normalize money/signs per row before rendering ----
   const n = (v, d = 0) => Number(v ?? d);
   const fx = (v, d = 2) => Number(n(v).toFixed(d));
 
   const normalizeTrade = (trade) => {
     const deposit = n(trade.deposit);
-    const commission = Math.abs(n(trade.commission)); // cost, shown positive
+    const commission = Math.abs(n(trade.commission));
 
-    // Risk $ should be a negative cost
     let riskDollar =
       trade.riskDollar !== undefined
         ? n(trade.riskDollar)
         : -(deposit * n(trade.riskPercent) / 100);
-
     if (riskDollar > 0) riskDollar = -Math.abs(riskDollar);
 
-    // SL $ should mirror risk side (negative cost if expressed in $)
     let slDollar =
       trade.slDollar !== undefined ? n(trade.slDollar) : riskDollar;
     if (slDollar > 0) slDollar = -Math.abs(slDollar);
 
-    // SL % should be negative for a stop-loss distance (optional)
     let slPercent =
       trade.slPercent !== undefined ? n(trade.slPercent) : undefined;
     if (slPercent !== undefined && slPercent > 0) {
       slPercent = -Math.abs(slPercent);
     }
 
-    // PnL recompute for losses if needed
     let pnl = n(trade.pnl);
     if (String(trade.result).toLowerCase() === "loss") {
-      const expected = riskDollar - commission; // negative
-      // if stored pnl looks wrong (>=0 or far from expected), fix it
+      const expected = riskDollar - commission;
       if (pnl >= 0 || Math.abs(pnl - expected) > 0.01) {
         pnl = expected;
       }
     }
 
-    // Next deposit consistency
     let nextDeposit =
       trade.nextDeposit !== undefined ? n(trade.nextDeposit) : deposit + pnl;
     if (Math.abs(nextDeposit - (deposit + pnl)) > 0.01) {
@@ -108,12 +99,7 @@ export default function TradeTable({
     };
   };
 
-  // ---- dynamic table layout helpers ----
-  const baseCols = 26;
-  const totalCols = baseCols;
-
-  const basicInfoBase = 5;
-  const basicInfoColspan = basicInfoBase;
+  const totalCols = 26;
 
   const toggleRow = (id) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -127,7 +113,6 @@ export default function TradeTable({
     return `${day}-${month}-${year}`;
   };
 
-  // ---- light local backup ----
   useEffect(() => {
     if (trades.length > 0) {
       try {
@@ -138,7 +123,9 @@ export default function TradeTable({
         toast.success("Backup saved to local storage", { autoClose: 2000 });
       } catch (error) {
         console.error("Backup save error:", error);
-        toast.error("Failed to save backup to local storage", { autoClose: 3000 });
+        toast.error("Failed to save backup to local storage", {
+          autoClose: 3000,
+        });
       }
     }
   }, [trades]);
@@ -174,24 +161,33 @@ export default function TradeTable({
           throw new Error("Backup file must contain an array of trades");
         }
         for (const [index, trade] of importedTrades.entries()) {
-          if (!trade.id) throw new Error(`Trade at index ${index} missing 'id' field`);
-          if (!trade.date) throw new Error(`Trade at index ${index} missing 'date' field`);
+          if (!trade.id)
+            throw new Error(`Trade at index ${index} missing 'id' field`);
+          if (!trade.date)
+            throw new Error(`Trade at index ${index} missing 'date' field`);
           if (trade.pair === undefined)
             throw new Error(`Trade at index ${index} missing 'pair' field`);
-          if (typeof trade.id !== "string" && typeof trade.id !== "number") {
+          if (
+            typeof trade.id !== "string" &&
+            typeof trade.id !== "number"
+          ) {
             throw new Error(
               `Trade at index ${index} has invalid 'id' type: ${typeof trade.id}`
             );
           }
           if (!/^\d{4}-\d{2}-\d{2}$/.test(trade.date)) {
-            throw new Error(`Trade at index ${index} has invalid 'date' format: ${trade.date}`);
+            throw new Error(
+              `Trade at index ${index} has invalid 'date' format: ${trade.date}`
+            );
           }
         }
         onUpdateTrades(importedTrades);
         toast.success("Backup imported successfully", { autoClose: 2000 });
       } catch (error) {
         console.error("Import error:", error.message, error.stack);
-        toast.error(`Failed to import backup: ${error.message}`, { autoClose: 5000 });
+        toast.error(`Failed to import backup: ${error.message}`, {
+          autoClose: 5000,
+        });
       }
     };
     reader.onerror = () => {
@@ -202,273 +198,276 @@ export default function TradeTable({
   };
 
   return (
-    <div className="bg-[#0f172a] p-4 rounded-xl shadow-md mb-6 w-full">
+    <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
       {trades.length === 0 ? (
         <div className="text-center py-4">
-          <p className="text-gray-300 italic mb-4">No trades yet.</p>
-          <div className="flex justify-center space-x-2">
+          <p className="text-slate-300 italic mb-4">No trades yet.</p>
+          <div className="flex justify-center gap-2">
             <button
               onClick={exportBackup}
-              className="px-2 py-1 bg-[#10b981] text-white text-sm rounded hover:brightness-110 flex items-center gap-1"
+              className="h-8 px-4 rounded-full bg-emerald-500 text-white text-xs font-medium hover:brightness-110 flex items-center gap-1"
             >
-              <Download className="w-4 h-4" /> Download Backup
+              <Download className="w-4 h-4" /> Download backup
             </button>
-            <label className="px-2 py-1 bg-[#1e293b] text-white text-sm rounded hover:bg-[#00ffa3] hover:text-black cursor-pointer flex items-center gap-1">
-              <Upload className="w-4 h-4" /> Import Backup
-              <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+            <label className="h-8 px-4 rounded-full bg-slate-800 text-white text-xs font-medium hover:bg-slate-700 cursor-pointer flex items-center gap-1">
+              <Upload className="w-4 h-4" /> Import backup
+              <input
+                type="file"
+                accept=".json"
+                onChange={importBackup}
+                className="hidden"
+              />
             </label>
           </div>
         </div>
       ) : (
-        <div className="relative bg-[#1e293b] rounded-xl shadow-lg w-full">
-          <table className="table-auto w-full text-xs" style={{ tableLayout: "fixed" }}>
-            <thead className="sticky top-0 bg-[#0f172a] text-left border-b border-gray-600 z-10">
-              <tr>
+        <div className="relative rounded-xl overflow-hidden border border-white/5">
+          <table
+            className="table-auto w-full text-xs"
+            style={{ tableLayout: "fixed" }}
+          >
+            <thead className="sticky top-0 z-10">
+              {/* colored group row */}
+              <tr className="text-[11px] uppercase tracking-wide text-white">
                 <th
-                  className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11"
+                  className="p-2 font-semibold sticky left-0 bg-[#0f172a] z-20"
                   style={{ minWidth: "40px", width: "40px" }}
                 >
                   #
                 </th>
                 <th
-                  colSpan={basicInfoColspan}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#3b82f6]"
+                  colSpan={5}
+                  className="p-2"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(59,130,246,0.8) 0%, rgba(59,130,246,0) 100%)",
+                  }}
                 >
                   Basic Info
                 </th>
                 <th
                   colSpan={6}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#ef4444]"
+                  className="p-2 border-l border-white/10"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(248,113,113,0.8) 0%, rgba(248,113,113,0) 100%)",
+                  }}
                 >
                   Risk
                 </th>
                 <th
                   colSpan={10}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#10b981]"
+                  className="p-2 border-l border-white/10"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(16,185,129,0.8) 0%, rgba(16,185,129,0) 100%)",
+                  }}
                 >
                   Take Profit
                 </th>
                 <th
                   colSpan={4}
-                  className="p-2 font-semibold text-gray-300 bg-gradient-to-r from-[#1e293b] to-[#7f5af0]"
+                  className="p-2 border-l border-white/10"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(139,92,246,0.8) 0%, rgba(139,92,246,0) 100%)",
+                  }}
                 >
                   Results
                 </th>
               </tr>
-              <tr>
+
+              {/* column titles row */}
+              <tr className="text-slate-300/90 text-[11px] bg-[#0f172a] border-b border-white/5">
                 <th
-                  className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-11"
+                  className="p-2 sticky left-0 bg-[#0f172a] z-20"
                   style={{ minWidth: "40px", width: "40px" }}
                 />
-                {/* Basic info (base 5) */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
+                {/* Basic info */}
+                <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>
                   Date
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Time
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "140px", width: "140px" }}>
+                <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>
                   Pair
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
+                <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>
                   Dir
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th
+                  className="p-2 border-r border-white/10"
+                  style={{ minWidth: "70px", width: "70px" }}
+                >
                   Depo $
                 </th>
 
                 {/* Risk */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   Entry
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   SL
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
+                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>
                   SL %
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
+                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>
                   SL $
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Risk %
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th
+                  className="p-2 border-r border-white/10"
+                  style={{ minWidth: "70px", width: "70px" }}
+                >
                   Risk $
                 </th>
 
-                {/* Take Profits */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                {/* Take profit */}
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TPs Hit
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP1
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP1 %
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP1 $
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP2
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP2 %
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP2 $
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP3
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TP3 %
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                <th
+                  className="p-2 border-r border-white/10"
+                  style={{ minWidth: "45px", width: "45px" }}
+                >
                   TP3 $
                 </th>
 
                 {/* Results */}
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Result
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Comm $
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   PnL $
                 </th>
-                <th className="p-2 font-semibold text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                  Next Depo $
+                <th className="p-2" style={{ minWidth: "90px", width: "90px" }}>
+                  Next Depo
                 </th>
               </tr>
             </thead>
 
-            <tbody className="max-h-[60vh] overflow-y-auto">
+            <tbody>
               {paginatedTrades.map((trade, index) => {
-                const t = normalizeTrade(trade); // <<< use normalized values
+                const t = normalizeTrade(trade);
                 return (
                   <React.Fragment key={t.id}>
-                    {/* MAIN ROW */}
                     <tr
-                      className={`border-b border-gray-600 transition-all duration-200 ${
-                        index % 2 === 0 ? "bg-[#1e293b]/50" : "bg-[#0f172a]/50"
+                      className={`border-b border-white/5 transition ${
+                        index % 2 === 0
+                          ? "bg-[#0f172a]"
+                          : "bg-[#0f172a]/50"
                       }`}
                     >
                       <td
-                        className="p-2 font-semibold text-gray-300 sticky left-0 bg-inherit z-10"
+                        className="p-2 sticky left-0 bg-inherit z-10 font-medium text-slate-200"
                         style={{ minWidth: "40px", width: "40px" }}
                       >
                         {startIndex + index + 1}
                       </td>
-
-                      {/* Basic info */}
-                      <td className="p-2 text-gray-300" style={{ minWidth: "100px", width: "100px" }}>
-                        {formatDate(t.date)}
+                      {/* Basic Info */}
+                      <td className="p-2 text-slate-200">
+                        {t.date ? formatDate(t.date) : ""}
                       </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                        {t.time}
-                      </td>
+                      <td className="p-2 text-slate-200">{t.time}</td>
                       <td
-                        className="p-2 text-gray-300 truncate"
-                        style={{ minWidth: "140px", width: "140px" }}
+                        className="p-2 text-slate-200 truncate"
                         title={t.pair}
                       >
                         {t.pair}
                       </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "50px", width: "50px" }}>
-                        {t.direction}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                      <td className="p-2 text-slate-200">{t.direction}</td>
+                      <td className="p-2 text-slate-200 border-r border-white/10">
                         {t.deposit}
                       </td>
 
                       {/* Risk */}
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.entry}
+                      <td className="p-2 text-slate-200">{t.entry}</td>
+                      <td className="p-2 text-slate-200">{t.sl}</td>
+                      <td className="p-2 text-slate-200">
+                        {t.slPercent !== undefined ? `${t.slPercent}%` : ""}
                       </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.sl}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                        {t.slPercent}%
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "60px", width: "60px" }}>
-                        ${t.slDollar}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                      <td className="p-2 text-slate-200">${t.slDollar}</td>
+                      <td className="p-2 text-slate-200">
                         {t.riskPercent}%
                       </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
+                      <td className="p-2 text-slate-200 border-r border-white/10">
                         ${t.riskDollar}
                       </td>
 
-                      {/* TPs */}
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tpsHit} TP(s)
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp1}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp1Percent}%
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        ${t.tp1Dollar}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp2}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp2Percent}%
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        ${t.tp2Dollar}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp3}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
-                        {t.tp3Percent}%
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "45px", width: "45px" }}>
+                      {/* Take Profit */}
+                      <td className="p-2 text-slate-200">{t.tpsHit}</td>
+                      <td className="p-2 text-slate-200">{t.tp1}</td>
+                      <td className="p-2 text-slate-200">{t.tp1Percent}%</td>
+                      <td className="p-2 text-slate-200">${t.tp1Dollar}</td>
+                      <td className="p-2 text-slate-200">{t.tp2}</td>
+                      <td className="p-2 text-slate-200">{t.tp2Percent}%</td>
+                      <td className="p-2 text-slate-200">${t.tp2Dollar}</td>
+                      <td className="p-2 text-slate-200">{t.tp3}</td>
+                      <td className="p-2 text-slate-200">{t.tp3Percent}%</td>
+                      <td className="p-2 text-slate-200 border-r border-white/10">
                         ${t.tp3Dollar}
                       </td>
 
                       {/* Results */}
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                        {t.result}
-                      </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "70px", width: "70px" }}>
-                        ${t.commission}
-                      </td>
+                      <td className="p-2 text-slate-200">{t.result}</td>
+                      <td className="p-2 text-slate-200">${t.commission}</td>
                       <td
-                        className={`p-2 font-medium ${
-                          parseFloat(t.pnl) >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
+                        className={`p-2 font-semibold ${
+                          parseFloat(t.pnl) >= 0
+                            ? "text-emerald-400"
+                            : "text-rose-400"
                         }`}
-                        style={{ minWidth: "70px", width: "70px" }}
                       >
                         ${t.pnl}
                       </td>
-                      <td className="p-2 text-gray-300" style={{ minWidth: "90px", width: "90px" }}>
-                        {t.nextDeposit}
-                      </td>
+                      <td className="p-2 text-slate-200">{t.nextDeposit}</td>
                     </tr>
 
-                    {/* EXPANDED ROW */}
                     {expandedRows[t.id] && (
-                      <tr className="bg-[#0f172a]/70">
-                        <td colSpan={totalCols} className="p-2 text-gray-300">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="flex flex-wrap gap-2">
-                              <span>ST: {t.stTrend}</span>
-                              <span>USDT.D: {t.usdtTrend}</span>
-                              <span>Overlay: {t.overlay}</span>
-                              <span>MA200: {t.ma200}</span>
+                      <tr className="bg-[#020617]/50">
+                        <td colSpan={totalCols} className="p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                              <span>ST: {t.stTrend || "-"}</span>
+                              <span>USDT.D: {t.usdtTrend || "-"}</span>
+                              <span>Overlay: {t.overlay || "-"}</span>
+                              <span>MA200: {t.ma200 || "-"}</span>
                               {sid === 2 && (
                                 <>
-                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
+                                  <span>
+                                    15m CHoCH/BoS: {t.chochBos15m || "-"}
+                                  </span>
                                   <span>1m Overlay: {t.overlay1m || "-"}</span>
                                   <span>1m BoS: {t.bos1m || "-"}</span>
                                   <span>1m MA200: {t.ma2001m || "-"}</span>
@@ -479,24 +478,21 @@ export default function TradeTable({
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => onEdit(t)}
-                                className="px-2 py-1 bg-yellow-400 text-black text-xs rounded hover:bg-yellow-500 flex items-center justify-center"
-                                title="Edit"
+                                className="h-7 px-3 rounded-full bg-amber-400 text-black text-xs font-medium hover:brightness-110 flex items-center gap-1"
                               >
-                                <Pencil className="w-4 h-4" />
+                                <Pencil className="w-4 h-4" /> Edit
                               </button>
                               <button
                                 onClick={() => onDelete(t.id)}
-                                className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 flex items-center justify-center"
-                                title="Delete"
+                                className="h-7 px-3 rounded-full bg-rose-500 text-white text-xs font-medium hover:brightness-110 flex items-center gap-1"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" /> Delete
                               </button>
                               <button
                                 onClick={() => handleViewChart(t)}
-                                className="px-2 py-1 border border-[#00ffa3] text-[#00ffa3] text-xs rounded hover:bg-[#00ffa3] hover:text-black flex items-center justify-center"
-                                title="View Chart"
+                                className="h-7 px-3 rounded-full border border-emerald-400 text-emerald-200 text-xs font-medium hover:bg-emerald-400 hover:text-black flex items-center gap-1"
                               >
-                                <LineChart className="w-4 h-4" />
+                                <LineChart className="w-4 h-4" /> Chart
                               </button>
                             </div>
                           </div>
@@ -504,20 +500,19 @@ export default function TradeTable({
                       </tr>
                     )}
 
-                    {/* TOGGLE ROW */}
                     <tr>
                       <td colSpan={totalCols} className="p-1">
                         <button
                           onClick={() => toggleRow(t.id)}
-                          className="w-full text-center text-gray-300 hover:text-[#00ffa3] text-xs flex items-center justify-center gap-1"
+                          className="w-full text-center text-slate-400 hover:text-emerald-300 text-xs flex items-center justify-center gap-1 py-1"
                         >
                           {expandedRows[t.id] ? (
                             <>
-                              <ChevronUp className="w-4 h-4" /> Hide Details
+                              <ChevronUp className="w-4 h-4" /> Hide details
                             </>
                           ) : (
                             <>
-                              <ChevronDown className="w-4 h-4" /> Show More
+                              <ChevronDown className="w-4 h-4" /> Show more
                             </>
                           )}
                         </button>
@@ -529,36 +524,46 @@ export default function TradeTable({
             </tbody>
           </table>
 
-          {/* Pagination & backup controls */}
           {totalPages > 0 && (
-            <div className="flex justify-between items-center p-2 text-gray-300 w-full">
-              <div className="flex space-x-2">
+            <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-[#0f172a] border-t border-white/5">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
-                  className="px-2 py-1 bg-[#1e293b] rounded text-sm hover:bg-[#00ffa3] hover:text-black disabled:opacity-50"
+                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
                 >
                   Previous
                 </button>
-                <span className="text-sm">Page {currentPage} of {totalPages}</span>
+                <span className="text-xs text-slate-200">
+                  Page {currentPage} of {totalPages}
+                </span>
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
-                  className="px-2 py-1 bg-[#1e293b] rounded text-sm hover:bg-[#00ffa3] hover:text-black disabled:opacity-50"
+                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
                 >
                   Next
                 </button>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={exportBackup}
-                  className="px-2 py-1 bg-[#10b981] text-white text-sm rounded hover:brightness-110 flex items-center gap-1"
+                  className="h-8 px-3 rounded-full bg-emerald-500 text-white text-xs flex items-center gap-1 hover:brightness-110"
                 >
-                  <Download className="w-4 h-4" /> Download Backup
+                  <Download className="w-4 h-4" /> Backup
                 </button>
-                <label className="px-2 py-1 bg-[#1e293b] text-white text-sm rounded hover:bg-[#00ffa3] hover:text-black cursor-pointer flex items-center gap-1">
-                  <Upload className="w-4 h-4" /> Import Backup
-                  <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+                <label className="h-8 px-3 rounded-full bg-slate-800 text-white text-xs flex items-center gap-1 cursor-pointer hover:bg-slate-700">
+                  <Upload className="w-4 h-4" /> Import
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importBackup}
+                    className="hidden"
+                  />
                 </label>
               </div>
             </div>

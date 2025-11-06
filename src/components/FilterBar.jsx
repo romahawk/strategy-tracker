@@ -1,74 +1,84 @@
+import { Filter, X } from "lucide-react";
+
 export default function FilterBar({ filters, setFilters }) {
   const clearFilters = () => {
-    setFilters({ result: "", startDate: "", endDate: "", pair: "" });
+    setFilters({ result: "", startDate: "", endDate: "", pair: "", mode: filters.mode });
   };
 
   return (
-    <div className="bg-[#0f172a] p-6 rounded-2xl shadow-lg mb-6">
-      <div className="bg-[#1e293b] text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          {/* Result Filter */}
-          <div className="flex flex-col gap-2">
-            <label className="font-semibold text-gray-300">Result:</label>
-            <select
-              name="result"
-              value={filters.result}
-              onChange={(e) => setFilters({ ...filters, result: e.target.value })}
-              className="bg-[#1e293b] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
-            >
-              <option value="">All Results</option>
-              <option value="Win">✅ Win</option>
-              <option value="Loss">❌ Loss</option>
-              <option value="Break Even">➖ Break Even</option>
-            </select>
-          </div>
+    <div className="bg-[#0b1120] border border-white/5 rounded-2xl px-4 py-3 mb-4">
+      {/* header */}
+      <div className="flex items-center gap-2 mb-3">
+        <Filter className="w-4 h-4 text-emerald-400" />
+        <h3 className="text-sm font-semibold text-white">Filters</h3>
+        {(filters.result || filters.startDate || filters.endDate || filters.pair) && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-200">
+            active
+          </span>
+        )}
+      </div>
 
-          {/* Start Date */}
-          <div className="flex flex-col gap-2">
-            <label className="font-semibold text-gray-300">From Date:</label>
-            <input
-              type="date"
-              value={filters.startDate || ""}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-              className="bg-[#1e293b] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
-            />
-          </div>
-
-          {/* End Date */}
-          <div className="flex flex-col gap-2">
-            <label className="font-semibold text-gray-300">To Date:</label>
-            <input
-              type="date"
-              value={filters.endDate || ""}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-              className="bg-[#1e293b] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
-            />
-          </div>
-
-          {/* Pair Name */}
-          <div className="flex flex-col gap-2">
-            <label className="font-semibold text-gray-300">Pair:</label>
-            <input
-              type="text"
-              placeholder="e.g. AVAX-USDT"
-              value={filters.pair || ""}
-              onChange={(e) => setFilters({ ...filters, pair: e.target.value })}
-              className="bg-[#1e293b] border border-gray-600 text-white p-2 rounded-lg placeholder-gray-400 focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
-            />
-          </div>
-
-          {/* Clear Filters Button */}
-          <div className="flex flex-col gap-2 justify-end">
-            <label className="invisible">Clear</label>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="bg-[#00ffa3] text-black font-semibold px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_10px_#00ffa3] hover:shadow-[0_0_15px_#00ffa3]"
-            >
-              🔄 Clear Filters
-            </button>
-          </div>
+      {/* controls */}
+      <div className="flex flex-wrap gap-3 items-center">
+        {/* Result */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] text-slate-300">Result</label>
+          <select
+            name="result"
+            value={filters.result}
+            onChange={(e) => setFilters({ ...filters, result: e.target.value })}
+            className="h-8 bg-[#0f172a] border border-white/5 rounded-lg px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          >
+            <option value="">All</option>
+            <option value="Win">Win</option>
+            <option value="Loss">Loss</option>
+            <option value="Break Even">Break Even</option>
+          </select>
         </div>
+
+        {/* From */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] text-slate-300">From</label>
+          <input
+            type="date"
+            value={filters.startDate || ""}
+            onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+            className="h-8 bg-[#0f172a] border border-white/5 rounded-lg px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+
+        {/* To */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] text-slate-300">To</label>
+          <input
+            type="date"
+            value={filters.endDate || ""}
+            onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+            className="h-8 bg-[#0f172a] border border-white/5 rounded-lg px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+
+        {/* Pair */}
+        <div className="flex flex-col gap-1 min-w-[140px]">
+          <label className="text-[11px] text-slate-300">Pair</label>
+          <input
+            type="text"
+            placeholder="e.g. BTCUSDT"
+            value={filters.pair || ""}
+            onChange={(e) => setFilters({ ...filters, pair: e.target.value })}
+            className="h-8 bg-[#0f172a] border border-white/5 rounded-lg px-3 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+
+        {/* Clear */}
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="ml-auto h-8 px-3 rounded-full bg-slate-800 text-white text-xs flex items-center gap-1 hover:bg-slate-700 transition"
+        >
+          <X className="w-3 h-3" />
+          Clear
+        </button>
       </div>
     </div>
   );

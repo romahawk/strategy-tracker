@@ -566,12 +566,6 @@ export default function App() {
 
               {innerTabs.history === "all" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <div className="flex items-center gap-2 text-[#00ffa3]">
-                    <Search className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      All trades (history)
-                    </h2>
-                  </div>
                   <FilterBar
                     filters={filters}
                     setFilters={(newFilters) => {
