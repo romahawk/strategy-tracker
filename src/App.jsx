@@ -398,12 +398,7 @@ export default function App() {
 
               {innerTabs.live === "all" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <div className="flex items-center gap-2 text-[#00ffa3]">
-                    <Search className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      All trades (with filters)
-                    </h2>
-                  </div>
+                  
                   <FilterBar
                     filters={filters}
                     setFilters={(newFilters) => {
@@ -424,10 +419,7 @@ export default function App() {
 
               {innerTabs.live === "kpis" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <BarChart3 className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">KPIs</h2>
-                  </div>
+                  
                   <Metrics trades={filteredCurrentTrades} />
                 </div>
               )}
@@ -435,10 +427,7 @@ export default function App() {
               {innerTabs.live === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <TrendingUp className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">Equity curve</h2>
-                    </div>
+                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 
@@ -482,12 +471,7 @@ export default function App() {
 
               {innerTabs.backtest === "all" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <div className="flex items-center gap-2 text-[#00ffa3]">
-                    <Search className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      All trades (backtest)
-                    </h2>
-                  </div>
+                  
                   <FilterBar
                     filters={filters}
                     setFilters={(newFilters) => {
@@ -508,10 +492,7 @@ export default function App() {
 
               {innerTabs.backtest === "kpis" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <BarChart3 className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">KPIs (backtest)</h2>
-                  </div>
+                  
                   <Metrics trades={filteredCurrentTrades} />
                 </div>
               )}
@@ -519,12 +500,7 @@ export default function App() {
               {innerTabs.backtest === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <TrendingUp className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">
-                        Equity curve (backtest)
-                      </h2>
-                    </div>
+                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 
@@ -586,10 +562,6 @@ export default function App() {
 
               {innerTabs.history === "kpis" && (
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <BarChart3 className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">KPIs (history)</h2>
-                  </div>
                   <Metrics trades={filteredCurrentTrades} />
                 </div>
               )}
@@ -597,12 +569,7 @@ export default function App() {
               {innerTabs.history === "equity" && (
                 <div className="space-y-4">
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <TrendingUp className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">
-                        Equity curve (history)
-                      </h2>
-                    </div>
+                    
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
 
