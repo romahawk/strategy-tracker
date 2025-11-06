@@ -16,20 +16,26 @@ export default function EntryConditionsSection({
     ma2005mInvalid,
   } = invalidFlags;
 
+  const baseSelect =
+    "bg-[#0f172a] border border-white/5 text-white px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
+
+  const errorSelect =
+    "bg-[#0f172a] border border-red-500/70 text-white px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50";
+
   return (
-    <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-      <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-        <Layers className="w-5 h-5" /> Entry Conditions
-      </h3>
-      <div className="grid grid-cols-2 gap-1">
+    <div className="bg-[#111827] border border-white/5 rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Layers className="w-4 h-4 text-emerald-400" />
+        <h3 className="text-sm font-semibold text-white">Entry Conditions</h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         {/* 15m ST */}
         <select
           name="stTrend"
           value={form.stTrend}
           onChange={onChange}
-          className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-            stInvalid ? "border border-red-500 ring-1 ring-red-500" : "border border-gray-600"
-          }`}
+          className={stInvalid ? errorSelect : baseSelect}
         >
           <option value="bull">15m ST: Bull</option>
           <option value="bear">15m ST: Bear</option>
@@ -40,9 +46,7 @@ export default function EntryConditionsSection({
           name="usdtTrend"
           value={form.usdtTrend}
           onChange={onChange}
-          className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-            usdtInvalid ? "border border-red-500 ring-1 ring-red-500" : "border border-gray-600"
-          }`}
+          className={usdtInvalid ? errorSelect : baseSelect}
         >
           <option value="bull">15m USDT.D: Bull</option>
           <option value="bear">15m USDT.D: Bear</option>
@@ -53,9 +57,7 @@ export default function EntryConditionsSection({
           name="overlay"
           value={form.overlay}
           onChange={onChange}
-          className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-            overlayInvalid ? "border border-red-500 ring-1 ring-red-500" : "border border-gray-600"
-          }`}
+          className={overlayInvalid ? errorSelect : baseSelect}
         >
           <option value="blue">Overlay: Blue</option>
           <option value="red">Overlay: Red</option>
@@ -66,43 +68,32 @@ export default function EntryConditionsSection({
           name="ma200"
           value={form.ma200}
           onChange={onChange}
-          className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-            ma200Invalid ? "border border-red-500 ring-1 ring-red-500" : "border border-gray-600"
-          }`}
+          className={ma200Invalid ? errorSelect : baseSelect}
         >
           <option value="above">MA200: Above</option>
           <option value="below">MA200: Below</option>
           <option value="ranging">MA200: Ranging</option>
         </select>
 
+        {/* Strategy-specific */}
         {strategyId === 1 && (
           <>
-            {/* 5m signal */}
             <select
               name="buySell5m"
               value={form.buySell5m}
               onChange={onChange}
-              className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-                buySell5mInvalid
-                  ? "border border-red-500 ring-1 ring-red-500"
-                  : "border border-gray-600"
-              }`}
+              className={buySell5mInvalid ? errorSelect : baseSelect}
               title="5m signal: Buy/Sell"
             >
               <option value="buy">5m Signal: Buy</option>
               <option value="sell">5m Signal: Sell</option>
             </select>
 
-            {/* 5m MA200 */}
             <select
               name="ma2005m"
               value={form.ma2005m}
               onChange={onChange}
-              className={`bg-[#1e293b] p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none ${
-                ma2005mInvalid
-                  ? "border border-red-500 ring-1 ring-red-500"
-                  : "border border-gray-600"
-              }`}
+              className={ma2005mInvalid ? errorSelect : baseSelect}
               title="5m MA200 position"
             >
               <option value="above">5m MA200: Above</option>
@@ -118,7 +109,7 @@ export default function EntryConditionsSection({
               name="chochBos15m"
               value={form.chochBos15m}
               onChange={onChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              className={baseSelect}
             >
               <option value="">15m CHoCH/BoS</option>
               <option value="bull CHoCH">Bull CHoCH</option>
@@ -130,7 +121,7 @@ export default function EntryConditionsSection({
               name="overlay1m"
               value={form.overlay1m}
               onChange={onChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              className={baseSelect}
             >
               <option value="">1m Overlay</option>
               <option value="blue">Blue</option>
@@ -140,7 +131,7 @@ export default function EntryConditionsSection({
               name="bos1m"
               value={form.bos1m}
               onChange={onChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              className={baseSelect}
             >
               <option value="">1m BoS</option>
               <option value="bull BoS">Bull BoS</option>
@@ -150,7 +141,7 @@ export default function EntryConditionsSection({
               name="ma2001m"
               value={form.ma2001m}
               onChange={onChange}
-              className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
+              className={baseSelect}
             >
               <option value="">1m MA200</option>
               <option value="above">Above</option>

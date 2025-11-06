@@ -542,15 +542,12 @@ export default function TradeForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#0f172a] p-3 rounded-xl shadow-md">
-      {showTitle && (
-        <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-          <PlusCircle className="w-5 h-5 text-[#00ffa3]" />
-          {editingTrade ? "Edit trade" : "Add new trade"}
-        </h2>
-      )}
-
-      <div className="grid grid-cols-2 gap-3">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-[#0b1120] border border-white/5 rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,.25)]"
+    >
+      {/* form grid */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <TradeInfoSection
           form={form}
           onChange={handleChange}
@@ -578,14 +575,16 @@ export default function TradeForm({
         <ResultSection form={form} onChange={handleChange} />
       </div>
 
-      <div className="mt-3 text-center">
+      {/* actions */}
+      <div className="mt-5 flex justify-end">
         <button
           type="submit"
-          className="bg-[#00ffa3] text-black font-semibold px-3 py-1 rounded hover:brightness-110 focus:ring-1 focus:ring-[#00ffa3]/50 transition-all duration-300 shadow-[0_0_5px_#00ffa3] hover:shadow-[0_0_10px_#00ffa3] inline-flex items-center gap-2"
+          className="h-9 px-5 rounded-full bg-[#00ffa3] text-[#020617] text-sm font-semibold tracking-tight hover:brightness-110 transition inline-flex items-center gap-2 shadow-[0_0_14px_rgba(0,255,163,.3)] focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
         >
-          {editingTrade ? "Update" : "Save"}
+          {editingTrade ? "Update trade" : "Save"}
         </button>
       </div>
     </form>
   );
+
 }

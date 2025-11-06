@@ -316,9 +316,9 @@ export default function App() {
         <ToastContainer position="top-right" theme="dark" />
 
         <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
-          {/* TOP NAVBAR – exchange style */}
+          {/* ===== NAVBAR ===== */}
           <header className="h-14 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
-            {/* LEFT: brand */}
+            {/* Brand */}
             <div className="flex items-center gap-2 min-w-fit">
               <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
                 <BarChart3 className="w-4 h-4 text-white" />
@@ -328,7 +328,7 @@ export default function App() {
               </span>
             </div>
 
-            {/* MAIN TABS */}
+            {/* Main Tabs */}
             <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2">
               <Tab
                 className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
@@ -350,22 +350,23 @@ export default function App() {
               </Tab>
             </TabList>
 
-            {/* STRATEGIES group */}
+            {/* Strategy Filters */}
             <div className="flex items-center gap-2 ml-3">
-              {/* this is your StrategyNav – make sure it renders pill buttons like 15m ST, 1m BoS, Fx */}
               <StrategyNav />
             </div>
 
-            {/* divider between strategies and accounts */}
+            {/* Divider */}
             <div className="h-6 w-px bg-white/10 mx-1" />
 
-            {/* ACCOUNTS group */}
+            {/* Accounts */}
             <div className="flex items-center gap-2">
-              {/* your AccountNav – render current account pills */}
               <AccountNav />
+              <button className="h-8 w-8 rounded-full border border-white/10 text-white/80 hover:bg-white/5 flex items-center justify-center text-base leading-none">
+                +
+              </button>
             </div>
 
-            {/* RIGHT side */}
+            {/* Clear All */}
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={handleClearAll}
@@ -377,18 +378,14 @@ export default function App() {
             </div>
           </header>
 
-          {/* MAIN CONTENT */}
+          {/* ===== MAIN ===== */}
           <main className="p-4 flex-1 overflow-y-auto space-y-6">
-            {/* ========== LIVE ========== */}
+            {/* ---------- LIVE ---------- */}
             <TabPanel>
               <InnerNav which="live" />
 
               {innerTabs.live === "trade" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <PlusCircle className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">Add new trade</h2>
-                  </div>
+                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
                   <TradeForm
                     onAddTrade={handleAddTrade}
                     editingTrade={editingTrade}
@@ -444,6 +441,7 @@ export default function App() {
                     </div>
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
+
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                     <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                       <HandCoins className="w-5 h-5" />
@@ -466,18 +464,12 @@ export default function App() {
               )}
             </TabPanel>
 
-            {/* ========== BACKTEST ========== */}
+            {/* ---------- BACKTEST ---------- */}
             <TabPanel>
               <InnerNav which="backtest" />
 
               {innerTabs.backtest === "trade" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <PlusCircle className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      Add new trade (backtest)
-                    </h2>
-                  </div>
+                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
                   <TradeForm
                     onAddTrade={handleAddTrade}
                     editingTrade={editingTrade}
@@ -535,6 +527,7 @@ export default function App() {
                     </div>
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
+
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                     <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                       <HandCoins className="w-5 h-5" />
@@ -554,18 +547,12 @@ export default function App() {
               )}
             </TabPanel>
 
-            {/* ========== HISTORY ========== */}
+            {/* ---------- HISTORY ---------- */}
             <TabPanel>
               <InnerNav which="history" />
 
               {innerTabs.history === "trade" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <PlusCircle className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      Add new trade (history)
-                    </h2>
-                  </div>
+                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
                   <TradeForm
                     onAddTrade={handleAddTrade}
                     editingTrade={editingTrade}
@@ -624,6 +611,7 @@ export default function App() {
                     </div>
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
+
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                     <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                       <HandCoins className="w-5 h-5" />
@@ -645,7 +633,7 @@ export default function App() {
           </main>
         </Tabs>
 
-        {/* MODAL */}
+        {/* ===== MODAL ===== */}
         {selectedTrade && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
@@ -672,6 +660,7 @@ export default function App() {
         )}
       </div>
     );
+
 
   function findBacktestScreenshot(pair, date, time) {
     const backtestTrade = backtestTrades.find(

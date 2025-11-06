@@ -1,76 +1,110 @@
-// src/components/trades/TradeInfoSection.jsx
-import { CalendarDays } from "lucide-react";
+// src/components/trades/trades/TradeInfoSection.jsx
+import { Calendar, Clock } from "lucide-react";
 
-export default function TradeInfoSection({ form, onChange, strategyId }) {
+export default function TradeInfoSection({ form, onChange }) {
+  const handlePercentChange = (value) => {
+    // clamp 1..100
+    const v = Math.min(100, Math.max(1, Number(value) || 1));
+    onChange({ target: { name: "usedDepositPercent", value: String(v) } });
+  };
+
   return (
-    <div className="bg-[#1e293b] text-white rounded-xl p-3 shadow-md">
-      <h3 className="text-lg font-semibold text-[#00ffa3] mb-2 flex items-center gap-2">
-        <CalendarDays className="w-5 h-5" /> Trade Info
-      </h3>
-      <div className="grid grid-cols-2 gap-1">
-        <input
-          name="date"
-          type="date"
-          value={form.date}
-          onChange={onChange}
-          className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-          required
-        />
-        <input
-          name="time"
-          type="time"
-          value={form.time}
-          onChange={onChange}
-          className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-          required
-        />
-        <input
-          name="pair"
-          placeholder="Pair (e.g. EURUSD)"
-          value={form.pair}
-          onChange={onChange}
-          className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-          required
-        />
-        <select
-          name="direction"
-          value={form.direction}
-          onChange={onChange}
-          className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-        >
-          <option value="Long">Long</option>
-          <option value="Short">Short</option>
-        </select>
+    <div className="bg-[#111827] border border-white/5 rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Calendar className="w-4 h-4 text-emerald-400" />
+        <h3 className="text-sm font-semibold text-white">Trade Info</h3>
+      </div>
 
-        <input
-          name="deposit"
-          type="number"
-          placeholder="Depo $"
-          value={form.deposit}
-          onChange={onChange}
-          className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-          min="0"
-          step="0.01"
-          required
-        />
-
-        {(strategyId === 1 || strategyId === 2) ? (
-          <select
-            name="usedDepositPercent"
-            value={form.usedDepositPercent}
+      {/* date + time */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300">Date</label>
+          <input
+            type="date"
+            name="date"
+            value={form.date || ""}
             onChange={onChange}
-            className="bg-[#1e293b] border border-gray-600 text-white p-1 rounded focus:ring-1 focus:ring-[#00ffa3] focus:outline-none"
-            title="% of deposit used for position size"
+            className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300 flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Time
+          </label>
+          <input
+            type="time"
+            name="time"
+            value={form.time || ""}
+            onChange={onChange}
+            className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+      </div>
+
+      {/* pair + direction */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300">Pair (e.g. EURUSD)</label>
+          <input
+            type="text"
+            name="pair"
+            value={form.pair || ""}
+            onChange={onChange}
+            placeholder="EURUSD / BTCUSDT"
+            className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300">Direction</label>
+          <select
+            name="direction"
+            value={form.direction || "Long"}
+            onChange={onChange}
+            className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
           >
-            {[10, 15, 20, 25, 33, 50, 75, 100].map((p) => (
-              <option key={p} value={p}>
-                {p}% of deposit
-              </option>
-            ))}
+            <option value="Long">Long</option>
+            <option value="Short">Short</option>
           </select>
-        ) : (
-          <div className="hidden md:block" />
-        )}
+        </div>
+      </div>
+
+      {/* deposit + % of deposit */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300">Deposit ($)</label>
+          <input
+            type="number"
+            name="deposit"
+            value={form.deposit || ""}
+            onChange={onChange}
+            min={0}
+            className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-300">% of deposit</label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={form.usedDepositPercent || "25"}
+              onChange={(e) => handlePercentChange(e.target.value)}
+              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white w-20 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            />
+            <span className="text-slate-300 text-xs">%</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            value={Number(form.usedDepositPercent || 25)}
+            onChange={(e) => handlePercentChange(e.target.value)}
+            className="w-full accent-emerald-400 cursor-pointer"
+          />
+        </div>
       </div>
     </div>
   );
