@@ -1,27 +1,31 @@
+// src/App.jsx
 import { useState, useEffect } from "react";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import { toast, ToastContainer } from "react-toastify";
+import { useParams } from "react-router-dom";
+
+import "./index.css";
+import "react-tabs/style/react-tabs.css";
+
 import TradeForm from "./components/TradeForm";
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
 import Metrics from "./components/Metrics";
 import EquityCurveChart from "./components/EquityCurveChart";
-import "./index.css";
-import "react-tabs/style/react-tabs.css";
-import { useParams } from "react-router-dom";
 import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
 import WeeklyCompounding from "./components/WeeklyCompounding";
 
-
-// 🔶 Lucide icons
 import {
-  Trash2,
   BarChart3,
+  Trash2,
   PlusCircle,
   Search,
+  User,
+  Bell,
+  Globe2,
+  SunMedium,
   TrendingUp,
-  Table as TableIcon,
   HandCoins,
 } from "lucide-react";
 
@@ -47,18 +51,21 @@ export default function App() {
     pair: "",
     mode: "live",
   });
-  const [sections, setSections] = useState({
-    tradeForm: true,
-    filters: true,
-    metrics: true,
-    equityCurve: true,
-    tradeTable: true,
-    weeklyCompounding: true,
-  });
+
+  // which main tab: live / backtest / history
   const [tabIndex, setTabIndex] = useState(0);
+
+  // NEW: which inner tab is open per main tab
+  const [innerTabs, setInnerTabs] = useState({
+    live: "trade",
+    backtest: "trade",
+    history: "trade",
+  });
+
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [initialDeposit, setInitialDeposit] = useState(1000);
 
+  // load LS
   useEffect(() => {
     const storedLiveTrades = localStorage.getItem(LIVE_STORAGE_KEY);
     const storedBacktestTrades = localStorage.getItem(BACKTEST_STORAGE_KEY);
@@ -72,6 +79,7 @@ export default function App() {
     setHasLoaded(true);
   }, [strategyId, accountId]);
 
+  // persist
   useEffect(() => {
     if (hasLoaded) {
       localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
@@ -90,12 +98,14 @@ export default function App() {
     }
   }, [historyTrades, hasLoaded]);
 
+  // switch filter mode when top tab changes
   useEffect(() => {
     if (tabIndex === 0) setFilters((prev) => ({ ...prev, mode: "live" }));
     else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
     else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
 
+  // recalc initial deposit from latest filtered trade
   useEffect(() => {
     const currentTradesForTab =
       tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
@@ -107,23 +117,19 @@ export default function App() {
     const newDeposit = latestTrade?.nextDeposit
       ? parseFloat(latestTrade.nextDeposit)
       : 1000;
-    console.log("Calculating initialDeposit:", { latestTrade, newDeposit });
     setInitialDeposit(newDeposit);
   }, [trades, backtestTrades, historyTrades, tabIndex, filters]);
 
   const handleAddTrade = (newTrade) => {
     const { mode } = filters;
-    let setTradeFunc, currentTrades;
+    let setTradeFunc;
 
     if (mode === "backtest") {
       setTradeFunc = setBacktestTrades;
-      currentTrades = backtestTrades;
     } else if (mode === "history") {
       setTradeFunc = setHistoryTrades;
-      currentTrades = historyTrades;
     } else {
       setTradeFunc = setTrades;
-      currentTrades = trades;
     }
 
     if (editingTrade) {
@@ -141,6 +147,7 @@ export default function App() {
           )
       );
       setEditingTrade(null);
+      // after edit stay on the same inner tab
     } else {
       setTradeFunc((prev) => {
         const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
@@ -157,23 +164,23 @@ export default function App() {
 
   const handleEditTrade = (trade) => {
     setEditingTrade(trade);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setSections((prev) => ({ ...prev, tradeForm: true }));
+    // open inner "+ new trade" tab for current main tab
+    setInnerTabs((prev) => {
+      const key = tabIndex === 0 ? "live" : tabIndex === 1 ? "backtest" : "history";
+      return { ...prev, [key]: "trade" };
+    });
   };
 
   const handleDeleteTrade = (id) => {
     const { mode } = filters;
-    let setTradeFunc, currentTrades;
+    let setTradeFunc;
 
     if (mode === "backtest") {
       setTradeFunc = setBacktestTrades;
-      currentTrades = backtestTrades;
     } else if (mode === "history") {
       setTradeFunc = setHistoryTrades;
-      currentTrades = historyTrades;
     } else {
       setTradeFunc = setTrades;
-      currentTrades = trades;
     }
 
     if (confirm("Delete this trade?")) {
@@ -207,7 +214,6 @@ export default function App() {
 
   const handleUpdateTrades = (importedTrades) => {
     const { mode } = filters;
-    console.log("handleUpdateTrades called with:", importedTrades, "mode:", mode);
     let setTradeFunc;
 
     if (mode === "backtest") {
@@ -248,440 +254,413 @@ export default function App() {
     });
   };
 
-  const toggleSection = (section) => {
-    setSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
   const currentTrades =
     tabIndex === 0 ? trades : tabIndex === 1 ? backtestTrades : historyTrades;
   const filteredCurrentTrades = filteredTrades(currentTrades);
 
   const closeModal = () => setSelectedTrade(null);
 
-  return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
-      <ToastContainer position="top-right" theme="dark" />
-      <header className="px-6 py-4 shadow bg-[#1e293b] flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-[#7f5af0]" />
-          Strategy Execution Tracker
-        </h1>
-        <StrategyNav />
-        <AccountNav />
+  // small helper to render inner nav
+  const InnerNav = ({ which }) => {
+    const active = innerTabs[which];
+    const btnBase =
+      "px-5 py-2 rounded-full border border-[#f97316]/40 text-sm font-medium transition-all duration-200";
+    return (
+      <div className="flex gap-4 mb-4 bg-[#0f172a] rounded-xl p-2">
         <button
-          onClick={handleClearAll}
-          className="bg-[#7f5af0] text-white px-4 py-2 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#7f5af0]/50 transition-all duration-300 shadow-[0_0_10px_#7f5af0] hover:shadow-[0_0_15px_#7f5af0] flex items-center gap-2"
-          title="Clear All"
+          onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))}
+          className={
+            active === "trade"
+              ? `${btnBase} bg-[#f97316]/20 text-white`
+              : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
+          }
         >
-          <Trash2 className="w-4 h-4" />
-          Clear All
+          + new trade
         </button>
-      </header>
+        <button
+          onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "all" }))}
+          className={
+            active === "all"
+              ? `${btnBase} bg-[#f97316]/20 text-white`
+              : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
+          }
+        >
+          all trades
+        </button>
+        <button
+          onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))}
+          className={
+            active === "kpis"
+              ? `${btnBase} bg-[#f97316]/20 text-white`
+              : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
+          }
+        >
+          KPIs
+        </button>
+        <button
+          onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))}
+          className={
+            active === "equity"
+              ? `${btnBase} bg-[#f97316]/20 text-white`
+              : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
+          }
+        >
+          equity curve
+        </button>
+      </div>
+    );
+  };
 
-      <main className="p-4 flex-1 overflow-y-auto space-y-6">
-        <Tabs selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
-          <TabList className="flex space-x-4 mb-4 bg-[#1e293b] p-2 rounded-xl">
-            <Tab
-              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
-              selectedClassName="border-b-2 border-white"
-            >
-              Live
-            </Tab>
-            <Tab
-              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
-              selectedClassName="border-b-2 border-white"
-            >
-              Backtest
-            </Tab>
-            <Tab
-              className="cursor-pointer px-4 py-2 rounded-lg bg-[#0f172a] text-white hover:bg-[#00ffa3] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#00ffa3]"
-              selectedClassName="border-b-2 border-white"
-            >
-              History
-            </Tab>
-          </TabList>
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
+        <ToastContainer position="top-right" theme="dark" />
 
-          {/* LIVE */}
-          <TabPanel>
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeForm")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5" />
-                  Add new trade
-                </span>
-                <span>{sections.tradeForm ? "▼" : "▲"}</span>
+        <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
+          {/* TOP NAVBAR – exchange style */}
+          <header className="h-14 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
+            {/* LEFT: brand */}
+            <div className="flex items-center gap-2 min-w-fit">
+              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-white" />
               </div>
-              {sections.tradeForm && (
-                <TradeForm
-                  onAddTrade={handleAddTrade}
-                  editingTrade={editingTrade}
-                  initialDeposit={initialDeposit}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                />
+              <span className="text-sm font-semibold tracking-tight text-white">
+                Strategy Execution Tracker
+              </span>
+            </div>
+
+            {/* MAIN TABS */}
+            <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2">
+              <Tab
+                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              >
+                Live
+              </Tab>
+              <Tab
+                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              >
+                Backtest
+              </Tab>
+              <Tab
+                className="px-4 h-8 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
+                selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              >
+                History
+              </Tab>
+            </TabList>
+
+            {/* STRATEGIES group */}
+            <div className="flex items-center gap-2 ml-3">
+              {/* this is your StrategyNav – make sure it renders pill buttons like 15m ST, 1m BoS, Fx */}
+              <StrategyNav />
+            </div>
+
+            {/* divider between strategies and accounts */}
+            <div className="h-6 w-px bg-white/10 mx-1" />
+
+            {/* ACCOUNTS group */}
+            <div className="flex items-center gap-2">
+              {/* your AccountNav – render current account pills */}
+              <AccountNav />
+            </div>
+
+            {/* RIGHT side */}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={handleClearAll}
+                className="h-8 px-4 rounded-full bg-white text-[#020617] text-xs font-semibold hover:brightness-95 transition flex items-center gap-2 shadow-[0_0_18px_rgba(255,255,255,.15)]"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear All
+              </button>
+            </div>
+          </header>
+
+          {/* MAIN CONTENT */}
+          <main className="p-4 flex-1 overflow-y-auto space-y-6">
+            {/* ========== LIVE ========== */}
+            <TabPanel>
+              <InnerNav which="live" />
+
+              {innerTabs.live === "trade" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <PlusCircle className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">Add new trade</h2>
+                  </div>
+                  <TradeForm
+                    onAddTrade={handleAddTrade}
+                    editingTrade={editingTrade}
+                    initialDeposit={initialDeposit}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                  />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("filters")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Filter trades
-                </span>
-                <span>{sections.filters ? "▼" : "▲"}</span>
-              </div>
-              {sections.filters && (
-                <FilterBar
-                  filters={filters}
-                  setFilters={(newFilters) => {
-                    setFilters({ ...newFilters, mode: "live" });
-                  }}
-                />
+              {innerTabs.live === "all" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                  <div className="flex items-center gap-2 text-[#00ffa3]">
+                    <Search className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">
+                      All trades (with filters)
+                    </h2>
+                  </div>
+                  <FilterBar
+                    filters={filters}
+                    setFilters={(newFilters) => {
+                      setFilters({ ...newFilters, mode: "live" });
+                    }}
+                  />
+                  <TradeTable
+                    trades={filteredCurrentTrades}
+                    onEdit={handleEditTrade}
+                    onDelete={handleDeleteTrade}
+                    onViewChart={(trade) => setSelectedTrade(trade)}
+                    onUpdateTrades={handleUpdateTrades}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                  />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("metrics")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  KPIs
-                </span>
-                <span>{sections.metrics ? "▼" : "▲"}</span>
-              </div>
-              {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
-            </section>
-
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("equityCurve")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Equity curve
-                </span>
-                <span>{sections.equityCurve ? "▼" : "▲"}</span>
-              </div>
-              {sections.equityCurve && (
-                <EquityCurveChart trades={filteredCurrentTrades} />
+              {innerTabs.live === "kpis" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <BarChart3 className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">KPIs</h2>
+                  </div>
+                  <Metrics trades={filteredCurrentTrades} />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("weeklyCompounding")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <HandCoins className="w-5 h-5" />Compounding
-                </span>
-                <span>{sections.weeklyCompounding ? "▼" : "▲"}</span>
-              </div>
-              {sections.weeklyCompounding && (
-                <WeeklyCompounding
-                  strategyId={strategyId}
-                  accountId={accountId}
-                  mode="live"
-                  defaultWeeks={0}
-                  defaultDeposit={0}
-                  defaultPnlPct={10}      // leave 0 and use defaultPnlDollar to switch to fixed-$ mode
-                  defaultPnlDollar={0}
-                  includeCurrentWeek={true}
-                  refreshKey={JSON.stringify(trades)}
-                />
+              {innerTabs.live === "equity" && (
+                <div className="space-y-4">
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <TrendingUp className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">Equity curve</h2>
+                    </div>
+                    <EquityCurveChart trades={filteredCurrentTrades} />
+                  </div>
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <HandCoins className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">
+                        Weekly Compounding
+                      </h2>
+                    </div>
+                    <WeeklyCompounding
+                      strategyId={strategyId}
+                      accountId={accountId}
+                      mode="live"
+                      defaultWeeks={0}
+                      defaultDeposit={0}
+                      defaultPnlPct={10}
+                      includeCurrentWeek={true}
+                      refreshKey={JSON.stringify(trades)}
+                    />
+                  </div>
+                </div>
               )}
-            </section>
+            </TabPanel>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeTable")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TableIcon className="w-5 h-5" />
-                  All trades
-                </span>
-                <span>{sections.tradeTable ? "▼" : "▲"}</span>
-              </div>
-              {sections.tradeTable && (
-                <TradeTable
-                  trades={filteredCurrentTrades}
-                  onEdit={handleEditTrade}
-                  onDelete={handleDeleteTrade}
-                  onViewChart={(trade) => setSelectedTrade(trade)}
-                  onUpdateTrades={handleUpdateTrades}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                />
+            {/* ========== BACKTEST ========== */}
+            <TabPanel>
+              <InnerNav which="backtest" />
+
+              {innerTabs.backtest === "trade" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <PlusCircle className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">
+                      Add new trade (backtest)
+                    </h2>
+                  </div>
+                  <TradeForm
+                    onAddTrade={handleAddTrade}
+                    editingTrade={editingTrade}
+                    initialDeposit={initialDeposit}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                  />
+                </div>
               )}
-            </section>
-          </TabPanel>
 
-          {/* BACKTEST */}
-          <TabPanel>
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeForm")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5" />
-                  Add new trade
-                </span>
-                <span>{sections.tradeForm ? "▼" : "▲"}</span>
-              </div>
-              {sections.tradeForm && (
-                <TradeForm
-                  onAddTrade={handleAddTrade}
-                  editingTrade={editingTrade}
-                  initialDeposit={initialDeposit}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                />
+              {innerTabs.backtest === "all" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                  <div className="flex items-center gap-2 text-[#00ffa3]">
+                    <Search className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">
+                      All trades (backtest)
+                    </h2>
+                  </div>
+                  <FilterBar
+                    filters={filters}
+                    setFilters={(newFilters) => {
+                      setFilters({ ...newFilters, mode: "backtest" });
+                    }}
+                  />
+                  <TradeTable
+                    trades={filteredCurrentTrades}
+                    onEdit={handleEditTrade}
+                    onDelete={handleDeleteTrade}
+                    onViewChart={(trade) => setSelectedTrade(trade)}
+                    onUpdateTrades={handleUpdateTrades}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                  />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("filters")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Filter trades
-                </span>
-                <span>{sections.filters ? "▼" : "▲"}</span>
-              </div>
-              {sections.filters && (
-                <FilterBar
-                  filters={filters}
-                  setFilters={(newFilters) => {
-                    setFilters({ ...newFilters, mode: "backtest" });
-                  }}
-                />
+              {innerTabs.backtest === "kpis" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <BarChart3 className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">KPIs (backtest)</h2>
+                  </div>
+                  <Metrics trades={filteredCurrentTrades} />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("metrics")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  KPIs
-                </span>
-                <span>{sections.metrics ? "▼" : "▲"}</span>
-              </div>
-              {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
-            </section>
-
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("equityCurve")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Equity curve
-                </span>
-                <span>{sections.equityCurve ? "▼" : "▲"}</span>
-              </div>
-              {sections.equityCurve && (
-                <EquityCurveChart trades={filteredCurrentTrades} />
+              {innerTabs.backtest === "equity" && (
+                <div className="space-y-4">
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <TrendingUp className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">
+                        Equity curve (backtest)
+                      </h2>
+                    </div>
+                    <EquityCurveChart trades={filteredCurrentTrades} />
+                  </div>
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <HandCoins className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">
+                        Weekly Compounding
+                      </h2>
+                    </div>
+                    <WeeklyCompounding
+                      strategyId={strategyId}
+                      accountId={accountId}
+                      mode="backtest"
+                      includeCurrentWeek={true}
+                      refreshKey={JSON.stringify(backtestTrades)}
+                    />
+                  </div>
+                </div>
               )}
-            </section>
+            </TabPanel>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeTable")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TableIcon className="w-5 h-5" />
-                  All trades
-                </span>
-                <span>{sections.tradeTable ? "▼" : "▲"}</span>
-              </div>
-              {sections.tradeTable && (
-                <TradeTable
-                  trades={filteredCurrentTrades}
-                  onEdit={handleEditTrade}
-                  onDelete={handleDeleteTrade}
-                  onViewChart={(trade) => setSelectedTrade(trade)}
-                  onUpdateTrades={handleUpdateTrades}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                />
+            {/* ========== HISTORY ========== */}
+            <TabPanel>
+              <InnerNav which="history" />
+
+              {innerTabs.history === "trade" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <PlusCircle className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">
+                      Add new trade (history)
+                    </h2>
+                  </div>
+                  <TradeForm
+                    onAddTrade={handleAddTrade}
+                    editingTrade={editingTrade}
+                    initialDeposit={initialDeposit}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                    showTitle={false}
+                  />
+                </div>
               )}
-            </section>
-          </TabPanel>
 
-          {/* HISTORY */}
-          <TabPanel>
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeForm")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5" />
-                  Add new trade
-                </span>
-                <span>{sections.tradeForm ? "▼" : "▲"}</span>
-              </div>
-              {sections.tradeForm && (
-                <TradeForm
-                  onAddTrade={handleAddTrade}
-                  editingTrade={editingTrade}
-                  initialDeposit={initialDeposit}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                  showTitle={false}
-                />
+              {innerTabs.history === "all" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                  <div className="flex items-center gap-2 text-[#00ffa3]">
+                    <Search className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">
+                      All trades (history)
+                    </h2>
+                  </div>
+                  <FilterBar
+                    filters={filters}
+                    setFilters={(newFilters) => {
+                      setFilters({ ...newFilters, mode: "history" });
+                    }}
+                  />
+                  <TradeTable
+                    trades={filteredCurrentTrades}
+                    onEdit={handleEditTrade}
+                    onDelete={handleDeleteTrade}
+                    onViewChart={(trade) => setSelectedTrade(trade)}
+                    onUpdateTrades={handleUpdateTrades}
+                    strategyId={strategyId}
+                    accountId={accountId}
+                  />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("filters")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <Search className="w-5 h-5" />
-                  Filter trades
-                </span>
-                <span>{sections.filters ? "▼" : "▲"}</span>
-              </div>
-              {sections.filters && (
-                <FilterBar
-                  filters={filters}
-                  setFilters={(newFilters) => {
-                    setFilters({ ...newFilters, mode: "history" });
-                  }}
-                />
+              {innerTabs.history === "kpis" && (
+                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                    <BarChart3 className="w-5 h-5" />
+                    <h2 className="text-xl font-semibold">KPIs (history)</h2>
+                  </div>
+                  <Metrics trades={filteredCurrentTrades} />
+                </div>
               )}
-            </section>
 
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("metrics")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  KPIs
-                </span>
-                <span>{sections.metrics ? "▼" : "▲"}</span>
-              </div>
-              {sections.metrics && <Metrics trades={filteredCurrentTrades} />}
-            </section>
-
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("equityCurve")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Equity curve
-                </span>
-                <span>{sections.equityCurve ? "▼" : "▲"}</span>
-              </div>
-              {sections.equityCurve && (
-                <EquityCurveChart trades={filteredCurrentTrades} />
+              {innerTabs.history === "equity" && (
+                <div className="space-y-4">
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <TrendingUp className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">
+                        Equity curve (history)
+                      </h2>
+                    </div>
+                    <EquityCurveChart trades={filteredCurrentTrades} />
+                  </div>
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                      <HandCoins className="w-5 h-5" />
+                      <h2 className="text-xl font-semibold">
+                        Weekly Compounding
+                      </h2>
+                    </div>
+                    <WeeklyCompounding
+                      strategyId={strategyId}
+                      accountId={accountId}
+                      mode="history"
+                      includeCurrentWeek={true}
+                      refreshKey={JSON.stringify(historyTrades)}
+                    />
+                  </div>
+                </div>
               )}
-            </section>
-
-            <section className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-              <div
-                className="flex justify-between items-center cursor-pointer p-2 bg-[#0f172a] rounded-t-xl"
-                onClick={() => toggleSection("tradeTable")}
-              >
-                <span className="text-xl font-semibold text-[#00ffa3] flex items-center gap-2">
-                  <TableIcon className="w-5 h-5" />
-                  All trades
-                </span>
-                <span>{sections.tradeTable ? "▼" : "▲"}</span>
-              </div>
-              {sections.tradeTable && (
-                <TradeTable
-                  trades={filteredCurrentTrades}
-                  onEdit={handleEditTrade}
-                  onDelete={handleDeleteTrade}
-                  onViewChart={(trade) => setSelectedTrade(trade)}
-                  onUpdateTrades={handleUpdateTrades}
-                  strategyId={strategyId}
-                  accountId={accountId}
-                />
-              )}
-            </section>
-          </TabPanel>
+            </TabPanel>
+          </main>
         </Tabs>
 
+        {/* MODAL */}
         {selectedTrade && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
               <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                 <BarChart3 className="w-6 h-6" />
                 Trade Chart
               </h2>
-              <div className="mb-4">
-                <select
-                  className="bg-[#0f172a] border border-gray-600 text-white p-2 rounded-lg focus:ring-2 focus:ring-[#00ffa3] focus:outline-none"
-                  onChange={(e) => {
-                    const mode = e.target.value;
-                    setSelectedTrade((prev) => ({ ...prev, viewMode: mode }));
-                  }}
-                  value={selectedTrade.viewMode || "live"}
-                >
-                  <option value="live">Live</option>
-                  <option value="backtest">Backtest</option>
-                  <option value="compare">Compare</option>
-                </select>
-              </div>
-              {selectedTrade.viewMode === "compare" ? (
-                <div className="flex space-x-4">
-                  <img
-                    src={
-                      selectedTrade.screenshot ||
-                      "https://via.placeholder.com/400x200?text=No+Live+Chart"
-                    }
-                    alt="Live Chart"
-                    className="w-1/2 rounded-lg"
-                  />
-                  <img
-                    src={
-                      findBacktestScreenshot(
-                        selectedTrade.pair,
-                        selectedTrade.date,
-                        selectedTrade.time
-                      ) ||
-                      "https://via.placeholder.com/400x200?text=No+Backtest+Chart"
-                    }
-                    alt="Backtest Chart"
-                    className="w-1/2 rounded-lg"
-                  />
-                </div>
-              ) : (
-                <img
-                  src={
-                    selectedTrade.screenshot ||
-                    "https://via.placeholder.com/400x200?text=No+Chart"
-                  }
-                  alt="Trade Chart"
-                  className="w-full rounded-lg"
-                />
-              )}
+              <img
+                src={
+                  selectedTrade.screenshot ||
+                  "https://via.placeholder.com/400x200?text=No+Chart"
+                }
+                alt="Trade Chart"
+                className="w-full rounded-lg"
+              />
               <button
                 onClick={closeModal}
                 className="mt-4 bg-[#00ffa3] text-black font-semibold px-6 py-3 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#00ffa3]/50 transition-all duration-300"
@@ -691,9 +670,8 @@ export default function App() {
             </div>
           </div>
         )}
-      </main>
-    </div>
-  );
+      </div>
+    );
 
   function findBacktestScreenshot(pair, date, time) {
     const backtestTrade = backtestTrades.find(

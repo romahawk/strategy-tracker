@@ -91,7 +91,7 @@ export default function AccountNav() {
       ))}
 
       <button onClick={addAccount} className={addBtnCls}>
-        + Account
+        +
       </button>
 
     </div>
