@@ -324,7 +324,7 @@ export default function App() {
                 <BarChart3 className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-white">
-                Strategy Execution Tracker
+                AlphaRhythm
               </span>
             </div>
 
@@ -384,19 +384,17 @@ export default function App() {
           {/* ===== MAIN ===== */}
           <main className="p-4 flex-1 overflow-y-auto space-y-6">
             {/* ---------- LIVE ---------- */}
-            <TabPanel>
+            <TabPanel className="mt-4">
               <InnerNav which="live" />
 
               {innerTabs.live === "trade" && (
-                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
-                  <TradeForm
-                    onAddTrade={handleAddTrade}
-                    editingTrade={editingTrade}
-                    initialDeposit={initialDeposit}
-                    strategyId={strategyId}
-                    accountId={accountId}
-                  />
-                </div>
+                <TradeForm
+                  onAddTrade={handleAddTrade}
+                  editingTrade={editingTrade}
+                  initialDeposit={initialDeposit}
+                  strategyId={strategyId}
+                  accountId={accountId}
+                />
               )}
 
               {innerTabs.live === "all" && (
@@ -430,7 +428,6 @@ export default function App() {
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                     <EquityCurveChart trades={filteredCurrentTrades} />
                   </div>
-
                   <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                     <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                       <HandCoins className="w-5 h-5" />
@@ -455,10 +452,9 @@ export default function App() {
 
             {/* ---------- BACKTEST ---------- */}
             <TabPanel>
-              <InnerNav which="backtest" />
-
-              {innerTabs.backtest === "trade" && (
-                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
+              <div className="-mt-2">
+                <InnerNav which="backtest" />
+                {innerTabs.backtest === "trade" && (
                   <TradeForm
                     onAddTrade={handleAddTrade}
                     editingTrade={editingTrade}
@@ -466,66 +462,61 @@ export default function App() {
                     strategyId={strategyId}
                     accountId={accountId}
                   />
-                </div>
-              )}
-
-              {innerTabs.backtest === "all" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <FilterBar
-                    filters={filters}
-                    setFilters={(newFilters) => {
-                      setFilters({ ...newFilters, mode: "backtest" });
-                    }}
-                  />
-                  <TradeTable
-                    trades={filteredCurrentTrades}
-                    onEdit={handleEditTrade}
-                    onDelete={handleDeleteTrade}
-                    onViewChart={(trade) => setSelectedTrade(trade)}
-                    onUpdateTrades={handleUpdateTrades}
-                    strategyId={strategyId}
-                    accountId={accountId}
-                  />
-                </div>
-              )}
-
-              {innerTabs.backtest === "kpis" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <Metrics trades={filteredCurrentTrades} />
-                </div>
-              )}
-
-              {innerTabs.backtest === "equity" && (
-                <div className="space-y-4">
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <EquityCurveChart trades={filteredCurrentTrades} />
-                  </div>
-
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <HandCoins className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">
-                        Weekly Compounding
-                      </h2>
-                    </div>
-                    <WeeklyCompounding
+                )}
+                {innerTabs.backtest === "all" && (
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                    <FilterBar
+                      filters={filters}
+                      setFilters={(newFilters) => {
+                        setFilters({ ...newFilters, mode: "backtest" });
+                      }}
+                    />
+                    <TradeTable
+                      trades={filteredCurrentTrades}
+                      onEdit={handleEditTrade}
+                      onDelete={handleDeleteTrade}
+                      onViewChart={(trade) => setSelectedTrade(trade)}
+                      onUpdateTrades={handleUpdateTrades}
                       strategyId={strategyId}
                       accountId={accountId}
-                      mode="backtest"
-                      includeCurrentWeek={true}
-                      refreshKey={JSON.stringify(backtestTrades)}
                     />
                   </div>
-                </div>
-              )}
+                )}
+                {innerTabs.backtest === "kpis" && (
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <Metrics trades={filteredCurrentTrades} />
+                  </div>
+                )}
+                {innerTabs.backtest === "equity" && (
+                  <div className="space-y-4">
+                    <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                      <EquityCurveChart trades={filteredCurrentTrades} />
+                    </div>
+                    <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                      <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                        <HandCoins className="w-5 h-5" />
+                        <h2 className="text-xl font-semibold">
+                          Weekly Compounding
+                        </h2>
+                      </div>
+                      <WeeklyCompounding
+                        strategyId={strategyId}
+                        accountId={accountId}
+                        mode="backtest"
+                        includeCurrentWeek={true}
+                        refreshKey={JSON.stringify(backtestTrades)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </TabPanel>
 
             {/* ---------- HISTORY ---------- */}
             <TabPanel>
-              <InnerNav which="history" />
-
-              {innerTabs.history === "trade" && (
-                <div className="bg-[#0f172a] rounded-2xl border border-white/5 shadow-lg p-4">
+              <div className="-mt-2">
+                <InnerNav which="history" />
+                {innerTabs.history === "trade" && (
                   <TradeForm
                     onAddTrade={handleAddTrade}
                     editingTrade={editingTrade}
@@ -534,58 +525,54 @@ export default function App() {
                     accountId={accountId}
                     showTitle={false}
                   />
-                </div>
-              )}
-
-              {innerTabs.history === "all" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <FilterBar
-                    filters={filters}
-                    setFilters={(newFilters) => {
-                      setFilters({ ...newFilters, mode: "history" });
-                    }}
-                  />
-                  <TradeTable
-                    trades={filteredCurrentTrades}
-                    onEdit={handleEditTrade}
-                    onDelete={handleDeleteTrade}
-                    onViewChart={(trade) => setSelectedTrade(trade)}
-                    onUpdateTrades={handleUpdateTrades}
-                    strategyId={strategyId}
-                    accountId={accountId}
-                  />
-                </div>
-              )}
-
-              {innerTabs.history === "kpis" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <Metrics trades={filteredCurrentTrades} />
-                </div>
-              )}
-
-              {innerTabs.history === "equity" && (
-                <div className="space-y-4">
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <EquityCurveChart trades={filteredCurrentTrades} />
-                  </div>
-
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <HandCoins className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">
-                        Weekly Compounding
-                      </h2>
-                    </div>
-                    <WeeklyCompounding
+                )}
+                {innerTabs.history === "all" && (
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                    <FilterBar
+                      filters={filters}
+                      setFilters={(newFilters) => {
+                        setFilters({ ...newFilters, mode: "history" });
+                      }}
+                    />
+                    <TradeTable
+                      trades={filteredCurrentTrades}
+                      onEdit={handleEditTrade}
+                      onDelete={handleDeleteTrade}
+                      onViewChart={(trade) => setSelectedTrade(trade)}
+                      onUpdateTrades={handleUpdateTrades}
                       strategyId={strategyId}
                       accountId={accountId}
-                      mode="history"
-                      includeCurrentWeek={true}
-                      refreshKey={JSON.stringify(historyTrades)}
                     />
                   </div>
-                </div>
-              )}
+                )}
+                {innerTabs.history === "kpis" && (
+                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                    <Metrics trades={filteredCurrentTrades} />
+                  </div>
+                )}
+                {innerTabs.history === "equity" && (
+                  <div className="space-y-4">
+                    <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                      <EquityCurveChart trades={filteredCurrentTrades} />
+                    </div>
+                    <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                      <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
+                        <HandCoins className="w-5 h-5" />
+                        <h2 className="text-xl font-semibold">
+                          Weekly Compounding
+                        </h2>
+                      </div>
+                      <WeeklyCompounding
+                        strategyId={strategyId}
+                        accountId={accountId}
+                        mode="history"
+                        includeCurrentWeek={true}
+                        refreshKey={JSON.stringify(historyTrades)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </TabPanel>
           </main>
         </Tabs>

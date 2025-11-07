@@ -1,7 +1,6 @@
 // src/components/trades/TradeForm.jsx
 import { useState, useEffect } from "react";
 import { debounce } from "lodash";
-import { PlusCircle } from "lucide-react";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
 import EntryConditionsSection from "./trades/EntryConditionsSection";
@@ -51,34 +50,23 @@ export default function TradeForm({
   const aid = Number(accountId) || 1;
 
   const [form, setForm] = useState({
-    // Trade info
     date: "",
     time: "",
     pair: "",
     direction: "Long",
     deposit: "",
-
-    // Position sizing (S1/S2)
     usedDepositPercent: "25",
     leverageX: "5",
-
-    // Entry conditions (shared)
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
     ma200: "ranging",
-
-    // Strategy 1 specific
     buySell5m: "buy",
     ma2005m: "above",
-
-    // Strategy 2 extras
     chochBos15m: "",
     overlay1m: "",
     bos1m: "",
     ma2001m: "",
-
-    // Risk
     entry: "",
     sl: "",
     leverageAmount: "",
@@ -89,8 +77,6 @@ export default function TradeForm({
     riskTargetPercent: "",
     lots: "",
     pipValue: "",
-
-    // Targets
     tp1: "",
     tp2: "",
     tp3: "",
@@ -101,21 +87,15 @@ export default function TradeForm({
     tp1Dollar: "",
     tp2Dollar: "",
     tp3Dollar: "",
-
-    // Result
     result: "Open",
     commission: "",
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
-
-    // Chart
     screenshot: "",
   });
 
-  // ------------------------
-  // INIT / EDIT
-  // ------------------------
+  // init / edit
   useEffect(() => {
     if (editingTrade) {
       setForm({ ...editingTrade });
@@ -128,9 +108,150 @@ export default function TradeForm({
     }
   }, [editingTrade, initialDeposit]);
 
-  // ------------------------
-  // DEBOUNCED CALCS
-  // ------------------------
+  // debounced risk calcs
+  const debouncedUpdateTP = debounce((newForm) => {
+    const { entry, tp1, tp2, tp3, direction, tpsHit, result } = newForm;
+    const e = parseFloat(entry);
+    if (!e) return;
+
+    // open -> wipe tp details
+    if (tpsHit === "OPEN" || result === "Open") {
+      const updated = {
+        ...newForm,
+        tp1Percent: "",
+        tp1Dollar: "",
+        tp2Percent: "",
+        tp2Dollar: "",
+        tp3Percent: "",
+        tp3Dollar: "",
+      };
+      setForm(updated);
+      return;
+    }
+
+    // strategy 1/2
+    if (sid === 1 || sid === 2) {
+      const posSize = parseFloat(newForm.leverageAmount);
+      if (!posSize) return;
+
+      const calc = (tp, factor) => {
+        if (!tp) return { percent: "", dollar: "" };
+        const t = parseFloat(tp);
+        const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
+        const tpDol = posSize * (tpPct / 100) * factor;
+        return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
+      };
+
+      let tp1Data, tp2Data, tp3Data;
+      if (tpsHit === "3") {
+        tp1Data = calc(tp1, 1 / 3);
+        tp2Data = calc(tp2, 1 / 3);
+        tp3Data = calc(tp3, 1 / 3);
+      } else if (tpsHit === "2") {
+        tp1Data = calc(tp1, 1 / 3);
+        tp2Data = calc(tp2, 0.67);
+        tp3Data = { percent: "", dollar: "0.00" };
+      } else if (tpsHit === "SL") {
+        tp1Data = { percent: "", dollar: "0.00" };
+        tp2Data = { percent: "", dollar: "0.00" };
+        tp3Data = { percent: "", dollar: "0.00" };
+      } else {
+        tp1Data = calc(tp1, 1);
+        tp2Data = { percent: "", dollar: "0.00" };
+        tp3Data = { percent: "", dollar: "0.00" };
+      }
+
+      let autoResult = result;
+      if (result !== "Open") {
+        if (tpsHit === "SL") autoResult = "Loss";
+        else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+      }
+
+      const tpSum =
+        (parseFloat(tp1Data.dollar || 0) || 0) +
+        (parseFloat(tp2Data.dollar || 0) || 0) +
+        (parseFloat(tp3Data.dollar || 0) || 0);
+
+      if (!autoResult || autoResult === "")
+        autoResult = tpSum > 0 ? "Win" : "Break Even";
+
+      const updated = {
+        ...newForm,
+        tp1Percent: tp1Data.percent,
+        tp1Dollar: tp1Data.dollar,
+        tp2Percent: tp2Data.percent,
+        tp2Dollar: tp2Data.dollar,
+        tp3Percent: tp3Data.percent,
+        tp3Dollar: tp3Data.dollar,
+        result: autoResult,
+      };
+      setForm(updated);
+      debouncedUpdateResult(updated);
+      return;
+    }
+
+    // strategy 3 (FX)
+    const pair = newForm.pair;
+    const lots = parseFloat(newForm.lots);
+    const pv = parseFloat(newForm.pipValue);
+    if (!pair || !lots || !pv) return;
+    const ps = pipSize(pair);
+
+    const calcFX = (tp, factor) => {
+      if (!tp) return { percent: "", dollar: "" };
+      const t = parseFloat(tp);
+      const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
+      const pips = Math.abs(t - e) / ps;
+      const tpDol = lots * pv * pips * factor;
+      return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
+    };
+
+    let tp1Data, tp2Data, tp3Data;
+    if (tpsHit === "3") {
+      tp1Data = calcFX(tp1, 1 / 3);
+      tp2Data = calcFX(tp2, 1 / 3);
+      tp3Data = calcFX(tp3, 1 / 3);
+    } else if (tpsHit === "2") {
+      tp1Data = calcFX(tp1, 1 / 3);
+      tp2Data = calcFX(tp2, 0.67);
+      tp3Data = { percent: "", dollar: "0.00" };
+    } else if (tpsHit === "SL") {
+      tp1Data = { percent: "", dollar: "0.00" };
+      tp2Data = { percent: "", dollar: "0.00" };
+      tp3Data = { percent: "", dollar: "0.00" };
+    } else {
+      tp1Data = calcFX(tp1, 1.0);
+      tp2Data = { percent: "", dollar: "0.00" };
+      tp3Data = { percent: "", dollar: "0.00" };
+    }
+
+    let autoResult = newForm.result;
+    if (autoResult !== "Open") {
+      if (tpsHit === "SL") autoResult = "Loss";
+      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+    }
+
+    const tpSum =
+      (parseFloat(tp1Data.dollar || 0) || 0) +
+      (parseFloat(tp2Data.dollar || 0) || 0) +
+      (parseFloat(tp3Data.dollar || 0) || 0);
+
+    if (!autoResult || autoResult === "")
+      autoResult = tpSum > 0 ? "Win" : "Break Even";
+
+    const updated = {
+      ...newForm,
+      tp1Percent: tp1Data.percent,
+      tp1Dollar: tp1Data.dollar,
+      tp2Percent: tp2Data.percent,
+      tp2Dollar: tp2Data.dollar,
+      tp3Percent: tp3Data.percent,
+      tp3Dollar: tp3Data.dollar,
+      result: autoResult,
+    };
+    setForm(updated);
+    debouncedUpdateResult(updated);
+  }, 200);
 
   const debouncedUpdateRisk_S1_S2 = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
@@ -204,147 +325,6 @@ export default function TradeForm({
     debouncedUpdateTP(updatedRisk);
   }, 200);
 
-  const debouncedUpdateTP = debounce((newForm) => {
-    const { entry, tp1, tp2, tp3, direction, tpsHit, result } = newForm;
-    const e = parseFloat(entry);
-    if (!e) return;
-
-    // open trades – no realized TPs
-    if (tpsHit === "OPEN" || result === "Open") {
-      const updated = {
-        ...newForm,
-        tp1Percent: "",
-        tp1Dollar: "",
-        tp2Percent: "",
-        tp2Dollar: "",
-        tp3Percent: "",
-        tp3Dollar: "",
-      };
-      setForm(updated);
-      return;
-    }
-
-    if (sid === 1 || sid === 2) {
-      const posSize = parseFloat(newForm.leverageAmount);
-      if (!posSize) return;
-
-      const calc = (tp, factor) => {
-        if (!tp) return { percent: "", dollar: "" };
-        const t = parseFloat(tp);
-        const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
-        const tpDol = posSize * (tpPct / 100) * factor;
-        return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
-      };
-
-      let tp1Data, tp2Data, tp3Data;
-      if (tpsHit === "3") {
-        tp1Data = calc(tp1, 1 / 3);
-        tp2Data = calc(tp2, 1 / 3);
-        tp3Data = calc(tp3, 1 / 3);
-      } else if (tpsHit === "2") {
-        tp1Data = calc(tp1, 1 / 3);
-        tp2Data = calc(tp2, 0.67);
-        tp3Data = { percent: "", dollar: "0.00" };
-      } else if (tpsHit === "SL") {
-        tp1Data = { percent: "", dollar: "0.00" };
-        tp2Data = { percent: "", dollar: "0.00" };
-        tp3Data = { percent: "", dollar: "0.00" };
-      } else {
-        tp1Data = calc(tp1, 1.0);
-        tp2Data = { percent: "", dollar: "0.00" };
-        tp3Data = { percent: "", dollar: "0.00" };
-      }
-
-      let autoResult = result;
-      if (result !== "Open") {
-        if (tpsHit === "SL") autoResult = "Loss";
-        else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
-      }
-
-      const tpSum =
-        (parseFloat(tp1Data.dollar || 0) || 0) +
-        (parseFloat(tp2Data.dollar || 0) || 0) +
-        (parseFloat(tp3Data.dollar || 0) || 0);
-
-      if (!autoResult || autoResult === "") autoResult = tpSum > 0 ? "Win" : "Break Even";
-
-      const updated = {
-        ...newForm,
-        tp1Percent: tp1Data.percent,
-        tp1Dollar: tp1Data.dollar,
-        tp2Percent: tp2Data.percent,
-        tp2Dollar: tp2Data.dollar,
-        tp3Percent: tp3Data.percent,
-        tp3Dollar: tp3Data.dollar,
-        result: autoResult,
-      };
-      setForm(updated);
-      debouncedUpdateResult(updated);
-      return;
-    }
-
-    // Strategy 3 (FX)
-    const pair = newForm.pair;
-    const lots = parseFloat(newForm.lots);
-    const pv = parseFloat(newForm.pipValue);
-    if (!pair || !lots || !pv) return;
-    const ps = pipSize(pair);
-
-    const calcFX = (tp, factor) => {
-      if (!tp) return { percent: "", dollar: "" };
-      const t = parseFloat(tp);
-      const tpPct = direction === "Long" ? (t / e - 1) * 100 : (1 - t / e) * 100;
-      const pips = Math.abs(t - e) / ps;
-      const tpDol = lots * pv * pips * factor;
-      return { percent: tpPct.toFixed(2), dollar: tpDol.toFixed(2) };
-    };
-
-    let tp1Data, tp2Data, tp3Data;
-    if (tpsHit === "3") {
-      tp1Data = calcFX(tp1, 1 / 3);
-      tp2Data = calcFX(tp2, 1 / 3);
-      tp3Data = calcFX(tp3, 1 / 3);
-    } else if (tpsHit === "2") {
-      tp1Data = calcFX(tp1, 1 / 3);
-      tp2Data = calcFX(tp2, 0.67);
-      tp3Data = { percent: "", dollar: "0.00" };
-    } else if (tpsHit === "SL") {
-      tp1Data = { percent: "", dollar: "0.00" };
-      tp2Data = { percent: "", dollar: "0.00" };
-      tp3Data = { percent: "", dollar: "0.00" };
-    } else {
-      tp1Data = calcFX(tp1, 1.0);
-      tp2Data = { percent: "", dollar: "0.00" };
-      tp3Data = { percent: "", dollar: "0.00" };
-    }
-
-    let autoResult = newForm.result;
-    if (autoResult !== "Open") {
-      if (tpsHit === "SL") autoResult = "Loss";
-      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
-    }
-
-    const tpSum =
-      (parseFloat(tp1Data.dollar || 0) || 0) +
-      (parseFloat(tp2Data.dollar || 0) || 0) +
-      (parseFloat(tp3Data.dollar || 0) || 0);
-
-    if (!autoResult || autoResult === "") autoResult = tpSum > 0 ? "Win" : "Break Even";
-
-    const updated = {
-      ...newForm,
-      tp1Percent: tp1Data.percent,
-      tp1Dollar: tp1Data.dollar,
-      tp2Percent: tp2Data.percent,
-      tp2Dollar: tp2Data.dollar,
-      tp3Percent: tp3Data.percent,
-      tp3Dollar: tp3Data.dollar,
-      result: autoResult,
-    };
-    setForm(updated);
-    debouncedUpdateResult(updated);
-  }, 200);
-
   const debouncedUpdateResult = debounce((newForm) => {
     const { deposit, tpsHit, result } = newForm;
     const d = parseFloat(deposit);
@@ -400,9 +380,7 @@ export default function TradeForm({
     }));
   }, 200);
 
-  // ------------------------
-  // CHANGE HANDLER
-  // ------------------------
+  // main change handler
   const handleChange = (e) => {
     const newForm = { ...form, [e.target.name]: e.target.value };
     setForm(newForm);
@@ -436,9 +414,7 @@ export default function TradeForm({
     }
   };
 
-  // ------------------------
-  // SUBMIT
-  // ------------------------
+  // submit
   const handleSubmit = (e) => {
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
@@ -457,23 +433,18 @@ export default function TradeForm({
       pair: "",
       direction: "Long",
       deposit: carryOverDeposit,
-
       usedDepositPercent: "25",
       leverageX: "5",
-
       stTrend: "bull",
       usdtTrend: "bear",
       overlay: "blue",
       ma200: "ranging",
-
       buySell5m: "buy",
       ma2005m: "above",
-
       chochBos15m: "",
       overlay1m: "",
       bos1m: "",
       ma2001m: "",
-
       entry: "",
       sl: "",
       leverageAmount: "",
@@ -484,7 +455,6 @@ export default function TradeForm({
       riskTargetPercent: "",
       lots: "",
       pipValue: "",
-
       tp1: "",
       tp2: "",
       tp3: "",
@@ -495,22 +465,17 @@ export default function TradeForm({
       tp1Dollar: "",
       tp2Dollar: "",
       tp3Dollar: "",
-
       result: "Open",
       commission: "",
       tpTotal: "",
       pnl: "",
       nextDeposit: "",
-
       screenshot: "",
     });
   };
 
-  // ------------------------
-  // INVALID FLAGS FOR ENTRY CONDITIONS
-  // ------------------------
+  // invalid flags for entry conditions
   const isLong = form.direction === "Long";
-
   const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
   const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
   const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
@@ -542,44 +507,44 @@ export default function TradeForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-[#0b1120] border border-white/5 rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,.25)]"
-    >
-      {/* form grid */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TradeInfoSection
-          form={form}
-          onChange={handleChange}
-          strategyId={sid}
-        />
+    <form onSubmit={handleSubmit} className="space-y-3 pb-0">
+      {/* main grid */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* left column */}
+        <div className="space-y-3">
+          <TradeInfoSection
+            form={form}
+            onChange={handleChange}
+            strategyId={sid}
+            /* make inner sections also use p-3, h-8 inputs */
+          />
+          <RiskSetupSection
+            form={form}
+            onChange={handleChange}
+            strategyId={sid}
+            riskTooHigh={riskTooHigh}
+          />
+          <ChartSection form={form} onChange={handleChange} />
+        </div>
 
-        <EntryConditionsSection
-          form={form}
-          onChange={handleChange}
-          strategyId={sid}
-          invalidFlags={invalidFlags}
-        />
-
-        <RiskSetupSection
-          form={form}
-          onChange={handleChange}
-          strategyId={sid}
-          riskTooHigh={riskTooHigh}
-        />
-
-        <TargetsSection form={form} onChange={handleChange} />
-
-        <ChartSection form={form} onChange={handleChange} />
-
-        <ResultSection form={form} onChange={handleChange} />
+        {/* right column */}
+        <div className="space-y-3">
+          <EntryConditionsSection
+            form={form}
+            onChange={handleChange}
+            strategyId={sid}
+            invalidFlags={invalidFlags}
+          />
+          <TargetsSection form={form} onChange={handleChange} />
+          <ResultSection form={form} onChange={handleChange} />
+        </div>
       </div>
 
-      {/* actions */}
-      <div className="mt-5 flex justify-end">
+      {/* save row – no extra margin bottom */}
+      <div className="flex justify-end pt-1">
         <button
           type="submit"
-          className="h-9 px-5 rounded-full bg-[#00ffa3] text-[#020617] text-sm font-semibold tracking-tight hover:brightness-110 transition inline-flex items-center gap-2 shadow-[0_0_14px_rgba(0,255,163,.3)] focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+          className="h-8 px-5 rounded-full bg-[#00ffa3] text-[#020617] text-sm font-semibold tracking-tight hover:brightness-110 transition inline-flex items-center gap-2 shadow-[0_0_14px_rgba(0,255,163,.3)] focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/40"
         >
           {editingTrade ? "Update trade" : "Save"}
         </button>

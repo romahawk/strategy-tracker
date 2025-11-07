@@ -9,7 +9,7 @@ export default function TradeInfoSection({ form, onChange }) {
   };
 
   return (
-    <div className="bg-[#111827] border border-white/5 rounded-xl p-4 space-y-3">
+    <div className="border border-white/5 rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-1">
         <Calendar className="w-4 h-4 text-emerald-400" />
         <h3 className="text-sm font-semibold text-white">Trade Info</h3>
