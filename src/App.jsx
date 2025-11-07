@@ -364,9 +364,6 @@ export default function App() {
             {/* Accounts */}
             <div className="flex items-center gap-2 h-8">
               <AccountNav />
-              <button className="h-8 w-8 rounded-full border border-white/10 text-white/80 hover:bg-white/5 flex items-center justify-center text-base leading-none">
-                +
-              </button>
             </div>
 
             {/* Clear All */}
