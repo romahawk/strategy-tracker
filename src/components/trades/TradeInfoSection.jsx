@@ -1,4 +1,3 @@
-// src/components/trades/trades/TradeInfoSection.jsx
 import { Calendar, Clock } from "lucide-react";
 
 export default function TradeInfoSection({ form, onChange }) {
@@ -78,6 +77,7 @@ export default function TradeInfoSection({ form, onChange }) {
             value={form.deposit || ""}
             onChange={onChange}
             min={0}
+            step="0.01"
             className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
           />
         </div>
