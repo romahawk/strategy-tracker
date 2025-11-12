@@ -163,9 +163,14 @@ export default function TradeForm({
 
       let autoResult = result;
       if (result !== "Open") {
-        if (tpsHit === "SL") autoResult = "Loss";
-        else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") autoResult = "Win";
+        if (tpsHit === "SL") {
+          const slVal = parseFloat(newForm.riskDollar) || 0; // signed
+          autoResult = slVal >= 0 ? "Win" : "Loss";
+        } else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") {
+          autoResult = "Win";
+        }
       }
+
 
       const tpSum =
         (parseFloat(tp1Data.dollar || 0) || 0) +
@@ -355,19 +360,31 @@ export default function TradeForm({
     const tp3 = parseFloat(newForm.tp3Dollar) || 0;
     const tpSum = tp1 + tp2 + tp3;
 
-    const slAtRisk = Math.abs(parseFloat(newForm.riskDollar) || 0);
+    const slSigned = parseFloat(newForm.riskDollar) || 0; // signed
 
     let res = newForm.result;
     if (!res || res === "Open") {
-      if (tpsHit === "SL") res = "Loss";
-      else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") res = "Win";
-      else res = tpSum > 0 ? "Win" : slAtRisk > 0 ? "Loss" : "Break Even";
+      if (tpsHit === "SL") {
+        res = slSigned >= 0 ? "Win" : "Loss";
+      } else if (tpsHit === "1" || tpsHit === "2" || tpsHit === "3") {
+        res = "Win";
+      } else {
+        res = tpSum > 0 ? "Win" : "Break Even";
+      }
     }
 
     let pnl;
-    if (res === "Win") pnl = tpSum - commission;
-    else if (res === "Break Even") pnl = -commission;
-    else pnl = -slAtRisk - commission;
+    if (tpsHit === "SL") {
+      // use signed SL directly (includes short/long direction)
+      pnl = slSigned - commission;
+    } else if (res === "Win") {
+      pnl = tpSum - commission;
+    } else if (res === "Break Even") {
+      pnl = -commission;
+    } else {
+      // fallback loss path (should rarely hit now)
+      pnl = -Math.abs(slSigned) - commission;
+    }
 
     const nextDeposit = d + pnl;
 
