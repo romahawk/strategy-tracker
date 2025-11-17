@@ -94,8 +94,8 @@ export default function EntryConditionsSection({
           </select>
         </div>
 
-        {/* Strategy 1 extras */}
-        {strategyId === 1 && (
+        {/* Strategy 1 + 3 extras: 5m signal & 5m MA200 */}
+        {(strategyId === 1 || strategyId === 3) && (
           <>
             <div>
               <label className="text-[11px] text-slate-300 mb-1 block">
@@ -136,7 +136,7 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 2 extras */}
+        {/* Strategy 2 extras (unchanged) */}
         {strategyId === 2 && (
           <>
             <div>

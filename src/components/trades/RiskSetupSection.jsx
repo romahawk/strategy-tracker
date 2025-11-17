@@ -1,11 +1,18 @@
 // src/components/trades/trades/RiskSetupSection.jsx
 import { ShieldCheck } from "lucide-react";
 
-export default function RiskSetupSection({ form, onChange, riskTooHigh }) {
+export default function RiskSetupSection({
+  form,
+  onChange,
+  riskTooHigh,
+  strategyId, // <-- now received
+}) {
   const handleLeverageChange = (value) => {
     const v = Math.min(50, Math.max(1, Number(value) || 1));
     onChange({ target: { name: "leverageX", value: String(v) } });
   };
+
+  const isFX = Number(strategyId) === 3;
 
   return (
     <div className="border border-white/5 rounded-2xl p-3">
@@ -68,10 +75,9 @@ export default function RiskSetupSection({ form, onChange, riskTooHigh }) {
           />
         </div>
 
-        {/* SL % / SL $ / Risk % etc – keep yours */}
+        {/* SL % / SL $ / Risk % etc */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-300">SL % / $</label>
-          {/* you can keep your existing fields here */}
           <div className="grid grid-cols-2 gap-2">
             <input
               type="number"
@@ -104,6 +110,37 @@ export default function RiskSetupSection({ form, onChange, riskTooHigh }) {
           />
         </div>
       </div>
+
+      {/* FX-only: Lots (auto from deposit/%/leverage but editable) */}
+      {isFX && (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-300">Lots (100k = 1.00)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              name="lots"
+              value={form.lots || ""}
+              onChange={onChange}
+              placeholder="e.g. 0.25"
+              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            />
+            <p className="text-[10px] text-slate-400">
+              Auto = (Deposit × % × Leverage) / 100000
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-300">Pip $ / lot</label>
+            <input
+              type="text"
+              value={form.pipValue || ""}
+              disabled
+              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white/80 opacity-70"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
