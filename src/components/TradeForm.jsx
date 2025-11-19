@@ -204,7 +204,7 @@ export default function TradeForm({
     debouncedUpdateTP(updatedRisk);
   }, 200);
 
-  // ---------- RISK: Strategy 3 (funded account, lots from deposit) ----------
+  // ---------- RISK: Strategy 3 (funded account, lots from deposit)
   const debouncedUpdateRisk_S3 = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
     if (!entry || !sl || !deposit) return;
@@ -212,30 +212,50 @@ export default function TradeForm({
     const e = parseFloat(entry);
     const s = parseFloat(sl);
     const d = parseFloat(deposit);
-    if (isNaN(e) || isNaN(s) || isNaN(d) || d <= 0) return;
+    if ([e, s, d].some((v) => Number.isNaN(v)) || d <= 0) return;
 
-    const usedPct = Math.max(0, parseFloat(newForm.usedDepositPercent || "25"));
-    const levX = Math.max(1, parseFloat(newForm.leverageX || "1"));
+    // target risk % set by user (0.25 – 2.00)
+    let targetRisk = parseFloat(newForm.riskPercent || "0.5");
+    if (Number.isNaN(targetRisk) || targetRisk <= 0) targetRisk = 0.5;
+    if (targetRisk < 0.25) targetRisk = 0.25;
+    if (targetRisk > 2) targetRisk = 2;
 
-    // position size used for PnL / risk
-    const positionSize = d * (usedPct / 100) * levX;
-
+    // SL % based on price distance
     const slP = direction === "Long" ? (s / e - 1) * 100 : (1 - s / e) * 100;
-    const slDollar = positionSize * (slP / 100);
+    const absSl = Math.abs(slP);
 
-    const riskD = slDollar;
-    const riskPabs = (Math.abs(riskD) / d) * 100;
+    // cannot compute lot size if SL == entry
+    if (!absSl) {
+      setForm((prev) => ({
+        ...prev,
+        slPercent: slP.toFixed(2),
+        slDollar: "",
+        riskDollar: "",
+        riskPercent: targetRisk.toFixed(2),
+      }));
+      return;
+    }
 
-    // derived lots: 100k notionals = 1.00 lot
+    // Lot% derived from target risk and SL%
+    let lotPct = (targetRisk * 100) / absSl; // could be > 100
+    if (lotPct > 100) lotPct = 100;
+
+    const positionSize = d * (lotPct / 100); // 1x leverage
+    const riskUsdAbs = positionSize * (absSl / 100);
+    const riskActualPct = (riskUsdAbs / d) * 100;
+
+    const riskUsdSigned = -riskUsdAbs; // potential loss
+
     const lots = positionSize / 100000;
 
     const updatedRisk = {
       ...newForm,
+      usedDepositPercent: lotPct.toFixed(2),
       leverageAmount: positionSize.toFixed(2),
       slPercent: slP.toFixed(2),
-      slDollar: slDollar.toFixed(2),
-      riskDollar: riskD.toFixed(2),
-      riskPercent: riskPabs.toFixed(2),
+      slDollar: riskUsdSigned.toFixed(2),
+      riskDollar: riskUsdSigned.toFixed(2),
+      riskPercent: riskActualPct.toFixed(2),
       lots: lots.toFixed(2),
       pipValue: "",
     };
@@ -323,7 +343,8 @@ export default function TradeForm({
       e.target.name === "pair" ||
       e.target.name === "riskTargetPercent" ||
       e.target.name === "usedDepositPercent" ||
-      e.target.name === "leverageX"
+      e.target.name === "leverageX" ||
+      e.target.name === "riskPercent" // ⬅ add this
     ) {
       if (sid === 3) debouncedUpdateRisk_S3(newForm);
       else debouncedUpdateRisk_S1_S2(newForm);

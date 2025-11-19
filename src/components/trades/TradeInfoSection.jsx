@@ -1,11 +1,14 @@
+// src/components/trades/trades/TradeInfoSection.jsx
 import { Calendar, Clock } from "lucide-react";
 
-export default function TradeInfoSection({ form, onChange }) {
+export default function TradeInfoSection({ form, onChange, strategyId }) {
   const handlePercentChange = (value) => {
-    // clamp 1..100
     const v = Math.min(100, Math.max(1, Number(value) || 1));
     onChange({ target: { name: "usedDepositPercent", value: String(v) } });
   };
+
+  const percentLabel =
+    strategyId === 3 ? "Lot size %" : "% of deposit";
 
   return (
     <div className="border border-white/5 rounded-2xl p-3">
@@ -49,7 +52,7 @@ export default function TradeInfoSection({ form, onChange }) {
             name="pair"
             value={form.pair || ""}
             onChange={onChange}
-            placeholder="EURUSD / BTCUSDT"
+            placeholder="ANY symbol: AVAXUSDT, XAUUSD…"
             className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
           />
         </div>
@@ -67,7 +70,7 @@ export default function TradeInfoSection({ form, onChange }) {
         </div>
       </div>
 
-      {/* deposit + % of deposit */}
+      {/* deposit + % / lot-size */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-300">Deposit ($)</label>
@@ -83,7 +86,7 @@ export default function TradeInfoSection({ form, onChange }) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-300">% of deposit</label>
+          <label className="text-xs text-slate-300">{percentLabel}</label>
           <div className="flex gap-2 items-center">
             <input
               type="number"

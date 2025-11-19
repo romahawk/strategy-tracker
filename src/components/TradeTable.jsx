@@ -149,6 +149,150 @@ export default function TradeTable({
     }
   };
 
+  // Convert current trades to FTMO logic (TS3): 100k start, 1% risk per trade
+  const recalcTradesForFtmo = (
+    rawTrades,
+    startDeposit = 100000,
+    riskPercentPerTrade = 1.0
+  ) => {
+    if (!Array.isArray(rawTrades) || rawTrades.length === 0) return rawTrades;
+
+    // sort by date+time to replay in correct order
+    const tradesSorted = [...rawTrades].sort((a, b) => {
+      const aKey = `${a.date || ""} ${a.time || ""}`;
+      const bKey = `${b.date || ""} ${b.time || ""}`;
+      return aKey.localeCompare(bKey);
+    });
+
+    let balance = Number(startDeposit);
+
+    const converted = tradesSorted.map((t) => {
+      const n = (v) => {
+        const x = parseFloat(v);
+        return Number.isFinite(x) ? x : 0;
+      };
+
+      const entry = n(t.entry);
+      const sl = n(t.sl);
+      const direction = t.direction || "Long";
+
+      // SL% from price distance
+      let slP =
+        direction === "Long"
+          ? (sl / entry - 1) * 100
+          : (1 - sl / entry) * 100;
+      if (!Number.isFinite(slP)) slP = 0;
+      const absSl = Math.abs(slP);
+
+      let targetRisk = Number(riskPercentPerTrade);
+      if (!Number.isFinite(targetRisk) || targetRisk <= 0) targetRisk = 1;
+      if (targetRisk < 0.25) targetRisk = 0.25;
+      if (targetRisk > 2) targetRisk = 2;
+
+      let lotPct = 0;
+      let positionSize = 0;
+      let riskUsdAbs = 0;
+      let riskActualPct = 0;
+
+      if (absSl > 0) {
+        lotPct = (targetRisk * 100) / absSl;
+        if (lotPct > 100) lotPct = 100;
+        positionSize = balance * (lotPct / 100);
+        riskUsdAbs = positionSize * (absSl / 100);
+        riskActualPct = (riskUsdAbs / balance) * 100;
+      }
+
+      const riskUsdSigned = -riskUsdAbs;
+      const lots = positionSize / 100000;
+
+      // TP maths
+      const tp1 = n(t.tp1);
+      const tp2 = n(t.tp2);
+      const tp3 = n(t.tp3);
+      const tpsHit = t.tpsHit || "SL";
+
+      const tpPct = (tpPrice) => {
+        if (!tpPrice || !entry) return null;
+        return direction === "Long"
+          ? (tpPrice / entry - 1) * 100
+          : (1 - tpPrice / entry) * 100;
+      };
+
+      const tp1Pct = tpPct(tp1);
+      const tp2Pct = tpPct(tp2);
+      const tp3Pct = tpPct(tp3);
+
+      const tpVal = (pct, factor) => {
+        if (pct == null) return { pct: null, usd: 0 };
+        const usd = positionSize * (pct / 100) * factor;
+        return { pct: Number(pct.toFixed(2)), usd };
+      };
+
+      let tp1Data, tp2Data, tp3Data;
+      if (tpsHit === "3") {
+        tp1Data = tpVal(tp1Pct, 1 / 3);
+        tp2Data = tpVal(tp2Pct, 1 / 3);
+        tp3Data = tpVal(tp3Pct, 1 / 3);
+      } else if (tpsHit === "2") {
+        tp1Data = tpVal(tp1Pct, 1 / 3);
+        tp2Data = tpVal(tp2Pct, 2 / 3);
+        tp3Data = { pct: null, usd: 0 };
+      } else if (tpsHit === "SL") {
+        tp1Data = { pct: null, usd: 0 };
+        tp2Data = { pct: null, usd: 0 };
+        tp3Data = { pct: null, usd: 0 };
+      } else {
+        // treat anything else as TP1 full
+        tp1Data = tpVal(tp1Pct, 1);
+        tp2Data = { pct: null, usd: 0 };
+        tp3Data = { pct: null, usd: 0 };
+      }
+
+      const tpTotal = tp1Data.usd + tp2Data.usd + tp3Data.usd;
+
+      let pnl;
+      let result;
+      if (tpsHit === "SL") {
+        pnl = riskUsdSigned;
+        result = "Loss";
+      } else {
+        pnl = tpTotal;
+        result = pnl > 0 ? "Win" : "Break Even";
+      }
+
+      const nextBalance = balance + pnl;
+
+      const updated = {
+        ...t,
+        strategyId: 3,
+        deposit: Number(balance.toFixed(2)),
+        riskPercent: Number(riskActualPct.toFixed(2)),
+        riskDollar: Number(riskUsdSigned.toFixed(2)),
+        usedDepositPercent: Number(lotPct.toFixed(2)),
+        leverageX: 1,
+        leverageAmount: Number(positionSize.toFixed(2)),
+        lots: Number(lots.toFixed(2)),
+        slPercent: Number(slP.toFixed(2)),
+        slDollar: Number(riskUsdSigned.toFixed(2)),
+        tp1Percent: tp1Data.pct,
+        tp1Dollar: Number(tp1Data.usd.toFixed(2)),
+        tp2Percent: tp2Data.pct,
+        tp2Dollar: Number(tp2Data.usd.toFixed(2)),
+        tp3Percent: tp3Data.pct,
+        tp3Dollar: Number(tp3Data.usd.toFixed(2)),
+        tpTotal: Number(tpTotal.toFixed(2)),
+        pnl: Number(pnl.toFixed(2)),
+        nextDeposit: Number(nextBalance.toFixed(2)),
+        result,
+      };
+
+      balance = nextBalance;
+      return updated;
+    });
+
+    return converted;
+  };
+
   const importBackup = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -195,6 +339,36 @@ export default function TradeTable({
       toast.error("Error reading backup file", { autoClose: 5000 });
     };
     reader.readAsText(file);
+  };
+
+  const recalcAsFtmo = () => {
+    try {
+      if (!trades || trades.length === 0) {
+        toast.info("No trades to recalculate", { autoClose: 2000 });
+        return;
+      }
+
+      // You can tweak these two values:
+      const START_DEPOSIT = 100000;   // FTMO starting balance
+      const RISK_PER_TRADE = 1.0;     // % of account per trade
+
+      const converted = recalcTradesForFtmo(
+        trades,
+        START_DEPOSIT,
+        RISK_PER_TRADE
+      );
+
+      onUpdateTrades(converted);
+      toast.success(
+        `Recalculated for FTMO ${START_DEPOSIT.toLocaleString()} @ ${RISK_PER_TRADE}% risk`,
+        { autoClose: 3000 }
+      );
+    } catch (err) {
+      console.error("FTMO recalculation error:", err);
+      toast.error("Failed to recalculate trades for FTMO", {
+        autoClose: 4000,
+      });
+    }
   };
 
   return (
@@ -565,6 +739,15 @@ export default function TradeTable({
                     className="hidden"
                   />
                 </label>
+                {sid === 3 && trades.length > 0 && (
+                  <button
+                    onClick={recalcAsFtmo}
+                    className="h-8 px-3 rounded-full bg-indigo-500 text-white text-xs flex items-center gap-1 hover:brightness-110"
+                  >
+                    <LineChart className="w-4 h-4" />
+                    Recalc as FTMO 100k @ 1%
+                  </button>
+                )}
               </div>
             </div>
           )}
