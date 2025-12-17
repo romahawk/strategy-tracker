@@ -434,7 +434,12 @@ export default function TradeForm({
   const overlayInvalid = isLong
     ? form.overlay !== "blue"
     : form.overlay !== "red";
-  const ma200Invalid = isLong ? form.ma200 !== "above" : form.ma200 !== "below";
+  const ma200Invalid =
+    form.ma200 === "ranging"
+      ? false
+      : isLong
+      ? form.ma200 !== "above"
+      : form.ma200 !== "below";
 
   const buySell5mInvalid =
     sid === 1 || sid === 3
@@ -445,7 +450,9 @@ export default function TradeForm({
 
   const ma2005mInvalid =
     sid === 1 || sid === 3
-      ? isLong
+      ? form.ma2005m === "ranging"
+        ? false
+        : isLong
         ? form.ma2005m !== "above"
         : form.ma2005m !== "below"
       : false;

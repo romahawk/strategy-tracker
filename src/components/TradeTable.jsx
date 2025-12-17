@@ -458,13 +458,19 @@ export default function TradeTable({
                   style={{ minWidth: "40px", width: "40px" }}
                 />
                 {/* Basic info */}
-                <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>
+                <th
+                  className="p-2"
+                  style={{ minWidth: "100px", width: "100px" }}
+                >
                   Date
                 </th>
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Time
                 </th>
-                <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>
+                <th
+                  className="p-2"
+                  style={{ minWidth: "140px", width: "140px" }}
+                >
                   Pair
                 </th>
                 <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>
@@ -558,9 +564,7 @@ export default function TradeTable({
                   <React.Fragment key={t.id}>
                     <tr
                       className={`border-b border-white/5 transition ${
-                        index % 2 === 0
-                          ? "bg-[#0f172a]"
-                          : "bg-[#0f172a]/50"
+                        index % 2 === 0 ? "bg-[#0f172a]" : "bg-[#0f172a]/50"
                       }`}
                     >
                       <td
@@ -592,9 +596,7 @@ export default function TradeTable({
                         {t.slPercent !== undefined ? `${t.slPercent}%` : ""}
                       </td>
                       <td className="p-2 text-slate-200">${t.slDollar}</td>
-                      <td className="p-2 text-slate-200">
-                        {t.riskPercent}%
-                      </td>
+                      <td className="p-2 text-slate-200">{t.riskPercent}%</td>
                       <td className="p-2 text-slate-200 border-r border-white/10">
                         ${t.riskDollar}
                       </td>
@@ -702,6 +704,15 @@ export default function TradeTable({
             <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-[#0f172a] border-t border-white/5">
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  title="First page"
+                >
+                  First
+                </button>
+
+                <button
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(prev - 1, 1))
                   }
@@ -710,9 +721,11 @@ export default function TradeTable({
                 >
                   Previous
                 </button>
+
                 <span className="text-xs text-slate-200">
                   Page {currentPage} of {totalPages}
                 </span>
+
                 <button
                   onClick={() =>
                     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -722,7 +735,17 @@ export default function TradeTable({
                 >
                   Next
                 </button>
+
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  title="Last page"
+                >
+                  Last
+                </button>
               </div>
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={exportBackup}

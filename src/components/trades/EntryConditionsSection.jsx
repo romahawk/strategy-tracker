@@ -1,5 +1,14 @@
 import { Layers } from "lucide-react";
 
+const baseSelect =
+  "w-full h-8 rounded-lg bg-[#0b1120] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+
+function selectBorder({ invalid, ranging }) {
+  if (invalid) return "border border-rose-400/60";
+  if (ranging) return "border border-yellow-400/70 ring-1 ring-yellow-400/30";
+  return "border border-white/5";
+}
+
 export default function EntryConditionsSection({
   form,
   onChange,
@@ -17,180 +26,147 @@ export default function EntryConditionsSection({
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* 15m ST */}
-        <div>
-          <label className="text-[11px] text-slate-300 mb-1 block">
-            15m ST
-          </label>
-          <select
-            name="stTrend"
-            value={form.stTrend}
-            onChange={onChange}
-            className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-              invalidFlags.stInvalid ? "border-rose-400/60" : "border-white/5"
-            } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-          >
-            <option value="bull">Bull</option>
-            <option value="bear">Bear</option>
-            <option value="ranging">Ranging</option>
-          </select>
-        </div>
+        <Select
+          label="15m ST"
+          name="stTrend"
+          value={form.stTrend}
+          onChange={onChange}
+          className={selectBorder({ invalid: invalidFlags.stInvalid })}
+          options={[
+            ["bull", "Bull"],
+            ["bear", "Bear"],
+            ["ranging", "Ranging"],
+          ]}
+        />
 
         {/* 15m USDT.D */}
-        <div>
-          <label className="text-[11px] text-slate-300 mb-1 block">
-            15m USDT.D
-          </label>
-          <select
-            name="usdtTrend"
-            value={form.usdtTrend}
-            onChange={onChange}
-            className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-              invalidFlags.usdtInvalid ? "border-rose-400/60" : "border-white/5"
-            } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-          >
-            <option value="bull">Bull</option>
-            <option value="bear">Bear</option>
-            <option value="ranging">Ranging</option>
-          </select>
-        </div>
+        <Select
+          label="15m USDT.D"
+          name="usdtTrend"
+          value={form.usdtTrend}
+          onChange={onChange}
+          className={selectBorder({ invalid: invalidFlags.usdtInvalid })}
+          options={[
+            ["bull", "Bull"],
+            ["bear", "Bear"],
+            ["ranging", "Ranging"],
+          ]}
+        />
 
         {/* Overlay */}
-        <div>
-          <label className="text-[11px] text-slate-300 mb-1 block">
-            Overlay
-          </label>
-          <select
-            name="overlay"
-            value={form.overlay}
-            onChange={onChange}
-            className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-              invalidFlags.overlayInvalid
-                ? "border-rose-400/60"
-                : "border-white/5"
-            } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-          >
-            <option value="blue">Blue</option>
-            <option value="red">Red</option>
-            <option value="neutral">Neutral</option>
-          </select>
-        </div>
+        <Select
+          label="Overlay"
+          name="overlay"
+          value={form.overlay}
+          onChange={onChange}
+          className={selectBorder({ invalid: invalidFlags.overlayInvalid })}
+          options={[
+            ["blue", "Blue"],
+            ["red", "Red"],
+            ["neutral", "Neutral"],
+          ]}
+        />
 
-        {/* MA200 */}
-        <div>
-          <label className="text-[11px] text-slate-300 mb-1 block">
-            MA200
-          </label>
-          <select
-            name="ma200"
-            value={form.ma200}
-            onChange={onChange}
-            className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-              invalidFlags.ma200Invalid ? "border-rose-400/60" : "border-white/5"
-            } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-          >
-            <option value="above">Above</option>
-            <option value="below">Below</option>
-            <option value="ranging">Ranging</option>
-          </select>
-        </div>
+        {/* 15m MA200 */}
+        <Select
+          label="MA200"
+          name="ma200"
+          value={form.ma200}
+          onChange={onChange}
+          className={selectBorder({
+            invalid: invalidFlags.ma200Invalid,
+            ranging: form.ma200 === "ranging",
+          })}
+          options={[
+            ["above", "Above"],
+            ["below", "Below"],
+            ["ranging", "Ranging"],
+          ]}
+        />
 
-        {/* Strategy 1 + 3 extras: 5m signal & 5m MA200 */}
         {(strategyId === 1 || strategyId === 3) && (
           <>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                5m Signal
-              </label>
-              <select
-                name="buySell5m"
-                value={form.buySell5m}
-                onChange={onChange}
-                className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-                  invalidFlags.buySell5mInvalid
-                    ? "border-rose-400/60"
-                    : "border-white/5"
-                } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-              >
-                <option value="buy">Buy</option>
-                <option value="sell">Sell</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                5m MA200
-              </label>
-              <select
-                name="ma2005m"
-                value={form.ma2005m}
-                onChange={onChange}
-                className={`w-full h-8 rounded-lg bg-[#0b1120] border ${
-                  invalidFlags.ma2005mInvalid
-                    ? "border-rose-400/60"
-                    : "border-white/5"
-                } px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40`}
-              >
-                <option value="above">Above</option>
-                <option value="below">Below</option>
-              </select>
-            </div>
+            {/* 5m Signal */}
+            <Select
+              label="5m Signal"
+              name="buySell5m"
+              value={form.buySell5m}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.buySell5mInvalid,
+              })}
+              options={[
+                ["buy", "Buy"],
+                ["sell", "Sell"],
+              ]}
+            />
+
+            {/* 5m MA200 */}
+            <Select
+              label="5m MA200"
+              name="ma2005m"
+              value={form.ma2005m}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.ma2005mInvalid,
+                ranging: form.ma2005m === "ranging",
+              })}
+              options={[
+                ["above", "Above"],
+                ["below", "Below"],
+                ["ranging", "Ranging"],
+              ]}
+            />
           </>
         )}
 
-        {/* Strategy 2 extras (unchanged) */}
+        {/* Strategy 2 extras — unchanged */}
         {strategyId === 2 && (
           <>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                15m CHoCH/BoS
-              </label>
-              <input
-                type="text"
-                name="chochBos15m"
-                value={form.chochBos15m || ""}
-                onChange={onChange}
-                className="w-full h-8 rounded-lg bg-[#0b1120] border border-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
-                placeholder="e.g. BoS up"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                1m Overlay
-              </label>
-              <input
-                type="text"
-                name="overlay1m"
-                value={form.overlay1m || ""}
-                onChange={onChange}
-                className="w-full h-8 rounded-lg bg-[#0b1120] border border-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                1m BoS
-              </label>
-              <input
-                type="text"
-                name="bos1m"
-                value={form.bos1m || ""}
-                onChange={onChange}
-                className="w-full h-8 rounded-lg bg-[#0b1120] border border-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-300 mb-1 block">
-                1m MA200
-              </label>
-              <input
-                type="text"
-                name="ma2001m"
-                value={form.ma2001m || ""}
-                onChange={onChange}
-                className="w-full h-8 rounded-lg bg-[#0b1120] border border-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
-              />
-            </div>
+            <TextInput label="15m CHoCH/BoS" name="chochBos15m" value={form.chochBos15m} onChange={onChange} />
+            <TextInput label="1m Overlay" name="overlay1m" value={form.overlay1m} onChange={onChange} />
+            <TextInput label="1m BoS" name="bos1m" value={form.bos1m} onChange={onChange} />
+            <TextInput label="1m MA200" name="ma2001m" value={form.ma2001m} onChange={onChange} />
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ---------- Small helpers ---------- */
+
+function Select({ label, name, value, onChange, options, className }) {
+  return (
+    <div>
+      <label className="text-[11px] text-slate-300 mb-1 block">{label}</label>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`${baseSelect} ${className}`}
+      >
+        {options.map(([val, label]) => (
+          <option key={val} value={val}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TextInput({ label, name, value, onChange }) {
+  return (
+    <div>
+      <label className="text-[11px] text-slate-300 mb-1 block">{label}</label>
+      <input
+        type="text"
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        className={`${baseSelect} border border-white/5`}
+      />
     </div>
   );
 }
