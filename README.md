@@ -94,7 +94,7 @@ npm run dev
 
 ---
 
-## 📌 Positioning (for interviews)
+## 📌 Positioning 
 
 This repo is intentionally structured as a **Tech PM / Full-Stack case study**:
 
