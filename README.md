@@ -21,6 +21,12 @@ What’s already working:
 - **Equity curve** visualization connected to trades
 - **Weekly results** view (summary per week)
 - Deposit % and risk % selection feeding analytics
+- Equity curve: **date range filter (From / To)**
+- Equity curve: **open trades excluded** (realized-only equity; prevents 0 drop)
+- Equity curve: **toggle drawdown curve on/off**
+- All trades: pagination now supports **First / Last** page jump
+- TradeForm: MA200 “Ranging” treated as **neutral** + yellow frame (15m + 5m), incl. **Ranging option for 5m MA200**
+
 
 ---
 
