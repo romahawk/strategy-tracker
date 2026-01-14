@@ -25,35 +25,7 @@ export default function EntryConditionsSection({
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* 15m ST */}
-        <Select
-          label="15m ST"
-          name="stTrend"
-          value={form.stTrend}
-          onChange={onChange}
-          className={selectBorder({ invalid: invalidFlags.stInvalid })}
-          options={[
-            ["bull", "Bull"],
-            ["bear", "Bear"],
-            ["ranging", "Ranging"],
-          ]}
-        />
-
-        {/* 15m USDT.D */}
-        <Select
-          label="15m USDT.D"
-          name="usdtTrend"
-          value={form.usdtTrend}
-          onChange={onChange}
-          className={selectBorder({ invalid: invalidFlags.usdtInvalid })}
-          options={[
-            ["bull", "Bull"],
-            ["bear", "Bear"],
-            ["ranging", "Ranging"],
-          ]}
-        />
-
-        {/* Overlay */}
+        {/* 15m Overlay */}
         <Select
           label="Overlay"
           name="overlay"
@@ -80,6 +52,20 @@ export default function EntryConditionsSection({
           options={[
             ["above", "Above"],
             ["below", "Below"],
+            ["ranging", "Ranging"],
+          ]}
+        />
+
+        {/* 15m USDT.D */}
+        <Select
+          label="15m USDT.D"
+          name="usdtTrend"
+          value={form.usdtTrend}
+          onChange={onChange}
+          className={selectBorder({ invalid: invalidFlags.usdtInvalid })}
+          options={[
+            ["bull", "Bull"],
+            ["bear", "Bear"],
             ["ranging", "Ranging"],
           ]}
         />
@@ -120,13 +106,53 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 2 extras — unchanged */}
+        {/* Strategy 2 extras — updated */}
         {strategyId === 2 && (
           <>
-            <TextInput label="15m CHoCH/BoS" name="chochBos15m" value={form.chochBos15m} onChange={onChange} />
-            <TextInput label="1m Overlay" name="overlay1m" value={form.overlay1m} onChange={onChange} />
-            <TextInput label="1m BoS" name="bos1m" value={form.bos1m} onChange={onChange} />
-            <TextInput label="1m MA200" name="ma2001m" value={form.ma2001m} onChange={onChange} />
+            {/* 15m CHoCH/BoS */}
+            <Select
+              label="15m CHoCH/BoS"
+              name="chochBos15m"
+              value={form.chochBos15m}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.chochBos15mInvalid })}
+              options={[
+                ["bull", "Bull CHoCH"],
+                ["bull", "Bull BoS"],
+                ["bear", "Bear CHoCH"],
+                ["bear", "Bear BoS"],
+              ]}
+            />
+
+            {/* 1m ST */}
+            <Select
+              label="1m ST"
+              name="st1m"
+              value={form.st1m}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.st1mInvalid })}
+              options={[
+                ["bull", "Bull"],
+                ["bear", "Bear"],
+              ]}
+            />
+
+            {/* 1m MA200 */}
+            <Select
+              label="1m MA200"
+              name="ma2001m"
+              value={form.ma2001m}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.ma2001mInvalid,
+                ranging: form.ma2001m === "ranging",
+              })}
+              options={[
+                ["above", "Above"],
+                ["below", "Below"],
+                ["ranging", "Ranging"],
+              ]}
+            />
           </>
         )}
       </div>
