@@ -7,12 +7,62 @@ export default function RiskSetupSection({
   strategyId,
   riskTooHigh,
 }) {
-  const handleLeverageChange = (value) => {
-    const v = Math.min(50, Math.max(1, Number(value) || 1));
-    onChange({ target: { name: "leverageX", value: String(v) } });
+  const isFTMO = strategyId === 3 || strategyId === 4;
+
+  // ----- Leverage checkpoints (S1/S2 only) -----
+  const MIN_LEV = 1;
+  const MAX_LEV = 50;
+  const CHECKPOINTS = [
+    { value: 5, label: "5x" },
+    { value: 10, label: "10x" },
+    { value: 15, label: "15x" },
+    { value: 20, label: "20x" },
+    { value: 25, label: "25x" },
+    { value: 30, label: "30x" },
+    { value: 35, label: "35x" },
+    { value: 40, label: "40x" },
+    { value: 45, label: "45x" },
+    { value: 50, label: "50x" },
+  ];
+  const SNAP_TOLERANCE = 1; // ±1
+
+  const currentLev = Number(form.leverageX || 1);
+
+  const leftPct = (value) => {
+    const pct = ((value - MIN_LEV) / (MAX_LEV - MIN_LEV)) * 100;
+    return Math.max(0, Math.min(100, pct));
   };
 
-  const isFTMO = strategyId === 3 || strategyId === 4;
+  const isNear = (value, x = currentLev) => Math.abs(Number(x) - value) <= SNAP_TOLERANCE;
+
+  const clampLev = (x) => Math.min(MAX_LEV, Math.max(MIN_LEV, Number(x) || MIN_LEV));
+
+  const snapLeverage = (raw) => {
+    const v = clampLev(raw);
+    // snap to the nearest checkpoint within tolerance
+    let best = null;
+    for (const cp of CHECKPOINTS) {
+      const dist = Math.abs(v - cp.value);
+      if (dist <= SNAP_TOLERANCE) {
+        if (!best || dist < best.dist) best = { value: cp.value, dist };
+      }
+    }
+    return best ? best.value : v;
+  };
+
+  const setLeverage = (v) => {
+    onChange({ target: { name: "leverageX", value: String(clampLev(v)) } });
+  };
+
+  // number input: exact (no snap)
+  const handleLeverageNumberChange = (value) => {
+    setLeverage(value);
+  };
+
+  // slider: snap when near checkpoints
+  const handleLeverageSliderChange = (value) => {
+    setLeverage(snapLeverage(value));
+  };
 
   const handleRiskFtmoChange = (value) => {
     let v = parseFloat(value);
@@ -62,28 +112,75 @@ export default function RiskSetupSection({
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300 flex justify-between">
               <span>Leverage</span>
-              <span className="text-[10px] text-slate-400">1 – 50×</span>
+              <span className="text-[10px] text-slate-400">
+                {MIN_LEV} – {MAX_LEV}×
+              </span>
             </label>
+
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                min={1}
-                max={50}
-                value={form.leverageX || "5"}
-                onChange={(e) => handleLeverageChange(e.target.value)}
+                min={MIN_LEV}
+                max={MAX_LEV}
+                value={form.leverageX || "10"}
+                onChange={(e) => handleLeverageNumberChange(e.target.value)}
                 className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white w-24 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
               />
               <span className="text-xs text-slate-300">×</span>
             </div>
-            <input
-              type="range"
-              min={1}
-              max={50}
-              step={1}
-              value={Number(form.leverageX || 5)}
-              onChange={(e) => handleLeverageChange(e.target.value)}
-              className="w-full accent-emerald-400 cursor-pointer"
-            />
+
+            {/* Slider + tick marks overlay */}
+            <div className="relative">
+              <input
+                type="range"
+                min={MIN_LEV}
+                max={MAX_LEV}
+                step={1}
+                value={Number(form.leverageX || 10)}
+                onChange={(e) => handleLeverageSliderChange(e.target.value)}
+                className="w-full accent-emerald-400 cursor-pointer"
+              />
+
+              {/* ✅ vertical tick marks aligned to scale */}
+              <div className="pointer-events-none absolute left-0 right-0 top-[9px] h-3">
+                {CHECKPOINTS.map((cp) => {
+                  const near = isNear(cp.value);
+                  return (
+                    <span
+                      key={cp.value}
+                      className={`absolute w-px ${
+                        near ? "bg-emerald-300" : "bg-white/20"
+                      }`}
+                      style={{
+                        left: `${leftPct(cp.value)}%`,
+                        height: near ? "10px" : "8px",
+                        transform: "translateX(-0.5px)",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ✅ labels aligned to scale + bold highlight when near (±1) */}
+            <div className="relative h-4 mt-1">
+              {CHECKPOINTS.map((cp) => {
+                const near = isNear(cp.value);
+                return (
+                  <span
+                    key={cp.value}
+                    className={`absolute -translate-x-1/2 text-[10px] ${
+                      near
+                        ? "text-emerald-200 font-semibold"
+                        : "text-slate-500 font-normal"
+                    }`}
+                    style={{ left: `${leftPct(cp.value)}%` }}
+                  >
+                    {cp.label}
+                  </span>
+                );
+              })}
+            </div>
           </div>
 
           {/* SL % / SL $ + Risk % (manual) */}

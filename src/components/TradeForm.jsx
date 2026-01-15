@@ -9,18 +9,11 @@ import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
 import ResultSection from "./trades/ResultSection";
 
-export default function TradeForm({
-  onAddTrade,
-  editingTrade,
-  initialDeposit,
-  strategyId,
-  accountId,
-  showTitle = true,
-}) {
-  const sid = Number(strategyId) || 1;
-  const aid = Number(accountId) || 1;
+function buildDefaultForm(sid) {
+  const isTS1 = sid === 1;
+  const isTS2 = sid === 2;
 
-  const DEFAULT_FORM = {
+  return {
     date: "",
     time: "",
     pair: "",
@@ -31,14 +24,14 @@ export default function TradeForm({
     // We stop auto-filling it to avoid wrong balances when adding trades retrospectively.
     deposit: "",
 
-    usedDepositPercent: "25",
-    leverageX: "5",
+    // ✅ Defaults per strategy
+    usedDepositPercent: isTS2 ? "100" : "25",       // TS2 = 100%
+    leverageX: isTS1 || isTS2 ? "10" : "5",         // TS1 & TS2 = 10x
 
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
     ma200: "ranging",
-
     buySell5m: "buy",
     ma2005m: "above",
 
@@ -53,21 +46,17 @@ export default function TradeForm({
 
     entry: "",
     sl: "",
-
     leverageAmount: "",
     slPercent: "",
     slDollar: "",
     riskDollar: "",
     riskPercent: "",
     riskTargetPercent: "",
-
     lots: "",
     pipValue: "",
-
     tp1: "",
     tp2: "",
     tp3: "",
-
     tpsHit: "OPEN",
     tp1Percent: "",
     tp2Percent: "",
@@ -75,26 +64,38 @@ export default function TradeForm({
     tp1Dollar: "",
     tp2Dollar: "",
     tp3Dollar: "",
-
     result: "Open",
     commission: "",
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
-
     screenshot: "",
   };
+}
 
-  const [form, setForm] = useState(DEFAULT_FORM);
+export default function TradeForm({
+  onAddTrade,
+  editingTrade,
+  initialDeposit,
+  strategyId,
+  accountId,
+  showTitle = true,
+}) {
+  const sid = Number(strategyId) || 1;
+  const aid = Number(accountId) || 1;
+
+  const [form, setForm] = useState(() => buildDefaultForm(sid));
 
   // init / edit
   useEffect(() => {
     if (editingTrade) {
       // Merge with defaults so newly introduced fields exist on older saved trades
-      setForm({ ...DEFAULT_FORM, ...editingTrade });
+      setForm({ ...buildDefaultForm(sid), ...editingTrade });
     } else {
+      // Retro-safe: do NOT auto-fill deposit from current initialDeposit.
       setForm((prev) => ({
-        ...DEFAULT_FORM,
+        ...buildDefaultForm(sid),
+        // keep last chosen direction if user prefers
         direction: prev.direction || "Long",
         screenshot: "",
       }));
@@ -102,12 +103,21 @@ export default function TradeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTrade, initialDeposit, sid, aid]);
 
+  // ✅ TS2 always defaults to 100% (even if you switch strategies and come back)
+  useEffect(() => {
+    if (sid === 2 && String(form.usedDepositPercent) !== "100") {
+      setForm((prev) => ({ ...prev, usedDepositPercent: "100" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sid]);
+
   // ---------- TP CALC ----------
   const debouncedUpdateTP = debounce((newForm) => {
     const { entry, tp1, tp2, tp3, direction, tpsHit, result } = newForm;
     const e = parseFloat(entry);
     if (!e) return;
 
+    // If trade is open → clear TP details
     if (tpsHit === "OPEN" || result === "Open") {
       const updated = {
         ...newForm,
@@ -154,6 +164,7 @@ export default function TradeForm({
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
+    // auto-result logic
     let autoResult = newForm.result;
     if (autoResult !== "Open") {
       if (tpsHit === "SL") {
@@ -383,18 +394,14 @@ export default function TradeForm({
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
     onAddTrade({ ...form, id, accountId: aid });
-    setForm({ ...DEFAULT_FORM, screenshot: "" });
+    setForm({ ...buildDefaultForm(sid), screenshot: "" });
   };
 
   // ---------- ENTRY CONDITION FLAGS ----------
   const isLong = form.direction === "Long";
   const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
-  const usdtInvalid = isLong
-    ? form.usdtTrend !== "bear"
-    : form.usdtTrend !== "bull";
-  const overlayInvalid = isLong
-    ? form.overlay !== "blue"
-    : form.overlay !== "red";
+  const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
+  const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
   const ma200Invalid =
     form.ma200 === "ranging"
       ? false
