@@ -26,10 +26,10 @@ export default function TradeTable({
   const [expandedRows, setExpandedRows] = useState({});
 
   const rowsPerPage = 10;
-  const totalPages = Math.ceil(trades.length / rowsPerPage);
+  const totalPages = Math.ceil((trades?.length || 0) / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedTrades = trades.slice(startIndex, endIndex);
+  const paginatedTrades = (trades || []).slice(startIndex, endIndex);
 
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
@@ -51,70 +51,34 @@ export default function TradeTable({
     }
   };
 
-  const n = (v, d = 0) => Number(v ?? d);
-  const fx = (v, d = 2) => Number(n(v).toFixed(d));
-
-  const normalizeTrade = (trade) => {
-    const deposit = n(trade.deposit);
-    const commission = Math.abs(n(trade.commission));
-
-    let riskDollar =
-      trade.riskDollar !== undefined
-        ? n(trade.riskDollar)
-        : -(deposit * n(trade.riskPercent) / 100);
-    if (riskDollar > 0) riskDollar = -Math.abs(riskDollar);
-
-    let slDollar =
-      trade.slDollar !== undefined ? n(trade.slDollar) : riskDollar;
-    if (slDollar > 0) slDollar = -Math.abs(slDollar);
-
-    let slPercent =
-      trade.slPercent !== undefined ? n(trade.slPercent) : undefined;
-    if (slPercent !== undefined && slPercent > 0) {
-      slPercent = -Math.abs(slPercent);
-    }
-
-    let pnl = n(trade.pnl);
-    if (String(trade.result).toLowerCase() === "loss") {
-      const expected = riskDollar - commission;
-      if (pnl >= 0 || Math.abs(pnl - expected) > 0.01) {
-        pnl = expected;
-      }
-    }
-
-    let nextDeposit =
-      trade.nextDeposit !== undefined ? n(trade.nextDeposit) : deposit + pnl;
-    if (Math.abs(nextDeposit - (deposit + pnl)) > 0.01) {
-      nextDeposit = deposit + pnl;
-    }
-
-    return {
-      ...trade,
-      commission: fx(commission),
-      riskDollar: fx(riskDollar),
-      slDollar: fx(slDollar),
-      slPercent: slPercent !== undefined ? fx(slPercent) : trade.slPercent,
-      pnl: fx(pnl),
-      nextDeposit: fx(nextDeposit),
-    };
+  const fmt = (v, digits = 2) => {
+    const x = Number(v);
+    if (!Number.isFinite(x)) return "-";
+    return x.toFixed(digits);
   };
 
-  const totalCols = 26;
-
-  const toggleRow = (id) => {
-    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  const fmtPct = (v, digits = 2) => {
+    const x = Number(v);
+    if (!Number.isFinite(x)) return "-";
+    return `${x.toFixed(digits)}%`;
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = String(date.getFullYear()).slice(-2);
     return `${day}-${month}-${year}`;
   };
 
+  const toggleRow = (id) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Keep a rolling backup of last 10 states
   useEffect(() => {
-    if (trades.length > 0) {
+    if ((trades?.length || 0) > 0) {
       try {
         const backups = JSON.parse(localStorage.getItem("tradeBackups") || "[]");
         backups.push({ trades, timestamp: new Date().toISOString() });
@@ -132,7 +96,7 @@ export default function TradeTable({
 
   const exportBackup = () => {
     try {
-      const dataStr = JSON.stringify(trades, null, 2);
+      const dataStr = JSON.stringify(trades || [], null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -150,6 +114,7 @@ export default function TradeTable({
   };
 
   // Convert current trades to FTMO logic (TS3): 100k start, 1% risk per trade
+  // NOTE: App-level computeTimeline() will recompute equity after import.
   const recalcTradesForFtmo = (
     rawTrades,
     startDeposit = 100000,
@@ -264,7 +229,7 @@ export default function TradeTable({
 
       const updated = {
         ...t,
-        strategyId: 3,
+        strategyId: 3, // FTMO mode outputs as strategy 3 format; TS4 can reuse it in UI anyway
         deposit: Number(balance.toFixed(2)),
         riskPercent: Number(riskActualPct.toFixed(2)),
         riskDollar: Number(riskUsdSigned.toFixed(2)),
@@ -311,10 +276,7 @@ export default function TradeTable({
             throw new Error(`Trade at index ${index} missing 'date' field`);
           if (trade.pair === undefined)
             throw new Error(`Trade at index ${index} missing 'pair' field`);
-          if (
-            typeof trade.id !== "string" &&
-            typeof trade.id !== "number"
-          ) {
+          if (typeof trade.id !== "string" && typeof trade.id !== "number") {
             throw new Error(
               `Trade at index ${index} has invalid 'id' type: ${typeof trade.id}`
             );
@@ -348,15 +310,10 @@ export default function TradeTable({
         return;
       }
 
-      // You can tweak these two values:
-      const START_DEPOSIT = 100000;   // FTMO starting balance
-      const RISK_PER_TRADE = 1.0;     // % of account per trade
+      const START_DEPOSIT = 100000; // FTMO starting balance
+      const RISK_PER_TRADE = 1.0; // % of account per trade
 
-      const converted = recalcTradesForFtmo(
-        trades,
-        START_DEPOSIT,
-        RISK_PER_TRADE
-      );
+      const converted = recalcTradesForFtmo(trades, START_DEPOSIT, RISK_PER_TRADE);
 
       onUpdateTrades(converted);
       toast.success(
@@ -371,9 +328,20 @@ export default function TradeTable({
     }
   };
 
+  // Clamp page if data shrinks
+  useEffect(() => {
+    if (totalPages === 0) {
+      setCurrentPage(1);
+      return;
+    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  const totalCols = 26;
+
   return (
     <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
-      {trades.length === 0 ? (
+      {!trades || trades.length === 0 ? (
         <div className="text-center py-4">
           <p className="text-slate-300 italic mb-4">No trades yet.</p>
           <div className="flex justify-center gap-2">
@@ -396,12 +364,8 @@ export default function TradeTable({
         </div>
       ) : (
         <div className="relative rounded-xl overflow-hidden border border-white/5">
-          <table
-            className="table-auto w-full text-xs"
-            style={{ tableLayout: "fixed" }}
-          >
+          <table className="table-auto w-full text-xs" style={{ tableLayout: "fixed" }}>
             <thead className="sticky top-0 z-10">
-              {/* colored group row */}
               <tr className="text-[11px] uppercase tracking-wide text-white">
                 <th
                   className="p-2 font-semibold sticky left-0 bg-[#0f172a] z-20"
@@ -451,26 +415,18 @@ export default function TradeTable({
                 </th>
               </tr>
 
-              {/* column titles row */}
               <tr className="text-slate-300/90 text-[11px] bg-[#0f172a] border-b border-white/5">
                 <th
                   className="p-2 sticky left-0 bg-[#0f172a] z-20"
                   style={{ minWidth: "40px", width: "40px" }}
                 />
-                {/* Basic info */}
-                <th
-                  className="p-2"
-                  style={{ minWidth: "100px", width: "100px" }}
-                >
+                <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>
                   Date
                 </th>
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Time
                 </th>
-                <th
-                  className="p-2"
-                  style={{ minWidth: "140px", width: "140px" }}
-                >
+                <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>
                   Pair
                 </th>
                 <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>
@@ -478,12 +434,11 @@ export default function TradeTable({
                 </th>
                 <th
                   className="p-2 border-r border-white/10"
-                  style={{ minWidth: "70px", width: "70px" }}
+                  style={{ minWidth: "90px", width: "90px" }}
                 >
-                  Depo $
+                  Eq. Before
                 </th>
 
-                {/* Risk */}
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   Entry
                 </th>
@@ -506,7 +461,6 @@ export default function TradeTable({
                   Risk $
                 </th>
 
-                {/* Take profit */}
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TPs Hit
                 </th>
@@ -541,7 +495,6 @@ export default function TradeTable({
                   TP3 $
                 </th>
 
-                {/* Results */}
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Result
                 </th>
@@ -552,14 +505,35 @@ export default function TradeTable({
                   PnL $
                 </th>
                 <th className="p-2" style={{ minWidth: "90px", width: "90px" }}>
-                  Next Depo
+                  Eq. After
                 </th>
               </tr>
             </thead>
 
             <tbody>
-              {paginatedTrades.map((trade, index) => {
-                const t = normalizeTrade(trade);
+              {paginatedTrades.map((t, index) => {
+                const equityBefore = Number.isFinite(Number(t?.equityBefore))
+                  ? Number(t.equityBefore)
+                  : Number.isFinite(Number(t?.deposit))
+                  ? Number(t.deposit)
+                  : null;
+
+                const equityAfter = Number.isFinite(Number(t?.equityAfter))
+                  ? Number(t.equityAfter)
+                  : Number.isFinite(Number(t?.nextDeposit))
+                  ? Number(t.nextDeposit)
+                  : null;
+
+                const pnlValue = Number.isFinite(Number(t?.pnl))
+                  ? Number(t.pnl)
+                  : Number.isFinite(Number(t?.netPnl))
+                  ? Number(t.netPnl)
+                  : null;
+
+                const commissionValue = Number.isFinite(Number(t?.commission))
+                  ? Number(t.commission)
+                  : null;
+
                 return (
                   <React.Fragment key={t.id}>
                     <tr
@@ -573,61 +547,96 @@ export default function TradeTable({
                       >
                         {startIndex + index + 1}
                       </td>
-                      {/* Basic Info */}
+
                       <td className="p-2 text-slate-200">
                         {t.date ? formatDate(t.date) : ""}
                       </td>
-                      <td className="p-2 text-slate-200">{t.time}</td>
-                      <td
-                        className="p-2 text-slate-200 truncate"
-                        title={t.pair}
-                      >
-                        {t.pair}
+                      <td className="p-2 text-slate-200">{t.time || ""}</td>
+                      <td className="p-2 text-slate-200 truncate" title={t.pair}>
+                        {t.pair || ""}
                       </td>
-                      <td className="p-2 text-slate-200">{t.direction}</td>
+                      <td className="p-2 text-slate-200">{t.direction || ""}</td>
+
                       <td className="p-2 text-slate-200 border-r border-white/10">
-                        {t.deposit}
+                        {equityBefore === null ? "-" : fmt(equityBefore, 2)}
                       </td>
 
-                      {/* Risk */}
-                      <td className="p-2 text-slate-200">{t.entry}</td>
-                      <td className="p-2 text-slate-200">{t.sl}</td>
+                      <td className="p-2 text-slate-200">{t.entry ?? ""}</td>
+                      <td className="p-2 text-slate-200">{t.sl ?? ""}</td>
                       <td className="p-2 text-slate-200">
-                        {t.slPercent !== undefined ? `${t.slPercent}%` : ""}
+                        {t.slPercent !== undefined && t.slPercent !== null
+                          ? fmtPct(t.slPercent, 2)
+                          : "-"}
                       </td>
-                      <td className="p-2 text-slate-200">${t.slDollar}</td>
-                      <td className="p-2 text-slate-200">{t.riskPercent}%</td>
+                      <td className="p-2 text-slate-200">
+                        {t.slDollar !== undefined && t.slDollar !== null
+                          ? `$${fmt(t.slDollar, 2)}`
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-slate-200">
+                        {t.riskPercent !== undefined && t.riskPercent !== null
+                          ? fmtPct(t.riskPercent, 2)
+                          : "-"}
+                      </td>
                       <td className="p-2 text-slate-200 border-r border-white/10">
-                        ${t.riskDollar}
+                        {t.riskDollar !== undefined && t.riskDollar !== null
+                          ? `$${fmt(t.riskDollar, 2)}`
+                          : "-"}
                       </td>
 
-                      {/* Take Profit */}
-                      <td className="p-2 text-slate-200">{t.tpsHit}</td>
-                      <td className="p-2 text-slate-200">{t.tp1}</td>
-                      <td className="p-2 text-slate-200">{t.tp1Percent}%</td>
-                      <td className="p-2 text-slate-200">${t.tp1Dollar}</td>
-                      <td className="p-2 text-slate-200">{t.tp2}</td>
-                      <td className="p-2 text-slate-200">{t.tp2Percent}%</td>
-                      <td className="p-2 text-slate-200">${t.tp2Dollar}</td>
-                      <td className="p-2 text-slate-200">{t.tp3}</td>
-                      <td className="p-2 text-slate-200">{t.tp3Percent}%</td>
-                      <td className="p-2 text-slate-200 border-r border-white/10">
-                        ${t.tp3Dollar}
+                      <td className="p-2 text-slate-200">{t.tpsHit ?? ""}</td>
+                      <td className="p-2 text-slate-200">{t.tp1 ?? ""}</td>
+                      <td className="p-2 text-slate-200">
+                        {t.tp1Percent !== undefined && t.tp1Percent !== null
+                          ? fmtPct(t.tp1Percent, 2)
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-slate-200">
+                        {t.tp1Dollar !== undefined && t.tp1Dollar !== null
+                          ? `$${fmt(t.tp1Dollar, 2)}`
+                          : "-"}
                       </td>
 
-                      {/* Results */}
-                      <td className="p-2 text-slate-200">{t.result}</td>
-                      <td className="p-2 text-slate-200">${t.commission}</td>
+                      <td className="p-2 text-slate-200">{t.tp2 ?? ""}</td>
+                      <td className="p-2 text-slate-200">
+                        {t.tp2Percent !== undefined && t.tp2Percent !== null
+                          ? fmtPct(t.tp2Percent, 2)
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-slate-200">
+                        {t.tp2Dollar !== undefined && t.tp2Dollar !== null
+                          ? `$${fmt(t.tp2Dollar, 2)}`
+                          : "-"}
+                      </td>
+
+                      <td className="p-2 text-slate-200">{t.tp3 ?? ""}</td>
+                      <td className="p-2 text-slate-200">
+                        {t.tp3Percent !== undefined && t.tp3Percent !== null
+                          ? fmtPct(t.tp3Percent, 2)
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-slate-200 border-r border-white/10">
+                        {t.tp3Dollar !== undefined && t.tp3Dollar !== null
+                          ? `$${fmt(t.tp3Dollar, 2)}`
+                          : "-"}
+                      </td>
+
+                      <td className="p-2 text-slate-200">{t.result ?? ""}</td>
+                      <td className="p-2 text-slate-200">
+                        {commissionValue === null ? "-" : `$${fmt(commissionValue, 2)}`}
+                      </td>
                       <td
                         className={`p-2 font-semibold ${
-                          parseFloat(t.pnl) >= 0
+                          pnlValue !== null && pnlValue >= 0
                             ? "text-emerald-400"
                             : "text-rose-400"
                         }`}
                       >
-                        ${t.pnl}
+                        {pnlValue === null ? "-" : `$${fmt(pnlValue, 2)}`}
                       </td>
-                      <td className="p-2 text-slate-200">{t.nextDeposit}</td>
+                      <td className="p-2 text-slate-200">
+                        {equityAfter === null ? "-" : fmt(equityAfter, 2)}
+                      </td>
                     </tr>
 
                     {expandedRows[t.id] && (
@@ -639,15 +648,18 @@ export default function TradeTable({
                               <span>USDT.D: {t.usdtTrend || "-"}</span>
                               <span>Overlay: {t.overlay || "-"}</span>
                               <span>MA200: {t.ma200 || "-"}</span>
+
                               {sid === 2 && (
                                 <>
-                                  <span>
-                                    15m CHoCH/BoS: {t.chochBos15m || "-"}
-                                  </span>
+                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
+                                  <span>1m ST: {t.st1m || "-"}</span>
                                   <span>1m Overlay: {t.overlay1m || "-"}</span>
-                                  <span>1m BoS: {t.bos1m || "-"}</span>
                                   <span>1m MA200: {t.ma2001m || "-"}</span>
                                 </>
+                              )}
+
+                              {sid === 4 && (
+                                <span>1m BoS: {t.bos1m || "-"}</span>
                               )}
                             </div>
 
@@ -713,9 +725,7 @@ export default function TradeTable({
                 </button>
 
                 <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  }
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                   className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
                 >
@@ -727,9 +737,7 @@ export default function TradeTable({
                 </span>
 
                 <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
                 >
@@ -762,7 +770,9 @@ export default function TradeTable({
                     className="hidden"
                   />
                 </label>
-                {sid === 3 && trades.length > 0 && (
+
+                {/* ✅ Show FTMO button for Fx (3) AND TS (4) */}
+                {(sid === 3 || sid === 4) && trades.length > 0 && (
                   <button
                     onClick={recalcAsFtmo}
                     className="h-8 px-3 rounded-full bg-indigo-500 text-white text-xs flex items-center gap-1 hover:brightness-110"

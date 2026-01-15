@@ -49,6 +49,12 @@ function toNumber(v, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function sortKey(t) {
+  const d = t?.date ? String(t.date) : "";
+  const tm = t?.time ? String(t.time) : "00:00";
+  return `${d} ${tm}`;
+}
+
 export default function EquityCurveChart({ trades = [] }) {
   // ✅ toggle drawdown on/off
   const [showDrawdown, setShowDrawdown] = useState(true);
@@ -58,16 +64,33 @@ export default function EquityCurveChart({ trades = [] }) {
     return (trades || []).filter(isOpenTrade).length;
   }, [trades]);
 
+  /**
+   * Retro-safe equity source:
+   * - prefer computed equityAfter/equityBefore (from computeTimeline)
+   * - fallback to legacy nextDeposit/deposit if app hasn't been wired yet
+   */
+  const getEquityAfter = (t) => {
+    if (Number.isFinite(Number(t?.equityAfter))) return Number(t.equityAfter);
+    if (Number.isFinite(Number(t?.nextDeposit))) return Number(t.nextDeposit);
+    return null;
+  };
+
+  const getEquityBefore = (t) => {
+    if (Number.isFinite(Number(t?.equityBefore))) return Number(t.equityBefore);
+    if (Number.isFinite(Number(t?.deposit))) return Number(t.deposit);
+    return null;
+  };
+
   // Base list for equity curve:
   // - has date
   // - NOT open
-  // - nextDeposit is numeric
+  // - equityAfter (computed) must be numeric (fallback to legacy nextDeposit if present)
   const sortedAll = useMemo(() => {
     return [...(trades || [])]
       .filter((t) => t?.date)
       .filter((t) => !isOpenTrade(t))
-      .filter((t) => Number.isFinite(Number(t?.nextDeposit)))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .filter((t) => getEquityAfter(t) !== null)
+      .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   }, [trades]);
 
   // min/max dates available (from realized trades only)
@@ -113,15 +136,15 @@ export default function EquityCurveChart({ trades = [] }) {
     t.date ? new Date(t.date).toLocaleDateString() : ""
   );
 
-  const values = filtered.map((t) => toNumber(t.nextDeposit, 0));
+  const values = filtered.map((t) => toNumber(getEquityAfter(t), 0));
 
   // Start point inside selected range:
-  // use deposit of the first trade in range (balance at range start)
-  const initialDeposit = toNumber(filtered[0]?.deposit, 0);
+  // use equityBefore of the first trade in range (balance at range start)
+  const initialEquity = toNumber(getEquityBefore(filtered[0]), 0);
 
   if (filtered.length) {
     labels.unshift("Start");
-    values.unshift(initialDeposit);
+    values.unshift(initialEquity);
   }
 
   // Drawdown calc on filtered range
@@ -237,7 +260,7 @@ export default function EquityCurveChart({ trades = [] }) {
           <div>
             <h2 className="text-sm font-semibold text-white">Equity curve</h2>
             <p className="text-[10px] text-slate-400">
-              Balance over time based on trade nextDeposit
+              Balance over time (recalculated equity)
             </p>
             {openCount > 0 && (
               <p className="text-[10px] text-slate-500">

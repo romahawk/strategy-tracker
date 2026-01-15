@@ -15,6 +15,8 @@ export default function EntryConditionsSection({
   strategyId,
   invalidFlags = {},
 }) {
+  const isFxLike = strategyId === 3 || strategyId === 4;
+
   return (
     <div className="border border-white/5 rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-4">
@@ -25,35 +27,7 @@ export default function EntryConditionsSection({
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* 15m ST */}
-        <Select
-          label="15m ST"
-          name="stTrend"
-          value={form.stTrend}
-          onChange={onChange}
-          className={selectBorder({ invalid: invalidFlags.stInvalid })}
-          options={[
-            ["bull", "Bull"],
-            ["bear", "Bear"],
-            ["ranging", "Ranging"],
-          ]}
-        />
-
-        {/* 15m USDT.D */}
-        <Select
-          label="15m USDT.D"
-          name="usdtTrend"
-          value={form.usdtTrend}
-          onChange={onChange}
-          className={selectBorder({ invalid: invalidFlags.usdtInvalid })}
-          options={[
-            ["bull", "Bull"],
-            ["bear", "Bear"],
-            ["ranging", "Ranging"],
-          ]}
-        />
-
-        {/* Overlay */}
+        {/* 15m Overlay */}
         <Select
           label="Overlay"
           name="overlay"
@@ -84,7 +58,21 @@ export default function EntryConditionsSection({
           ]}
         />
 
-        {(strategyId === 1 || strategyId === 3) && (
+        {/* 15m USDT.D */}
+        <Select
+          label="15m USDT.D"
+          name="usdtTrend"
+          value={form.usdtTrend}
+          onChange={onChange}
+          className={selectBorder({ invalid: invalidFlags.usdtInvalid })}
+          options={[
+            ["bull", "Bull"],
+            ["bear", "Bear"],
+            ["ranging", "Ranging"],
+          ]}
+        />
+
+        {(strategyId === 1 || isFxLike) && (
           <>
             {/* 5m Signal */}
             <Select
@@ -120,14 +108,74 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 2 extras — unchanged */}
+        {/* Strategy 2 extras */}
         {strategyId === 2 && (
           <>
-            <TextInput label="15m CHoCH/BoS" name="chochBos15m" value={form.chochBos15m} onChange={onChange} />
-            <TextInput label="1m Overlay" name="overlay1m" value={form.overlay1m} onChange={onChange} />
-            <TextInput label="1m BoS" name="bos1m" value={form.bos1m} onChange={onChange} />
-            <TextInput label="1m MA200" name="ma2001m" value={form.ma2001m} onChange={onChange} />
+            <Select
+              label="15m CHoCH/BoS"
+              name="chochBos15m"
+              value={form.chochBos15m}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.chochBos15mInvalid })}
+              options={[
+                ["bull_choch", "Bull CHoCH"],
+                ["bull_bos", "Bull BoS"],
+                ["bear_choch", "Bear CHoCH"],
+                ["bear_bos", "Bear BoS"],
+              ]}
+            />
+
+            <Select
+              label="1m ST"
+              name="st1m"
+              value={form.st1m}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.st1mInvalid })}
+              options={[
+                ["bull", "Bull"],
+                ["bear", "Bear"],
+              ]}
+            />
+
+            {/* Restored: 1m Overlay */}
+            <TextInput
+              label="1m Overlay"
+              name="overlay1m"
+              value={form.overlay1m}
+              onChange={onChange}
+            />
+
+            <Select
+              label="1m MA200"
+              name="ma2001m"
+              value={form.ma2001m}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.ma2001mInvalid,
+                ranging: form.ma2001m === "ranging",
+              })}
+              options={[
+                ["above", "Above"],
+                ["below", "Below"],
+                ["ranging", "Ranging"],
+              ]}
+            />
           </>
+        )}
+
+        {/* Strategy 4 (TS) extra: 1m BoS */}
+        {strategyId === 4 && (
+          <Select
+            label="1m BoS"
+            name="bos1m"
+            value={form.bos1m}
+            onChange={onChange}
+            className={selectBorder({ invalid: invalidFlags.bos1mInvalid })}
+            options={[
+              ["bull", "Bull BoS"],
+              ["bear", "Bear BoS"],
+            ]}
+          />
         )}
       </div>
     </div>
@@ -146,9 +194,9 @@ function Select({ label, name, value, onChange, options, className }) {
         onChange={onChange}
         className={`${baseSelect} ${className}`}
       >
-        {options.map(([val, label]) => (
+        {options.map(([val, lbl]) => (
           <option key={val} value={val}>
-            {label}
+            {lbl}
           </option>
         ))}
       </select>
