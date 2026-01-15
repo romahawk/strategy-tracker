@@ -15,6 +15,8 @@ export default function EntryConditionsSection({
   strategyId,
   invalidFlags = {},
 }) {
+  const isFxLike = strategyId === 3 || strategyId === 4;
+
   return (
     <div className="border border-white/5 rounded-2xl p-3">
       <div className="flex items-center gap-2 mb-4">
@@ -70,7 +72,7 @@ export default function EntryConditionsSection({
           ]}
         />
 
-        {(strategyId === 1 || strategyId === 3) && (
+        {(strategyId === 1 || isFxLike) && (
           <>
             {/* 5m Signal */}
             <Select
@@ -106,10 +108,9 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 2 extras — updated */}
+        {/* Strategy 2 extras */}
         {strategyId === 2 && (
           <>
-            {/* 15m CHoCH/BoS */}
             <Select
               label="15m CHoCH/BoS"
               name="chochBos15m"
@@ -117,14 +118,13 @@ export default function EntryConditionsSection({
               onChange={onChange}
               className={selectBorder({ invalid: invalidFlags.chochBos15mInvalid })}
               options={[
-                ["bull", "Bull CHoCH"],
-                ["bull", "Bull BoS"],
-                ["bear", "Bear CHoCH"],
-                ["bear", "Bear BoS"],
+                ["bull_choch", "Bull CHoCH"],
+                ["bull_bos", "Bull BoS"],
+                ["bear_choch", "Bear CHoCH"],
+                ["bear_bos", "Bear BoS"],
               ]}
             />
 
-            {/* 1m ST */}
             <Select
               label="1m ST"
               name="st1m"
@@ -137,7 +137,14 @@ export default function EntryConditionsSection({
               ]}
             />
 
-            {/* 1m MA200 */}
+            {/* Restored: 1m Overlay */}
+            <TextInput
+              label="1m Overlay"
+              name="overlay1m"
+              value={form.overlay1m}
+              onChange={onChange}
+            />
+
             <Select
               label="1m MA200"
               name="ma2001m"
@@ -154,6 +161,21 @@ export default function EntryConditionsSection({
               ]}
             />
           </>
+        )}
+
+        {/* Strategy 4 (TS) extra: 1m BoS */}
+        {strategyId === 4 && (
+          <Select
+            label="1m BoS"
+            name="bos1m"
+            value={form.bos1m}
+            onChange={onChange}
+            className={selectBorder({ invalid: invalidFlags.bos1mInvalid })}
+            options={[
+              ["bull", "Bull BoS"],
+              ["bear", "Bear BoS"],
+            ]}
+          />
         )}
       </div>
     </div>
@@ -172,9 +194,9 @@ function Select({ label, name, value, onChange, options, className }) {
         onChange={onChange}
         className={`${baseSelect} ${className}`}
       >
-        {options.map(([val, label]) => (
+        {options.map(([val, lbl]) => (
           <option key={val} value={val}>
-            {label}
+            {lbl}
           </option>
         ))}
       </select>

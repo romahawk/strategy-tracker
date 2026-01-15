@@ -12,7 +12,7 @@ export default function RiskSetupSection({
     onChange({ target: { name: "leverageX", value: String(v) } });
   };
 
-  const isFTMO = strategyId === 3;
+  const isFTMO = strategyId === 3 || strategyId === 4;
 
   const handleRiskFtmoChange = (value) => {
     let v = parseFloat(value);
@@ -122,7 +122,7 @@ export default function RiskSetupSection({
           </div>
         </div>
       ) : (
-        // ---------- Strategy 3 (FTMO / funded) ----------
+        // ---------- Strategy 3 & 4 (FTMO / funded) ----------
         <>
           <div className="grid grid-cols-2 gap-3">
             {/* Risk per trade % */}
@@ -184,9 +184,7 @@ export default function RiskSetupSection({
                 readOnly
                 value={
                   form.usedDepositPercent
-                    ? `Lot size: ${Number(
-                        form.usedDepositPercent
-                      ).toFixed(2)}%`
+                    ? `Lot size: ${Number(form.usedDepositPercent).toFixed(2)}%`
                     : "Lot size: –"
                 }
                 className="bg-[#020617] border border-white/5 rounded-lg px-3 py-2 text-[11px] text-slate-300"

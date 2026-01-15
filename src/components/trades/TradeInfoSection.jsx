@@ -8,7 +8,7 @@ export default function TradeInfoSection({ form, onChange, strategyId }) {
   };
 
   const percentLabel =
-    strategyId === 3 ? "Lot size %" : "% of deposit";
+    strategyId === 3 || strategyId === 4 ? "Lot size %" : "% of deposit";
 
   return (
     <div className="border border-white/5 rounded-2xl p-3">

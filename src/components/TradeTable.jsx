@@ -51,11 +51,6 @@ export default function TradeTable({
     }
   };
 
-  const n = (v, d = 0) => {
-    const x = Number(v ?? d);
-    return Number.isFinite(x) ? x : d;
-  };
-
   const fmt = (v, digits = 2) => {
     const x = Number(v);
     if (!Number.isFinite(x)) return "-";
@@ -119,8 +114,7 @@ export default function TradeTable({
   };
 
   // Convert current trades to FTMO logic (TS3): 100k start, 1% risk per trade
-  // NOTE: This function still outputs deposit/nextDeposit as sequential balances.
-  // In the retro-safe model, App-level computeTimeline() should recompute equity.
+  // NOTE: App-level computeTimeline() will recompute equity after import.
   const recalcTradesForFtmo = (
     rawTrades,
     startDeposit = 100000,
@@ -138,13 +132,13 @@ export default function TradeTable({
     let balance = Number(startDeposit);
 
     const converted = tradesSorted.map((t) => {
-      const num = (v) => {
+      const n = (v) => {
         const x = parseFloat(v);
         return Number.isFinite(x) ? x : 0;
       };
 
-      const entry = num(t.entry);
-      const sl = num(t.sl);
+      const entry = n(t.entry);
+      const sl = n(t.sl);
       const direction = t.direction || "Long";
 
       // SL% from price distance
@@ -177,9 +171,9 @@ export default function TradeTable({
       const lots = positionSize / 100000;
 
       // TP maths
-      const tp1 = num(t.tp1);
-      const tp2 = num(t.tp2);
-      const tp3 = num(t.tp3);
+      const tp1 = n(t.tp1);
+      const tp2 = n(t.tp2);
+      const tp3 = n(t.tp3);
       const tpsHit = t.tpsHit || "SL";
 
       const tpPct = (tpPrice) => {
@@ -235,7 +229,7 @@ export default function TradeTable({
 
       const updated = {
         ...t,
-        strategyId: 3,
+        strategyId: 3, // FTMO mode outputs as strategy 3 format; TS4 can reuse it in UI anyway
         deposit: Number(balance.toFixed(2)),
         riskPercent: Number(riskActualPct.toFixed(2)),
         riskDollar: Number(riskUsdSigned.toFixed(2)),
@@ -316,7 +310,6 @@ export default function TradeTable({
         return;
       }
 
-      // You can tweak these two values:
       const START_DEPOSIT = 100000; // FTMO starting balance
       const RISK_PER_TRADE = 1.0; // % of account per trade
 
@@ -335,7 +328,7 @@ export default function TradeTable({
     }
   };
 
-  // If page becomes out-of-range after deletes/imports, clamp it
+  // Clamp page if data shrinks
   useEffect(() => {
     if (totalPages === 0) {
       setCurrentPage(1);
@@ -348,7 +341,7 @@ export default function TradeTable({
 
   return (
     <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
-      {(!trades || trades.length === 0) ? (
+      {!trades || trades.length === 0 ? (
         <div className="text-center py-4">
           <p className="text-slate-300 italic mb-4">No trades yet.</p>
           <div className="flex justify-center gap-2">
@@ -373,7 +366,6 @@ export default function TradeTable({
         <div className="relative rounded-xl overflow-hidden border border-white/5">
           <table className="table-auto w-full text-xs" style={{ tableLayout: "fixed" }}>
             <thead className="sticky top-0 z-10">
-              {/* colored group row */}
               <tr className="text-[11px] uppercase tracking-wide text-white">
                 <th
                   className="p-2 font-semibold sticky left-0 bg-[#0f172a] z-20"
@@ -423,13 +415,11 @@ export default function TradeTable({
                 </th>
               </tr>
 
-              {/* column titles row */}
               <tr className="text-slate-300/90 text-[11px] bg-[#0f172a] border-b border-white/5">
                 <th
                   className="p-2 sticky left-0 bg-[#0f172a] z-20"
                   style={{ minWidth: "40px", width: "40px" }}
                 />
-                {/* Basic info */}
                 <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>
                   Date
                 </th>
@@ -445,12 +435,10 @@ export default function TradeTable({
                 <th
                   className="p-2 border-r border-white/10"
                   style={{ minWidth: "90px", width: "90px" }}
-                  title="Computed equity before trade (retro-safe). If not computed yet, may show stored value."
                 >
                   Eq. Before
                 </th>
 
-                {/* Risk */}
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   Entry
                 </th>
@@ -473,7 +461,6 @@ export default function TradeTable({
                   Risk $
                 </th>
 
-                {/* Take profit */}
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
                   TPs Hit
                 </th>
@@ -508,7 +495,6 @@ export default function TradeTable({
                   TP3 $
                 </th>
 
-                {/* Results */}
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   Result
                 </th>
@@ -518,11 +504,7 @@ export default function TradeTable({
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
                   PnL $
                 </th>
-                <th
-                  className="p-2"
-                  style={{ minWidth: "90px", width: "90px" }}
-                  title="Computed equity after trade (retro-safe). If not computed yet, may show stored value."
-                >
+                <th className="p-2" style={{ minWidth: "90px", width: "90px" }}>
                   Eq. After
                 </th>
               </tr>
@@ -530,8 +512,6 @@ export default function TradeTable({
 
             <tbody>
               {paginatedTrades.map((t, index) => {
-                // Prefer computed equity fields. If not present yet (until App is patched),
-                // fall back to stored fields for display only (no recomputation here).
                 const equityBefore = Number.isFinite(Number(t?.equityBefore))
                   ? Number(t.equityBefore)
                   : Number.isFinite(Number(t?.deposit))
@@ -568,7 +548,6 @@ export default function TradeTable({
                         {startIndex + index + 1}
                       </td>
 
-                      {/* Basic Info */}
                       <td className="p-2 text-slate-200">
                         {t.date ? formatDate(t.date) : ""}
                       </td>
@@ -582,7 +561,6 @@ export default function TradeTable({
                         {equityBefore === null ? "-" : fmt(equityBefore, 2)}
                       </td>
 
-                      {/* Risk */}
                       <td className="p-2 text-slate-200">{t.entry ?? ""}</td>
                       <td className="p-2 text-slate-200">{t.sl ?? ""}</td>
                       <td className="p-2 text-slate-200">
@@ -606,7 +584,6 @@ export default function TradeTable({
                           : "-"}
                       </td>
 
-                      {/* Take Profit */}
                       <td className="p-2 text-slate-200">{t.tpsHit ?? ""}</td>
                       <td className="p-2 text-slate-200">{t.tp1 ?? ""}</td>
                       <td className="p-2 text-slate-200">
@@ -644,7 +621,6 @@ export default function TradeTable({
                           : "-"}
                       </td>
 
-                      {/* Results */}
                       <td className="p-2 text-slate-200">{t.result ?? ""}</td>
                       <td className="p-2 text-slate-200">
                         {commissionValue === null ? "-" : `$${fmt(commissionValue, 2)}`}
@@ -680,6 +656,10 @@ export default function TradeTable({
                                   <span>1m Overlay: {t.overlay1m || "-"}</span>
                                   <span>1m MA200: {t.ma2001m || "-"}</span>
                                 </>
+                              )}
+
+                              {sid === 4 && (
+                                <span>1m BoS: {t.bos1m || "-"}</span>
                               )}
                             </div>
 
@@ -791,7 +771,8 @@ export default function TradeTable({
                   />
                 </label>
 
-                {sid === 3 && trades.length > 0 && (
+                {/* ✅ Show FTMO button for Fx (3) AND TS (4) */}
+                {(sid === 3 || sid === 4) && trades.length > 0 && (
                   <button
                     onClick={recalcAsFtmo}
                     className="h-8 px-3 rounded-full bg-indigo-500 text-white text-xs flex items-center gap-1 hover:brightness-110"

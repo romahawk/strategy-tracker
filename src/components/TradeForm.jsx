@@ -42,11 +42,14 @@ export default function TradeForm({
     buySell5m: "buy",
     ma2005m: "above",
 
-    // Strategy 2 extras (updated):
-    chochBos15m: "bull",  // bull | bear
-    st1m: "bull",         // bull | bear
+    // Strategy 2 extras:
+    chochBos15m: "bull_choch", // bull_choch | bull_bos | bear_choch | bear_bos
+    st1m: "bull",              // bull | bear
     overlay1m: "",
-    ma2001m: "ranging",   // above | below | ranging
+    ma2001m: "ranging",        // above | below | ranging
+
+    // Strategy 4 extra (TS)
+    bos1m: "bull",             // bull | bear
 
     entry: "",
     sl: "",
@@ -90,12 +93,8 @@ export default function TradeForm({
       // Merge with defaults so newly introduced fields exist on older saved trades
       setForm({ ...DEFAULT_FORM, ...editingTrade });
     } else {
-      // Retro-safe: do NOT auto-fill deposit from current initialDeposit.
-      // User can type correct equity for historical trades, and later we'll wire computeTimeline
-      // to suggest equity for the chosen datetime.
       setForm((prev) => ({
         ...DEFAULT_FORM,
-        // keep any existing strategy/account state that might be coming from props
         direction: prev.direction || "Long",
         screenshot: "",
       }));
@@ -103,13 +102,12 @@ export default function TradeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTrade, initialDeposit, sid, aid]);
 
-  // ---------- TP CALC (all strategies, including funded) ----------
+  // ---------- TP CALC ----------
   const debouncedUpdateTP = debounce((newForm) => {
     const { entry, tp1, tp2, tp3, direction, tpsHit, result } = newForm;
     const e = parseFloat(entry);
     if (!e) return;
 
-    // If trade is open → clear TP details
     if (tpsHit === "OPEN" || result === "Open") {
       const updated = {
         ...newForm,
@@ -139,12 +137,10 @@ export default function TradeForm({
     let tp1Data, tp2Data, tp3Data;
 
     if (tpsHit === "3") {
-      // three partial exits: 1/3 + 1/3 + 1/3
       tp1Data = calc(tp1, 1 / 3);
       tp2Data = calc(tp2, 1 / 3);
       tp3Data = calc(tp3, 1 / 3);
     } else if (tpsHit === "2") {
-      // TP1 1/3, TP2 2/3, TP3 = 0
       tp1Data = calc(tp1, 1 / 3);
       tp2Data = calc(tp2, 0.67);
       tp3Data = { percent: "", dollar: "0.00" };
@@ -153,13 +149,11 @@ export default function TradeForm({
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     } else {
-      // only TP1 hit → full position there
       tp1Data = calc(tp1, 1);
       tp2Data = { percent: "", dollar: "0.00" };
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    // auto-result logic (works for all strategies)
     let autoResult = newForm.result;
     if (autoResult !== "Open") {
       if (tpsHit === "SL") {
@@ -192,7 +186,7 @@ export default function TradeForm({
     debouncedUpdateResult(updated);
   }, 200);
 
-  // ---------- RISK: Strategies 1 & 2 (margin / futures) ----------
+  // ---------- RISK: S1/S2 ----------
   const debouncedUpdateRisk_S1_S2 = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
     if (!entry || !sl || !deposit) return;
@@ -228,7 +222,7 @@ export default function TradeForm({
     debouncedUpdateTP(updatedRisk);
   }, 200);
 
-  // ---------- RISK: Strategy 3 (funded account, lots from deposit)
+  // ---------- RISK: S3/S4 (funded) ----------
   const debouncedUpdateRisk_S3 = debounce((newForm) => {
     const { entry, sl, deposit, direction } = newForm;
     if (!entry || !sl || !deposit) return;
@@ -238,17 +232,14 @@ export default function TradeForm({
     const d = parseFloat(deposit);
     if ([e, s, d].some((v) => Number.isNaN(v)) || d <= 0) return;
 
-    // target risk % set by user (0.25 – 2.00)
     let targetRisk = parseFloat(newForm.riskPercent || "0.5");
     if (Number.isNaN(targetRisk) || targetRisk <= 0) targetRisk = 0.5;
     if (targetRisk < 0.25) targetRisk = 0.25;
     if (targetRisk > 2) targetRisk = 2;
 
-    // SL % based on price distance
     const slP = direction === "Long" ? (s / e - 1) * 100 : (1 - s / e) * 100;
     const absSl = Math.abs(slP);
 
-    // cannot compute lot size if SL == entry
     if (!absSl) {
       setForm((prev) => ({
         ...prev,
@@ -260,16 +251,14 @@ export default function TradeForm({
       return;
     }
 
-    // Lot% derived from target risk and SL%
-    let lotPct = (targetRisk * 100) / absSl; // could be > 100
+    let lotPct = (targetRisk * 100) / absSl;
     if (lotPct > 100) lotPct = 100;
 
-    const positionSize = d * (lotPct / 100); // 1x leverage
+    const positionSize = d * (lotPct / 100);
     const riskUsdAbs = positionSize * (absSl / 100);
     const riskActualPct = (riskUsdAbs / d) * 100;
 
-    const riskUsdSigned = -riskUsdAbs; // potential loss
-
+    const riskUsdSigned = -riskUsdAbs;
     const lots = positionSize / 100000;
 
     const updatedRisk = {
@@ -350,7 +339,6 @@ export default function TradeForm({
       commission: commission.toFixed(2),
       tpTotal: tpSum.toFixed(2),
       pnl: pnl.toFixed(2),
-      // Legacy convenience field (preview). Retro-safe equity is computed elsewhere.
       nextDeposit: nextDeposit.toFixed(2),
     }));
   }, 200);
@@ -371,7 +359,7 @@ export default function TradeForm({
       e.target.name === "leverageX" ||
       e.target.name === "riskPercent"
     ) {
-      if (sid === 3) debouncedUpdateRisk_S3(newForm);
+      if (sid === 3 || sid === 4) debouncedUpdateRisk_S3(newForm);
       else debouncedUpdateRisk_S1_S2(newForm);
     }
 
@@ -395,9 +383,6 @@ export default function TradeForm({
     e.preventDefault();
     const id = editingTrade?.id ?? Date.now();
     onAddTrade({ ...form, id, accountId: aid });
-
-    // Retro-safe: do NOT carry-over "nextDeposit" into the next form.
-    // Users may be backfilling history; auto-carry breaks correctness.
     setForm({ ...DEFAULT_FORM, screenshot: "" });
   };
 
@@ -417,15 +402,17 @@ export default function TradeForm({
       ? form.ma200 !== "above"
       : form.ma200 !== "below";
 
+  const isFxLike = sid === 3 || sid === 4;
+
   const buySell5mInvalid =
-    sid === 1 || sid === 3
+    sid === 1 || isFxLike
       ? isLong
         ? form.buySell5m !== "buy"
         : form.buySell5m !== "sell"
       : false;
 
   const ma2005mInvalid =
-    sid === 1 || sid === 3
+    sid === 1 || isFxLike
       ? form.ma2005m === "ranging"
         ? false
         : isLong
@@ -444,18 +431,11 @@ export default function TradeForm({
     ma2005mInvalid,
   };
 
-  // ---------- RENDER ----------
   return (
     <form onSubmit={handleSubmit} className="space-y-3 pb-0">
-      {/* main grid */}
       <div className="grid gap-3 lg:grid-cols-2">
-        {/* left column */}
         <div className="space-y-3">
-          <TradeInfoSection
-            form={form}
-            onChange={handleChange}
-            strategyId={sid}
-          />
+          <TradeInfoSection form={form} onChange={handleChange} strategyId={sid} />
           <RiskSetupSection
             form={form}
             onChange={handleChange}
@@ -465,7 +445,6 @@ export default function TradeForm({
           <ChartSection form={form} onChange={handleChange} />
         </div>
 
-        {/* right column */}
         <div className="space-y-3">
           <EntryConditionsSection
             form={form}
@@ -478,7 +457,6 @@ export default function TradeForm({
         </div>
       </div>
 
-      {/* save row */}
       <div className="flex justify-end pt-1">
         <button
           type="submit"
