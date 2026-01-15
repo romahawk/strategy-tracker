@@ -20,37 +20,51 @@ export default function TradeForm({
   const sid = Number(strategyId) || 1;
   const aid = Number(accountId) || 1;
 
-  const [form, setForm] = useState({
+  const DEFAULT_FORM = {
     date: "",
     time: "",
     pair: "",
     direction: "Long",
+
+    // IMPORTANT:
+    // "deposit" is still used as equity snapshot for risk sizing.
+    // We stop auto-filling it to avoid wrong balances when adding trades retrospectively.
     deposit: "",
+
     usedDepositPercent: "25",
     leverageX: "5",
+
     stTrend: "bull",
     usdtTrend: "bear",
     overlay: "blue",
     ma200: "ranging",
+
     buySell5m: "buy",
     ma2005m: "above",
-    chochBos15m: "",
+
+    // Strategy 2 extras (updated):
+    chochBos15m: "bull",  // bull | bear
+    st1m: "bull",         // bull | bear
     overlay1m: "",
-    bos1m: "",
-    ma2001m: "",
+    ma2001m: "ranging",   // above | below | ranging
+
     entry: "",
     sl: "",
+
     leverageAmount: "",
     slPercent: "",
     slDollar: "",
     riskDollar: "",
     riskPercent: "",
     riskTargetPercent: "",
+
     lots: "",
     pipValue: "",
+
     tp1: "",
     tp2: "",
     tp3: "",
+
     tpsHit: "OPEN",
     tp1Percent: "",
     tp2Percent: "",
@@ -58,26 +72,36 @@ export default function TradeForm({
     tp1Dollar: "",
     tp2Dollar: "",
     tp3Dollar: "",
+
     result: "Open",
     commission: "",
     tpTotal: "",
     pnl: "",
     nextDeposit: "",
+
     screenshot: "",
-  });
+  };
+
+  const [form, setForm] = useState(DEFAULT_FORM);
 
   // init / edit
   useEffect(() => {
     if (editingTrade) {
-      setForm({ ...editingTrade });
+      // Merge with defaults so newly introduced fields exist on older saved trades
+      setForm({ ...DEFAULT_FORM, ...editingTrade });
     } else {
+      // Retro-safe: do NOT auto-fill deposit from current initialDeposit.
+      // User can type correct equity for historical trades, and later we'll wire computeTimeline
+      // to suggest equity for the chosen datetime.
       setForm((prev) => ({
-        ...prev,
-        deposit: initialDeposit ? initialDeposit.toString() : "",
+        ...DEFAULT_FORM,
+        // keep any existing strategy/account state that might be coming from props
+        direction: prev.direction || "Long",
         screenshot: "",
       }));
     }
-  }, [editingTrade, initialDeposit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingTrade, initialDeposit, sid, aid]);
 
   // ---------- TP CALC (all strategies, including funded) ----------
   const debouncedUpdateTP = debounce((newForm) => {
@@ -326,6 +350,7 @@ export default function TradeForm({
       commission: commission.toFixed(2),
       tpTotal: tpSum.toFixed(2),
       pnl: pnl.toFixed(2),
+      // Legacy convenience field (preview). Retro-safe equity is computed elsewhere.
       nextDeposit: nextDeposit.toFixed(2),
     }));
   }, 200);
@@ -344,7 +369,7 @@ export default function TradeForm({
       e.target.name === "riskTargetPercent" ||
       e.target.name === "usedDepositPercent" ||
       e.target.name === "leverageX" ||
-      e.target.name === "riskPercent" // ⬅ add this
+      e.target.name === "riskPercent"
     ) {
       if (sid === 3) debouncedUpdateRisk_S3(newForm);
       else debouncedUpdateRisk_S1_S2(newForm);
@@ -371,58 +396,9 @@ export default function TradeForm({
     const id = editingTrade?.id ?? Date.now();
     onAddTrade({ ...form, id, accountId: aid });
 
-    const carryOverDeposit =
-      form?.nextDeposit && !Number.isNaN(Number(form.nextDeposit))
-        ? String(Number(form.nextDeposit))
-        : initialDeposit
-        ? String(initialDeposit)
-        : "";
-
-    setForm({
-      date: "",
-      time: "",
-      pair: "",
-      direction: "Long",
-      deposit: carryOverDeposit,
-      usedDepositPercent: "25",
-      leverageX: "5",
-      stTrend: "bull",
-      usdtTrend: "bear",
-      overlay: "blue",
-      ma200: "ranging",
-      buySell5m: "buy",
-      ma2005m: "above",
-      chochBos15m: "",
-      overlay1m: "",
-      bos1m: "",
-      ma2001m: "",
-      entry: "",
-      sl: "",
-      leverageAmount: "",
-      slPercent: "",
-      slDollar: "",
-      riskDollar: "",
-      riskPercent: "",
-      riskTargetPercent: "",
-      lots: "",
-      pipValue: "",
-      tp1: "",
-      tp2: "",
-      tp3: "",
-      tpsHit: "OPEN",
-      tp1Percent: "",
-      tp2Percent: "",
-      tp3Percent: "",
-      tp1Dollar: "",
-      tp2Dollar: "",
-      tp3Dollar: "",
-      result: "Open",
-      commission: "",
-      tpTotal: "",
-      pnl: "",
-      nextDeposit: "",
-      screenshot: "",
-    });
+    // Retro-safe: do NOT carry-over "nextDeposit" into the next form.
+    // Users may be backfilling history; auto-carry breaks correctness.
+    setForm({ ...DEFAULT_FORM, screenshot: "" });
   };
 
   // ---------- ENTRY CONDITION FLAGS ----------
