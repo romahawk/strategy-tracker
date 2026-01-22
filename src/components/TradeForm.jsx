@@ -449,7 +449,7 @@ export default function TradeForm({
             strategyId={sid}
             riskTooHigh={riskTooHigh}
           />
-          <ChartSection form={form} onChange={handleChange} />
+          <TargetsSection form={form} onChange={handleChange} />
         </div>
 
         <div className="space-y-3">
@@ -459,8 +459,8 @@ export default function TradeForm({
             strategyId={sid}
             invalidFlags={invalidFlags}
           />
-          <TargetsSection form={form} onChange={handleChange} />
           <ResultSection form={form} onChange={handleChange} />
+          <ChartSection form={form} onChange={handleChange} />
         </div>
       </div>
 
