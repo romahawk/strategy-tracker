@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layers, ChevronDown, ChevronRight } from "lucide-react";
+import { Card } from "../ui/Card";
 
 const baseSelect =
   "w-full h-8 rounded-lg bg-[#0b1120] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
@@ -20,7 +21,7 @@ export default function EntryConditionsSection({
   const [showExtras, setShowExtras] = useState(false);
 
   return (
-    <div className="border border-white/5 rounded-2xl p-3">
+    <Card variant="secondary" className="p-2">
       <div className="flex items-center gap-2 mb-4">
         <Layers className="w-4 h-4 text-emerald-400" />
         <h3 className="text-sm font-semibold text-slate-100">
@@ -274,7 +275,7 @@ export default function EntryConditionsSection({
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
