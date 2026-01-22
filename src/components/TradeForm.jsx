@@ -25,8 +25,8 @@ function buildDefaultForm(sid) {
     deposit: "",
 
     // ✅ Defaults per strategy
-    usedDepositPercent: isTS2 ? "100" : "25",       // TS2 = 100%
-    leverageX: isTS1 || isTS2 ? "10" : "5",         // TS1 & TS2 = 10x
+    usedDepositPercent: isTS2 ? "100" : "25", // TS2 = 100%
+    leverageX: isTS1 || isTS2 ? "10" : "5", // TS1 & TS2 = 10x
 
     stTrend: "bull",
     usdtTrend: "bear",
@@ -37,12 +37,19 @@ function buildDefaultForm(sid) {
 
     // Strategy 2 extras:
     chochBos15m: "bull_choch", // bull_choch | bull_bos | bear_choch | bear_bos
-    st1m: "bull",              // bull | bear
+    st1m: "bull", // bull | bear
     overlay1m: "",
-    ma2001m: "ranging",        // above | below | ranging
+    ma2001m: "ranging", // above | below | ranging
 
     // Strategy 4 extra (TS)
-    bos1m: "bull",             // bull | bear
+    bos1m: "bull", // bull | bear
+
+    // ---- Extra confluences (optional) ----
+    session: "ny", // asia | london | ny | off
+    structure: "na", // bullish | bearish | mixed | na
+    liquiditySweep: "na", // yes | no | na
+    oteRetest: "na", // yes | no | na
+    newsRisk: "none", // none | medium | high
 
     entry: "",
     sl: "",
@@ -400,7 +407,8 @@ export default function TradeForm({
   // ---------- ENTRY CONDITION FLAGS ----------
   const isLong = form.direction === "Long";
   const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
-  const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
+  const usdtInvalid =
+    isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
   const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
   const ma200Invalid =
     form.ma200 === "ranging"
@@ -436,6 +444,7 @@ export default function TradeForm({
     ma200Invalid,
     buySell5mInvalid,
     ma2005mInvalid,
+    // Extra confluences are optional for now → no invalid flags by default
   };
 
   return (

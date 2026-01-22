@@ -1,4 +1,5 @@
-import { Layers } from "lucide-react";
+import { useState } from "react";
+import { Layers, ChevronDown, ChevronRight } from "lucide-react";
 
 const baseSelect =
   "w-full h-8 rounded-lg bg-[#0b1120] px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
@@ -16,6 +17,7 @@ export default function EntryConditionsSection({
   invalidFlags = {},
 }) {
   const isFxLike = strategyId === 3 || strategyId === 4;
+  const [showExtras, setShowExtras] = useState(false);
 
   return (
     <div className="border border-white/5 rounded-2xl p-3">
@@ -26,8 +28,8 @@ export default function EntryConditionsSection({
         </h3>
       </div>
 
+      {/* Primary conditions (existing) */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* 15m Overlay */}
         <Select
           label="Overlay"
           name="overlay"
@@ -41,7 +43,6 @@ export default function EntryConditionsSection({
           ]}
         />
 
-        {/* 15m MA200 */}
         <Select
           label="MA200"
           name="ma200"
@@ -58,7 +59,6 @@ export default function EntryConditionsSection({
           ]}
         />
 
-        {/* 15m USDT.D */}
         <Select
           label="15m USDT.D"
           name="usdtTrend"
@@ -74,22 +74,18 @@ export default function EntryConditionsSection({
 
         {(strategyId === 1 || isFxLike) && (
           <>
-            {/* 5m Signal */}
             <Select
               label="5m Signal"
               name="buySell5m"
               value={form.buySell5m}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.buySell5mInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.buySell5mInvalid })}
               options={[
                 ["buy", "Buy"],
                 ["sell", "Sell"],
               ]}
             />
 
-            {/* 5m MA200 */}
             <Select
               label="5m MA200"
               name="ma2005m"
@@ -108,7 +104,6 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 2 extras */}
         {strategyId === 2 && (
           <>
             <Select
@@ -116,7 +111,9 @@ export default function EntryConditionsSection({
               name="chochBos15m"
               value={form.chochBos15m}
               onChange={onChange}
-              className={selectBorder({ invalid: invalidFlags.chochBos15mInvalid })}
+              className={selectBorder({
+                invalid: invalidFlags.chochBos15mInvalid,
+              })}
               options={[
                 ["bull_choch", "Bull CHoCH"],
                 ["bull_bos", "Bull BoS"],
@@ -137,7 +134,6 @@ export default function EntryConditionsSection({
               ]}
             />
 
-            {/* Restored: 1m Overlay */}
             <TextInput
               label="1m Overlay"
               name="overlay1m"
@@ -163,7 +159,6 @@ export default function EntryConditionsSection({
           </>
         )}
 
-        {/* Strategy 4 (TS) extra: 1m BoS */}
         {strategyId === 4 && (
           <Select
             label="1m BoS"
@@ -178,6 +173,114 @@ export default function EntryConditionsSection({
           />
         )}
       </div>
+
+      {/* Extras toggle */}
+      <button
+        type="button"
+        onClick={() => setShowExtras((v) => !v)}
+        className="mt-4 w-full flex items-center justify-between rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 transition"
+      >
+        <div className="flex items-center gap-2">
+          {showExtras ? (
+            <ChevronDown className="w-4 h-4 text-slate-200" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-200" />
+          )}
+          <span className="text-sm font-medium text-slate-100">
+            Extra Confluences
+          </span>
+          <span className="text-[11px] text-slate-400">(optional)</span>
+        </div>
+
+        <span className="text-[11px] text-slate-400">
+          {showExtras ? "Hide" : "Show"}
+        </span>
+      </button>
+
+      {/* Extras */}
+      {showExtras && (
+        <div className="mt-3 border border-white/10 rounded-xl p-3 bg-black/10">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Select
+              label="Session"
+              name="session"
+              value={form.session || "ny"}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.sessionInvalid })}
+              options={[
+                ["asia", "Asia"],
+                ["london", "London"],
+                ["ny", "NY"],
+                ["off", "Off-hours"],
+              ]}
+            />
+
+            <Select
+              label="Structure"
+              name="structure"
+              value={form.structure || "na"}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.structureInvalid,
+              })}
+              options={[
+                ["bullish", "Bullish"],
+                ["bearish", "Bearish"],
+                ["mixed", "Mixed / unclear"],
+                ["na", "N/A"],
+              ]}
+            />
+
+            <Select
+              label="Liquidity sweep"
+              name="liquiditySweep"
+              value={form.liquiditySweep || "na"}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.liquiditySweepInvalid,
+              })}
+              options={[
+                ["yes", "Yes"],
+                ["no", "No"],
+                ["na", "N/A"],
+              ]}
+            />
+
+            <Select
+              label="Retest / OTE"
+              name="oteRetest"
+              value={form.oteRetest || "na"}
+              onChange={onChange}
+              className={selectBorder({
+                invalid: invalidFlags.oteRetestInvalid,
+              })}
+              options={[
+                ["yes", "Yes"],
+                ["no", "No"],
+                ["na", "N/A"],
+              ]}
+            />
+
+            <Select
+              label="News risk"
+              name="newsRisk"
+              value={form.newsRisk || "none"}
+              onChange={onChange}
+              className={selectBorder({ invalid: invalidFlags.newsRiskInvalid })}
+              options={[
+                ["none", "None"],
+                ["medium", "Medium"],
+                ["high", "High"],
+              ]}
+            />
+          </div>
+
+          <p className="mt-3 text-[11px] text-slate-400">
+            Extras are optional for now. Later we can mark some as required per
+            strategy and feed them into the Execution Gate.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
