@@ -399,7 +399,6 @@ export default function App() {
 
         {/* ===== MAIN ===== */}
         <main className="p-4 pt-6 flex-1 overflow-y-auto space-y-6">
-          {/* ... rest of your file unchanged ... */}
           <TabPanel className="mt-4">
             <InnerNav which="live" />
             {innerTabs.live === "trade" && (
@@ -415,7 +414,9 @@ export default function App() {
               <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
                 <FilterBar
                   filters={filters}
-                  setFilters={(newFilters) => setFilters({ ...newFilters, mode: "live" })}
+                  setFilters={(newFilters) =>
+                    setFilters({ ...newFilters, mode: "live" })
+                  }
                 />
                 <TradeTable
                   trades={filteredCurrentTrades}
@@ -441,7 +442,9 @@ export default function App() {
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                   <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                     <HandCoins className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">Weekly Compounding</h2>
+                    <h2 className="text-xl font-semibold">
+                      Weekly Compounding
+                    </h2>
                   </div>
                   <WeeklyCompounding
                     strategyId={strategyId}
@@ -455,8 +458,93 @@ export default function App() {
             )}
           </TabPanel>
 
-          {/* backtest/history panels unchanged (keep your existing code) */}
-          {/* ... */}
+          <TabPanel className="mt-4">
+            <InnerNav which="backtest" />
+
+            {innerTabs.backtest === "trade" && (
+              <TradeForm
+                onAddTrade={handleAddTrade}
+                editingTrade={editingTrade}
+                initialDeposit={initialDeposit}
+                strategyId={strategyId}
+                accountId={accountId}
+              />
+            )}
+
+            {innerTabs.backtest === "all" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                <FilterBar
+                  filters={filters}
+                  setFilters={(f) => setFilters({ ...f, mode: "backtest" })}
+                />
+                <TradeTable
+                  trades={filteredCurrentTrades}
+                  onEdit={handleEditTrade}
+                  onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
+                  strategyId={strategyId}
+                  accountId={accountId}
+                />
+              </div>
+            )}
+
+            {innerTabs.backtest === "kpis" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <Metrics trades={filteredCurrentTrades} />
+              </div>
+            )}
+
+            {innerTabs.backtest === "equity" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
+          </TabPanel>
+
+          <TabPanel className="mt-4">
+            <InnerNav which="history" />
+
+            {innerTabs.history === "trade" && (
+              <TradeForm
+                onAddTrade={handleAddTrade}
+                editingTrade={editingTrade}
+                initialDeposit={initialDeposit}
+                strategyId={strategyId}
+                accountId={accountId}
+              />
+            )}
+
+            {innerTabs.history === "all" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                <FilterBar
+                  filters={filters}
+                  setFilters={(f) => setFilters({ ...f, mode: "history" })}
+                />
+                <TradeTable
+                  trades={filteredCurrentTrades}
+                  onEdit={handleEditTrade}
+                  onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
+                  strategyId={strategyId}
+                  accountId={accountId}
+                />
+              </div>
+            )}
+
+            {innerTabs.history === "kpis" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <Metrics trades={filteredCurrentTrades} />
+              </div>
+            )}
+
+            {innerTabs.history === "equity" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
+          </TabPanel>
         </main>
       </Tabs>
 

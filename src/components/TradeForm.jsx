@@ -1,6 +1,5 @@
 // src/components/trades/TradeForm.jsx
 import { useState, useEffect, useMemo } from "react";
-import { debounce } from "lodash";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
@@ -44,7 +43,7 @@ function Collapsible({ title, open, setOpen, children, hint }) {
     <div className="border border-white/5 rounded-2xl overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/5 transition"
       >
         <div className="flex items-center gap-2">
@@ -131,7 +130,7 @@ export default function TradeForm({
   /* ---------- actions ---------- */
   const onArm = () => {
     if (!gateReady) return;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       execState: "ARMED",
       armedAt: new Date().toISOString(),
@@ -141,14 +140,14 @@ export default function TradeForm({
 
   const onEnter = () => {
     if (form.execState !== "ARMED") return;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       execState: "ENTERED",
       enteredAt: new Date().toISOString(),
     }));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     if (form.execState !== "ARMED" && form.execState !== "ENTERED") {
@@ -169,14 +168,38 @@ export default function TradeForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-2 pb-20">
       <div className="grid gap-2 lg:grid-cols-2">
-        <div className="space-y-2">
-          <TradeInfoSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} />
-          <RiskSetupSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} strategyId={sid} />
-          <TargetsSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} />
+        {/* LEFT (desktop) / LOWER (mobile) */}
+        <div className="space-y-2 order-2 lg:order-1">
+          <TradeInfoSection
+            form={form}
+            onChange={(e) =>
+              setForm({ ...form, [e.target.name]: e.target.value })
+            }
+          />
+          <RiskSetupSection
+            form={form}
+            onChange={(e) =>
+              setForm({ ...form, [e.target.name]: e.target.value })
+            }
+            strategyId={sid}
+          />
+          <TargetsSection
+            form={form}
+            onChange={(e) =>
+              setForm({ ...form, [e.target.name]: e.target.value })
+            }
+          />
         </div>
 
-        <div className="space-y-2">
-          <EntryConditionsSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} strategyId={sid} />
+        {/* RIGHT (desktop) / TOP (mobile) */}
+        <div className="space-y-2 order-1 lg:order-2">
+          <EntryConditionsSection
+            form={form}
+            onChange={(e) =>
+              setForm({ ...form, [e.target.name]: e.target.value })
+            }
+            strategyId={sid}
+          />
 
           <ExecutionGateSection
             form={form}
@@ -195,18 +218,38 @@ export default function TradeForm({
             onEnter={onEnter}
           />
 
-          <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
-            <ResultSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} />
+          <Collapsible
+            title="Result"
+            open={showResult}
+            setOpen={setShowResult}
+            hint="post-trade"
+          >
+            <ResultSection
+              form={form}
+              onChange={(e) =>
+                setForm({ ...form, [e.target.name]: e.target.value })
+              }
+            />
           </Collapsible>
 
-          <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
-            <ChartSection form={form} onChange={e => setForm({ ...form, [e.target.name]: e.target.value })} />
+          <Collapsible
+            title="Chart"
+            open={showChart}
+            setOpen={setShowChart}
+            hint="optional"
+          >
+            <ChartSection
+              form={form}
+              onChange={(e) =>
+                setForm({ ...form, [e.target.name]: e.target.value })
+              }
+            />
           </Collapsible>
         </div>
       </div>
 
       {/* Sticky action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#020617]/90 backdrop-blur border-t border-white/10 px-4 py-3">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#020617]/90 backdrop-blur border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex justify-end gap-2">
           <button
             type="submit"

@@ -15,7 +15,7 @@ export default function TargetsSection({ form, onChange }) {
         <h3 className="text-sm font-semibold text-slate-100">Targets</h3>
       </div>
 
-      <div className="grid lg:grid-cols-[260px,1fr] gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px,1fr] gap-2">
         <div className="space-y-2">
           <label className="text-[11px] text-slate-300 mb-1 block">TP status</label>
           <select name="tpsHit" value={form.tpsHit} onChange={onChange} className={inputBase}>
