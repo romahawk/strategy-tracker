@@ -134,13 +134,6 @@ export default function EntryConditionsSection({
               ]}
             />
 
-            <TextInput
-              label="1m Overlay"
-              name="overlay1m"
-              value={form.overlay1m}
-              onChange={onChange}
-            />
-
             <Select
               label="1m MA200"
               name="ma2001m"
