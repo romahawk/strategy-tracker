@@ -7,7 +7,9 @@ import { useParams } from "react-router-dom";
 import "./index.css";
 import "react-tabs/style/react-tabs.css";
 
+// ✅ UPDATED: TradeForm moved under /components/trades
 import TradeForm from "./components/TradeForm";
+
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
 import Metrics from "./components/Metrics";
@@ -330,7 +332,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* ✅ Scoped clear button (per tab / strategy / account) */}
         <button
           onClick={clearCurrentScope}
           className="h-9 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
@@ -348,9 +349,7 @@ export default function App() {
       <ToastContainer position="top-right" theme="dark" />
 
       <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
-        {/* ===== NAVBAR ===== */}
         <header className="h-16 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
-          {/* Brand */}
           <div className="flex items-center gap-2 min-w-fit">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
@@ -360,7 +359,6 @@ export default function App() {
             </span>
           </div>
 
-          {/* Main Tabs */}
           <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2 h-9">
             <Tab
               className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
@@ -382,29 +380,19 @@ export default function App() {
             </Tab>
           </TabList>
 
-          {/* Divider */}
           <div className="h-7 w-px bg-white/10 mx-2" />
-
-          {/* Strategy */}
           <div className="flex items-center gap-2 h-8">
             <StrategyNav />
           </div>
-
-          {/* Divider */}
           <div className="h-7 w-px bg-white/10 mx-1" />
-
-          {/* Accounts */}
           <div className="flex items-center gap-2 h-8">
             <AccountNav />
           </div>
 
-          {/* ✅ Removed global "Clear All" from navbar (too risky) */}
           <div className="ml-auto" />
         </header>
 
-        {/* ===== MAIN ===== */}
         <main className="p-4 flex-1 overflow-y-auto space-y-6">
-          {/* ---------- LIVE ---------- */}
           <TabPanel className="mt-4">
             <InnerNav which="live" />
 
@@ -464,7 +452,6 @@ export default function App() {
             )}
           </TabPanel>
 
-          {/* ---------- BACKTEST ---------- */}
           <TabPanel>
             <div className="-mt-2">
               <InnerNav which="backtest" />
@@ -483,7 +470,9 @@ export default function App() {
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
                   <FilterBar
                     filters={filters}
-                    setFilters={(newFilters) => setFilters({ ...newFilters, mode: "backtest" })}
+                    setFilters={(newFilters) =>
+                      setFilters({ ...newFilters, mode: "backtest" })
+                    }
                   />
                   <TradeTable
                     trades={filteredCurrentTrades}
@@ -526,7 +515,6 @@ export default function App() {
             </div>
           </TabPanel>
 
-          {/* ---------- HISTORY ---------- */}
           <TabPanel>
             <div className="-mt-2">
               <InnerNav which="history" />
@@ -546,7 +534,9 @@ export default function App() {
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
                   <FilterBar
                     filters={filters}
-                    setFilters={(newFilters) => setFilters({ ...newFilters, mode: "history" })}
+                    setFilters={(newFilters) =>
+                      setFilters({ ...newFilters, mode: "history" })
+                    }
                   />
                   <TradeTable
                     trades={filteredCurrentTrades}
@@ -591,7 +581,6 @@ export default function App() {
         </main>
       </Tabs>
 
-      {/* ===== MODAL ===== */}
       {selectedTrade && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">

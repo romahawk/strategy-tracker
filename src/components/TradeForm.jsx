@@ -1,5 +1,5 @@
 // src/components/trades/TradeForm.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { debounce } from "lodash";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
@@ -8,6 +8,35 @@ import RiskSetupSection from "./trades/RiskSetupSection";
 import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
 import ResultSection from "./trades/ResultSection";
+import ExecutionGateSection from "./trades/ExecutionGateSection";
+
+import {
+  loadDiscipline,
+  saveDiscipline,
+  applyViolation,
+  applyCleanTrade,
+  riskCapMultiplier,
+  isCooldownActive,
+} from "../utils/discipline";
+
+function num(x) {
+  const v = Number(x);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+function rrFrom({ entry, sl, tp1, direction }) {
+  const e = num(entry);
+  const s = num(sl);
+  const t = num(tp1);
+  if (![e, s, t].every(Number.isFinite)) return NaN;
+
+  const isLong = String(direction || "Long") === "Long";
+  const risk = isLong ? (e - s) : (s - e);
+  const reward = isLong ? (t - e) : (e - t);
+
+  if (risk <= 0 || reward <= 0) return NaN;
+  return reward / risk;
+}
 
 function buildDefaultForm(sid) {
   const isTS1 = sid === 1;
@@ -19,14 +48,10 @@ function buildDefaultForm(sid) {
     pair: "",
     direction: "Long",
 
-    // IMPORTANT:
-    // "deposit" is still used as equity snapshot for risk sizing.
-    // We stop auto-filling it to avoid wrong balances when adding trades retrospectively.
     deposit: "",
 
-    // ✅ Defaults per strategy
-    usedDepositPercent: isTS2 ? "100" : "25", // TS2 = 100%
-    leverageX: isTS1 || isTS2 ? "10" : "5", // TS1 & TS2 = 10x
+    usedDepositPercent: isTS2 ? "100" : "25",
+    leverageX: isTS1 || isTS2 ? "10" : "5",
 
     stTrend: "bull",
     usdtTrend: "bear",
@@ -35,21 +60,19 @@ function buildDefaultForm(sid) {
     buySell5m: "buy",
     ma2005m: "above",
 
-    // Strategy 2 extras:
-    chochBos15m: "bull_choch", // bull_choch | bull_bos | bear_choch | bear_bos
-    st1m: "bull", // bull | bear
+    chochBos15m: "bull_choch",
+    st1m: "bull",
     overlay1m: "",
-    ma2001m: "ranging", // above | below | ranging
+    ma2001m: "ranging",
 
-    // Strategy 4 extra (TS)
-    bos1m: "bull", // bull | bear
+    bos1m: "bull",
 
     // ---- Extra confluences (optional) ----
-    session: "ny", // asia | london | ny | off
-    structure: "na", // bullish | bearish | mixed | na
-    liquiditySweep: "na", // yes | no | na
-    oteRetest: "na", // yes | no | na
-    newsRisk: "none", // none | medium | high
+    session: "ny",
+    structure: "na",
+    liquiditySweep: "na",
+    oteRetest: "na",
+    newsRisk: "none",
 
     entry: "",
     sl: "",
@@ -77,6 +100,14 @@ function buildDefaultForm(sid) {
     pnl: "",
     nextDeposit: "",
     screenshot: "",
+
+    // ---- Execution Gate (MVP) ----
+    execState: "REVIEWING", // REVIEWING | ARMED | ENTERED
+    acceptedLoss: false,
+    armedAt: "",
+    enteredAt: "",
+    violations: [], // {ts,type}
+    armedSl: "", // numeric snapshot for widening detection
   };
 }
 
@@ -91,26 +122,66 @@ export default function TradeForm({
   const sid = Number(strategyId) || 1;
   const aid = Number(accountId) || 1;
 
+  const CONFIG = useMemo(
+    () => ({
+      baseRiskByStrategy: {
+        1: 1.0,
+        2: 1.0,
+        3: 0.5,
+        4: 0.5,
+      },
+      minRRByStrategy: {
+        1: 2.0,
+        2: 1.0,
+        3: 1.0,
+        4: 1.0,
+      },
+      maxSLPercentByStrategy: {
+        2: 1.0, // TS2 scalps: <= 1%
+      },
+      cooldownMinutesByStrategy: {
+        1: 24 * 60, // TS1: 24h
+        2: 60, // TS2: 60m
+        3: 60,
+        4: 60,
+      },
+    }),
+    []
+  );
+
   const [form, setForm] = useState(() => buildDefaultForm(sid));
+
+  // gate UI states (local UI)
+  const [acceptedLoss, setAcceptedLoss] = useState(false);
+  const [replanMode, setReplanMode] = useState(false);
+
+  // discipline
+  const [discipline, setDiscipline] = useState(() =>
+    loadDiscipline(sid, aid)
+  );
+
+  useEffect(() => {
+    setDiscipline(loadDiscipline(sid, aid));
+  }, [sid, aid]);
 
   // init / edit
   useEffect(() => {
     if (editingTrade) {
-      // Merge with defaults so newly introduced fields exist on older saved trades
-      setForm({ ...buildDefaultForm(sid), ...editingTrade });
+      const merged = { ...buildDefaultForm(sid), ...editingTrade };
+      setForm(merged);
+      setAcceptedLoss(!!merged.acceptedLoss);
     } else {
-      // Retro-safe: do NOT auto-fill deposit from current initialDeposit.
       setForm((prev) => ({
         ...buildDefaultForm(sid),
-        // keep last chosen direction if user prefers
         direction: prev.direction || "Long",
         screenshot: "",
       }));
+      setAcceptedLoss(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTrade, initialDeposit, sid, aid]);
 
-  // ✅ TS2 always defaults to 100% (even if you switch strategies and come back)
+  // TS2 always defaults to 100%
   useEffect(() => {
     if (sid === 2 && String(form.usedDepositPercent) !== "100") {
       setForm((prev) => ({ ...prev, usedDepositPercent: "100" }));
@@ -124,7 +195,6 @@ export default function TradeForm({
     const e = parseFloat(entry);
     if (!e) return;
 
-    // If trade is open → clear TP details
     if (tpsHit === "OPEN" || result === "Open") {
       const updated = {
         ...newForm,
@@ -171,7 +241,6 @@ export default function TradeForm({
       tp3Data = { percent: "", dollar: "0.00" };
     }
 
-    // auto-result logic
     let autoResult = newForm.result;
     if (autoResult !== "Open") {
       if (tpsHit === "SL") {
@@ -340,15 +409,10 @@ export default function TradeForm({
     }
 
     let pnl;
-    if (tpsHit === "SL") {
-      pnl = slSigned - commission;
-    } else if (res === "Win") {
-      pnl = tpSum - commission;
-    } else if (res === "Break Even") {
-      pnl = -commission;
-    } else {
-      pnl = -Math.abs(slSigned) - commission;
-    }
+    if (tpsHit === "SL") pnl = slSigned - commission;
+    else if (res === "Win") pnl = tpSum - commission;
+    else if (res === "Break Even") pnl = -commission;
+    else pnl = -Math.abs(slSigned) - commission;
 
     const nextDeposit = d + pnl;
 
@@ -361,10 +425,76 @@ export default function TradeForm({
     }));
   }, 200);
 
+  // ---------- discipline helpers ----------
+  const writeDiscipline = (next) => {
+    setDiscipline(next);
+    saveDiscipline(sid, aid, next);
+  };
+
+  const addViolationToForm = (type) => {
+    setForm((prev) => ({
+      ...prev,
+      violations: [...(prev.violations || []), { ts: Date.now(), type }],
+    }));
+  };
+
+  const cooldownMinutes = CONFIG.cooldownMinutesByStrategy[sid] ?? 60;
+
+  const triggerViolation = (type) => {
+    addViolationToForm(type);
+    const next = applyViolation({
+      discipline,
+      type,
+      cooldownMinutes,
+    });
+    writeDiscipline(next);
+  };
+
+  // ---------- SL lock logic ----------
+  const enforceSlLock = (prev, next) => {
+    const state = next.execState || "REVIEWING";
+    if (!(state === "ARMED" || state === "ENTERED")) return next;
+
+    // cannot remove
+    if (!next.sl) {
+      triggerViolation("NO_SL");
+      return { ...next, sl: prev.sl };
+    }
+
+    const prevSl = num(prev.sl || prev.armedSl);
+    const newSl = num(next.sl);
+    const entry = num(next.entry);
+    if (![prevSl, newSl, entry].every(Number.isFinite)) return next;
+
+    const isLong = String(next.direction || "Long") === "Long";
+
+    // tightening vs widening:
+    // Long: tighter = SL moves up (closer to entry) -> larger SL price
+    // Short: tighter = SL moves down -> smaller SL price
+    const widening = isLong ? newSl < prevSl : newSl > prevSl;
+
+    if (widening && !replanMode) {
+      triggerViolation("MOVING_SL_WIDER");
+      return { ...next, sl: prev.sl };
+    }
+
+    if (widening && replanMode) {
+      triggerViolation("MOVING_SL_WIDER");
+      // allow widening, but keep it logged
+      return next;
+    }
+
+    return next;
+  };
+
   // ---------- MAIN CHANGE HANDLER ----------
   const handleChange = (e) => {
-    const newForm = { ...form, [e.target.name]: e.target.value };
-    setForm(newForm);
+    const rawNext = { ...form, [e.target.name]: e.target.value };
+
+    // enforce SL lock rules on every change that touches SL or state
+    const next = e.target.name === "sl" ? enforceSlLock(form, rawNext) : rawNext;
+
+    setForm(next);
 
     if (
       e.target.name === "entry" ||
@@ -377,8 +507,8 @@ export default function TradeForm({
       e.target.name === "leverageX" ||
       e.target.name === "riskPercent"
     ) {
-      if (sid === 3 || sid === 4) debouncedUpdateRisk_S3(newForm);
-      else debouncedUpdateRisk_S1_S2(newForm);
+      if (sid === 3 || sid === 4) debouncedUpdateRisk_S3(next);
+      else debouncedUpdateRisk_S1_S2(next);
     }
 
     if (
@@ -391,24 +521,15 @@ export default function TradeForm({
       e.target.name === "lots" ||
       e.target.name === "result"
     ) {
-      debouncedUpdateTP(newForm);
-      debouncedUpdateResult(newForm);
+      debouncedUpdateTP(next);
+      debouncedUpdateResult(next);
     }
   };
 
-  // ---------- SUBMIT ----------
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const id = editingTrade?.id ?? Date.now();
-    onAddTrade({ ...form, id, accountId: aid });
-    setForm({ ...buildDefaultForm(sid), screenshot: "" });
-  };
-
-  // ---------- ENTRY CONDITION FLAGS ----------
+  // ---------- Entry Condition Flags ----------
   const isLong = form.direction === "Long";
   const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
-  const usdtInvalid =
-    isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
+  const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
   const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
   const ma200Invalid =
     form.ma200 === "ranging"
@@ -444,8 +565,121 @@ export default function TradeForm({
     ma200Invalid,
     buySell5mInvalid,
     ma2005mInvalid,
-    // Extra confluences are optional for now → no invalid flags by default
   };
+
+  // ---------- Gate computations ----------
+  const cooldownActive = isCooldownActive(discipline);
+  const baseRisk = CONFIG.baseRiskByStrategy[sid] ?? 1.0;
+  const capMult = riskCapMultiplier(discipline);
+  const maxRiskNow = baseRisk * capMult;
+
+  const rr = rrFrom(form);
+  const minRR = CONFIG.minRRByStrategy[sid] ?? 1.0;
+  const rrOk = Number.isFinite(rr) ? rr >= minRR : false;
+
+  const maxSlPct = CONFIG.maxSLPercentByStrategy[sid];
+  const slPctAbs = Number.isFinite(num(form.slPercent)) ? Math.abs(num(form.slPercent)) : NaN;
+  const slPctOk =
+    typeof maxSlPct === "number"
+      ? Number.isFinite(slPctAbs) && slPctAbs <= maxSlPct
+      : true;
+
+  const canArm = !cooldownActive;
+  const armDisabledReason = cooldownActive
+    ? `Cooldown active. Max risk now: ${maxRiskNow.toFixed(2)}%`
+    : "";
+
+  const gateReady =
+    !!form.entry &&
+    !!form.sl &&
+    !!form.tp1 &&
+    !!form.riskPercent &&
+    !!acceptedLoss &&
+    rrOk &&
+    slPctOk;
+
+  const onArm = () => {
+    if (cooldownActive) return;
+
+    if (!gateReady) return;
+
+    // enforce risk cap
+    const riskPct = num(form.riskPercent);
+    if (Number.isFinite(riskPct) && riskPct > maxRiskNow) {
+      // cap it automatically (strict)
+      setForm((prev) => ({
+        ...prev,
+        riskPercent: maxRiskNow.toFixed(2),
+      }));
+      triggerViolation("RISK_CAPPED");
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      execState: "ARMED",
+      acceptedLoss: true,
+      armedAt: prev.armedAt || new Date().toISOString(),
+      armedSl: prev.sl || prev.armedSl,
+    }));
+    setAcceptedLoss(true);
+  };
+
+  const onArmOverride = () => {
+    triggerViolation("OVERRIDE_COOLDOWN");
+    setForm((prev) => ({
+      ...prev,
+      execState: "ARMED",
+      acceptedLoss: !!acceptedLoss,
+      armedAt: prev.armedAt || new Date().toISOString(),
+      armedSl: prev.sl || prev.armedSl,
+    }));
+  };
+
+  const onEnter = () => {
+    if (!(form.execState === "ARMED")) return;
+    if (!form.sl) {
+      triggerViolation("NO_SL");
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      execState: "ENTERED",
+      enteredAt: prev.enteredAt || new Date().toISOString(),
+    }));
+  };
+
+  const onEnterOverride = () => {
+    triggerViolation("OVERRIDE_ENTRY");
+    setForm((prev) => ({
+      ...prev,
+      execState: "ENTERED",
+      enteredAt: prev.enteredAt || new Date().toISOString(),
+    }));
+  };
+
+  // ---------- SUBMIT ----------
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const isOverrideSave = form.execState !== "ARMED" && form.execState !== "ENTERED";
+    if (isOverrideSave) {
+      triggerViolation("OVERRIDE_SAVE");
+    } else {
+      // clean trade (no new violations this action)
+      const nextD = applyCleanTrade(discipline);
+      writeDiscipline(nextD);
+    }
+
+    const id = editingTrade?.id ?? Date.now();
+    onAddTrade({ ...form, acceptedLoss: !!acceptedLoss, id, accountId: aid });
+
+    setForm({ ...buildDefaultForm(sid), screenshot: "" });
+    setAcceptedLoss(false);
+    setReplanMode(false);
+  };
+
+  const execState = form.execState || "REVIEWING";
+  const saveAllowed = execState === "ARMED" || execState === "ENTERED";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 pb-0">
@@ -468,15 +702,49 @@ export default function TradeForm({
             strategyId={sid}
             invalidFlags={invalidFlags}
           />
+
+          <ExecutionGateSection
+            form={{ ...form, acceptedLoss }}
+            strategyId={sid}
+            discipline={discipline}
+            config={CONFIG}
+            acceptedLoss={acceptedLoss}
+            setAcceptedLoss={setAcceptedLoss}
+            replanMode={replanMode}
+            setReplanMode={setReplanMode}
+            canArm={canArm}
+            armDisabledReason={armDisabledReason}
+            onArm={onArm}
+            onArmOverride={onArmOverride}
+            onEnter={onEnter}
+            onEnterOverride={onEnterOverride}
+          />
+
           <ResultSection form={form} onChange={handleChange} />
           <ChartSection form={form} onChange={handleChange} />
         </div>
       </div>
 
-      <div className="flex justify-end pt-1">
+      <div className="flex justify-end pt-1 gap-2">
+        {!saveAllowed && (
+          <button
+            type="submit"
+            className="h-8 px-4 rounded-full bg-amber-400/10 text-amber-200 text-sm font-semibold border border-amber-400/25 hover:bg-amber-400/15 transition"
+            title="Saves without ARMED/ENTERED (records violation)"
+          >
+            Save anyway (Violation)
+          </button>
+        )}
+
         <button
           type="submit"
-          className="h-8 px-5 rounded-full bg-[#00ffa3] text-[#020617] text-sm font-semibold tracking-tight hover:brightness-110 transition inline-flex items-center gap-2 shadow-[0_0_14px_rgba(0,255,163,.3)] focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/40"
+          disabled={!saveAllowed && !editingTrade}
+          className={`h-8 px-5 rounded-full text-sm font-semibold tracking-tight transition inline-flex items-center gap-2 focus:outline-none focus:ring-2 ${
+            saveAllowed || editingTrade
+              ? "bg-[#00ffa3] text-[#020617] hover:brightness-110 shadow-[0_0_14px_rgba(0,255,163,.3)] focus:ring-[#00ffa3]/40"
+              : "bg-white/5 text-slate-500 border border-white/10 cursor-not-allowed"
+          }`}
+          title={!saveAllowed ? "Arm trade first" : ""}
         >
           {editingTrade ? "Update trade" : "Save"}
         </button>
