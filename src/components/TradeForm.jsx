@@ -1,6 +1,6 @@
-// src/components/trades/TradeForm.jsx
-import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
 import EntryConditionsSection from "./trades/EntryConditionsSection";
@@ -25,6 +25,10 @@ function num(x) {
   return Number.isFinite(v) ? v : NaN;
 }
 
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
+
 function rrFrom({ entry, sl, tp1, direction }) {
   const e = num(entry);
   const s = num(sl);
@@ -38,8 +42,14 @@ function rrFrom({ entry, sl, tp1, direction }) {
   return reward / risk;
 }
 
-function nearlyEqual(a, b, eps = 1e-9) {
-  return Math.abs(a - b) <= eps;
+function pctMove({ entry, price, direction }) {
+  const e = num(entry);
+  const p = num(price);
+  if (!Number.isFinite(e) || !Number.isFinite(p) || e === 0) return null;
+
+  const isLong = String(direction || "Long") === "Long";
+  const pct = isLong ? (p / e - 1) * 100 : (1 - p / e) * 100;
+  return Number.isFinite(pct) ? pct : null;
 }
 
 function Collapsible({ title, open, setOpen, children, hint }) {
@@ -66,7 +76,6 @@ function Collapsible({ title, open, setOpen, children, hint }) {
   );
 }
 
-/* ---------- form ---------- */
 export default function TradeForm({
   onAddTrade,
   editingTrade,
@@ -80,7 +89,7 @@ export default function TradeForm({
   const CONFIG = useMemo(
     () => ({
       minRRByStrategy: { 1: 2, 2: 1, 3: 1, 4: 1 },
-      maxSLPercentByStrategy: { 2: 1 }, // TS2: <= 1% SL
+      maxSLPercentByStrategy: { 2: 1 },
       cooldownMinutesByStrategy: { 1: 1440, 2: 60, 3: 60, 4: 60 },
       baseRiskByStrategy: { 1: 1, 2: 1, 3: 0.5, 4: 0.5 },
     }),
@@ -95,12 +104,25 @@ export default function TradeForm({
   const [showChart, setShowChart] = useState(false);
 
   const [discipline, setDiscipline] = useState(() => loadDiscipline(sid, aid));
+  useEffect(() => setDiscipline(loadDiscipline(sid, aid)), [sid, aid]);
 
-  useEffect(() => {
-    setDiscipline(loadDiscipline(sid, aid));
-  }, [sid, aid]);
+  const formRef = useRef(null);
 
-  /* ---------- ✅ Risk / SL auto-calc pipeline ---------- */
+  const [isSaving, setIsSaving] = useState(false);
+  const [savePulse, setSavePulse] = useState(false);
+
+  /** ✅ SAFE state setter */
+  const setField = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  /** ✅ stable onChange for ALL sections */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setField(name, value);
+  };
+
+  /* ---------- Risk calc ---------- */
   useEffect(() => {
     const isFunded = sid === 3 || sid === 4;
 
@@ -108,28 +130,23 @@ export default function TradeForm({
     const s = num(form.sl);
     const d = num(form.deposit);
 
-    // must have entry + SL + deposit to compute
-    if (!Number.isFinite(e) || !Number.isFinite(s) || !Number.isFinite(d) || d <= 0) {
-      return;
-    }
+    if (!Number.isFinite(e) || !Number.isFinite(s) || !Number.isFinite(d) || d <= 0) return;
 
     const direction = form.direction || "Long";
     const isLong = String(direction) === "Long";
 
-    // Signed SL% relative to entry
     const slPctSigned = isLong ? (s / e - 1) * 100 : (1 - s / e) * 100;
     const slPctAbs = Math.abs(slPctSigned);
 
     let next = {};
 
     if (!isFunded) {
-      // TS1/TS2 sizing: usedDepositPercent + leverageX
       const usedPct = Math.max(0, num(form.usedDepositPercent || 25));
       const levX = Math.max(1, num(form.leverageX || 5));
 
       const positionSize = d * (usedPct / 100) * levX;
       const slDollar = positionSize * (slPctSigned / 100); // signed
-      const riskDollar = slDollar; // signed (usually negative)
+      const riskDollar = slDollar; // signed
       const riskPercentAbs = (Math.abs(riskDollar) / d) * 100;
 
       next = {
@@ -140,22 +157,18 @@ export default function TradeForm({
         riskPercent: Number.isFinite(riskPercentAbs) ? riskPercentAbs.toFixed(2) : "",
       };
     } else {
-      // Funded sizing (TS3/TS4): target risk% determines position size (lot% in usedDepositPercent)
       let targetRisk = num(form.riskPercent || 0.5);
       if (!Number.isFinite(targetRisk) || targetRisk <= 0) targetRisk = 0.5;
       targetRisk = Math.min(2, Math.max(0.25, targetRisk));
 
       if (!Number.isFinite(slPctAbs) || slPctAbs <= 0) return;
 
-      // lotPct = (targetRisk% * 100) / absSl%
       let lotPct = (targetRisk * 100) / slPctAbs;
       if (lotPct > 100) lotPct = 100;
 
       const positionSize = d * (lotPct / 100);
       const riskUsdAbs = positionSize * (slPctAbs / 100);
       const riskActualPct = (riskUsdAbs / d) * 100;
-
-      // signed risk is negative
       const riskUsdSigned = -riskUsdAbs;
 
       next = {
@@ -168,21 +181,17 @@ export default function TradeForm({
       };
     }
 
-    // Apply only if something actually changed (prevents loops)
     setForm((prev) => {
       let changed = false;
       const merged = { ...prev };
-
       for (const k of Object.keys(next)) {
         if (String(prev[k] ?? "") !== String(next[k] ?? "")) {
           merged[k] = next[k];
           changed = true;
         }
       }
-
       return changed ? merged : prev;
     });
-    // only compute when these inputs change:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     sid,
@@ -195,7 +204,90 @@ export default function TradeForm({
     form.riskPercent,
   ]);
 
-  /* ---------- calculations ---------- */
+  /* ---------- ✅ Derived TP$ / TP Tot / PnL (LIVE) ---------- */
+  useEffect(() => {
+    const entry = num(form.entry);
+    const deposit = num(form.deposit);
+    const positionSize = num(form.leverageAmount); // computed by risk pipeline
+    if (!Number.isFinite(entry) || !Number.isFinite(deposit) || !Number.isFinite(positionSize)) return;
+
+    const direction = form.direction || "Long";
+
+    const tpsHit = form.tpsHit || "OPEN";
+    let result = form.result || "Open";
+
+    // If SL selected, force Loss result for calculations
+    if (tpsHit === "SL") result = "Loss";
+
+    const tp1PctMove = pctMove({ entry, price: form.tp1, direction });
+    const tp2PctMove = pctMove({ entry, price: form.tp2, direction });
+    const tp3PctMove = pctMove({ entry, price: form.tp3, direction });
+
+    const a1 = clamp(num(form.tp1AllocPct) || 0, 0, 100);
+    const a2 = clamp(num(form.tp2AllocPct) || 0, 0, 100);
+    const a3 = clamp(num(form.tp3AllocPct) || 0, 0, 100);
+
+    const tpUsd = (pctMoveVal, allocPct) => {
+      if (pctMoveVal == null || !Number.isFinite(pctMoveVal)) return 0;
+      const usd = positionSize * (pctMoveVal / 100) * (allocPct / 100);
+      return Number.isFinite(usd) ? usd : 0;
+    };
+
+    const tp1Dollar = tpUsd(tp1PctMove, a1);
+    const tp2Dollar = tpUsd(tp2PctMove, a2);
+    const tp3Dollar = tpUsd(tp3PctMove, a3);
+
+    const tpTotal = tp1Dollar + tp2Dollar + tp3Dollar;
+
+    // riskDollar in your form is signed (negative for loss)
+    const riskDollarSigned = Number.isFinite(num(form.riskDollar)) ? num(form.riskDollar) : 0;
+
+    let pnl = null;
+    if (result === "Win") pnl = tpTotal;
+    else if (result === "Loss") pnl = riskDollarSigned;
+    else if (result === "Break Even") pnl = 0;
+
+    const nextDeposit = pnl == null ? null : deposit + pnl;
+
+    setForm((prev) => ({
+      ...prev,
+      result, // keep forced Loss if SL selected
+
+      // percent moves (used by table)
+      tp1Percent: tp1PctMove == null ? null : Number(tp1PctMove.toFixed(2)),
+      tp2Percent: tp2PctMove == null ? null : Number(tp2PctMove.toFixed(2)),
+      tp3Percent: tp3PctMove == null ? null : Number(tp3PctMove.toFixed(2)),
+
+      // TP dollars (used by Targets + table)
+      tp1Dollar: Number(tp1Dollar.toFixed(2)),
+      tp2Dollar: Number(tp2Dollar.toFixed(2)),
+      tp3Dollar: Number(tp3Dollar.toFixed(2)),
+
+      // totals
+      tpTotal: Number(tpTotal.toFixed(2)),
+
+      // only set pnl/nextDeposit if result is decided
+      ...(pnl != null ? { pnl: Number(pnl.toFixed(2)) } : {}),
+      ...(nextDeposit != null ? { nextDeposit: Number(nextDeposit.toFixed(2)) } : {}),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    form.entry,
+    form.deposit,
+    form.leverageAmount,
+    form.direction,
+    form.tpsHit,
+    form.result,
+    form.tp1,
+    form.tp2,
+    form.tp3,
+    form.tp1AllocPct,
+    form.tp2AllocPct,
+    form.tp3AllocPct,
+    form.riskDollar,
+  ]);
+
+  /* ---------- Gate calc ---------- */
   const rr = rrFrom(form);
   const rrOk = Number.isFinite(rr) && rr >= (CONFIG.minRRByStrategy[sid] ?? 1);
 
@@ -205,57 +297,26 @@ export default function TradeForm({
     (Number.isFinite(slPctAbs) && slPctAbs <= CONFIG.maxSLPercentByStrategy[sid]);
 
   const cooldownActive = isCooldownActive(discipline);
-  const maxRiskNow =
-    (CONFIG.baseRiskByStrategy[sid] ?? 1) * riskCapMultiplier(discipline);
+  const _maxRiskNow = (CONFIG.baseRiskByStrategy[sid] ?? 1) * riskCapMultiplier(discipline);
 
   const gateReady =
-    form.entry &&
-    form.sl &&
-    form.tp1 &&
-    form.riskPercent &&
-    acceptedLoss &&
+    !!form.entry &&
+    !!form.sl &&
+    !!form.tp1 &&
+    !!form.riskPercent &&
+    !!acceptedLoss &&
     rrOk &&
     slPctOk &&
     !cooldownActive;
 
-  /* ---------- ✅ Entry condition confluence highlighting ---------- */
-  const isLong = (form.direction || "Long") === "Long";
-  const stInvalid = isLong ? form.stTrend !== "bull" : form.stTrend !== "bear";
-  const usdtInvalid = isLong ? form.usdtTrend !== "bear" : form.usdtTrend !== "bull";
-  const overlayInvalid = isLong ? form.overlay !== "blue" : form.overlay !== "red";
-  const ma200Invalid =
-    form.ma200 === "ranging"
-      ? false
-      : isLong
-      ? form.ma200 !== "above"
-      : form.ma200 !== "below";
+  const canArm = !cooldownActive;
+  const armDisabledReason = cooldownActive ? "Cooldown active. You can override (Violation)." : "";
 
-  // For TS1 & FX-like strategies: 5m confluence
-  const isFxLike = sid === 3 || sid === 4;
-  const buySell5mInvalid =
-    sid === 1 || isFxLike
-      ? isLong
-        ? form.buySell5m !== "buy"
-        : form.buySell5m !== "sell"
-      : false;
+  const execState = form.execState || "REVIEWING";
+  const isArmedOrEntered = execState === "ARMED" || execState === "ENTERED";
 
-  const ma2005mInvalid =
-    sid === 1 || isFxLike
-      ? form.ma2005m === "ranging"
-        ? false
-        : isLong
-        ? form.ma2005m !== "above"
-        : form.ma2005m !== "below"
-      : false;
-
-  const invalidFlags = {
-    stInvalid,
-    usdtInvalid,
-    overlayInvalid,
-    ma200Invalid,
-    buySell5mInvalid,
-    ma2005mInvalid,
-  };
+  const saveBasicReady = !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
+  const saveEmphasis = isArmedOrEntered || gateReady || saveBasicReady;
 
   /* ---------- actions ---------- */
   const onArm = () => {
@@ -263,8 +324,8 @@ export default function TradeForm({
     setForm((prev) => ({
       ...prev,
       execState: "ARMED",
-      armedAt: new Date().toISOString(),
-      armedSl: prev.sl,
+      armedAt: prev.armedAt || new Date().toISOString(),
+      armedSl: prev.armedSl || prev.sl,
     }));
   };
 
@@ -273,107 +334,169 @@ export default function TradeForm({
     setForm((prev) => ({
       ...prev,
       execState: "ENTERED",
-      enteredAt: new Date().toISOString(),
+      enteredAt: prev.enteredAt || new Date().toISOString(),
     }));
+  };
+
+  const onArmOverride = () => {
+    const next = applyViolation({
+      discipline,
+      type: "OVERRIDE_COOLDOWN",
+      cooldownMinutes: CONFIG.cooldownMinutesByStrategy[sid],
+    });
+    saveDiscipline(sid, aid, next);
+    setDiscipline(next);
+
+    setForm((prev) => ({
+      ...prev,
+      execState: "ARMED",
+      armedAt: prev.armedAt || new Date().toISOString(),
+      armedSl: prev.armedSl || prev.sl,
+    }));
+  };
+
+  const onEnterOverride = () => {
+    const next = applyViolation({
+      discipline,
+      type: "OVERRIDE_ENTRY",
+      cooldownMinutes: CONFIG.cooldownMinutesByStrategy[sid],
+    });
+    saveDiscipline(sid, aid, next);
+    setDiscipline(next);
+
+    setForm((prev) => ({
+      ...prev,
+      execState: "ENTERED",
+      enteredAt: prev.enteredAt || new Date().toISOString(),
+    }));
+  };
+
+  const normalizeExecStateForSave = (state) => {
+    if (state === "ENTERED") return "ENTERED";
+    if (state === "ARMED") return "ARMED";
+    return "SAVED";
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isSaving) return;
 
-    if (form.execState !== "ARMED" && form.execState !== "ENTERED") {
-      const next = applyViolation({
-        discipline,
-        type: "OVERRIDE_SAVE",
-        cooldownMinutes: CONFIG.cooldownMinutesByStrategy[sid],
+    setIsSaving(true);
+    try {
+      const id = editingTrade?.id ?? Date.now();
+      const normalizedExecState = normalizeExecStateForSave(form.execState);
+
+      const savedAsViolation = !(normalizedExecState === "ARMED" || normalizedExecState === "ENTERED");
+
+      if (savedAsViolation) {
+        const next = applyViolation({
+          discipline,
+          type: "OVERRIDE_SAVE",
+          cooldownMinutes: CONFIG.cooldownMinutesByStrategy[sid],
+        });
+        saveDiscipline(sid, aid, next);
+        setDiscipline(next);
+      } else {
+        const next = applyCleanTrade(discipline);
+        saveDiscipline(sid, aid, next);
+        setDiscipline(next);
+      }
+
+      // persist full computed payload
+      onAddTrade({
+        ...form,
+        id,
+        strategyId: sid,
+        accountId: aid,
+        execState: normalizedExecState,
+        acceptedLoss: !!acceptedLoss,
       });
-      saveDiscipline(sid, aid, next);
-    } else {
-      saveDiscipline(sid, aid, applyCleanTrade(discipline));
-    }
 
-    onAddTrade({ ...form, acceptedLoss, accountId: aid });
+      setSavePulse(true);
+      setTimeout(() => setSavePulse(false), 650);
+      toast.success(savedAsViolation ? "Saved (Violation)" : "Trade saved", { autoClose: 1500 });
+    } finally {
+      setTimeout(() => setIsSaving(false), 250);
+    }
   };
 
-  /* ---------- render ---------- */
+  const triggerSubmit = () => {
+    const f = formRef.current;
+    if (!f) return;
+    if (typeof f.requestSubmit === "function") f.requestSubmit();
+    else f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 pb-20">
-      <div className="grid gap-2 lg:grid-cols-2">
-        {/* LEFT (desktop) / LOWER (mobile) */}
-        <div className="space-y-2 order-2 lg:order-1">
-          <TradeInfoSection
-            form={form}
-            onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
-          />
+    <>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-2 pb-20">
+        <div className="grid gap-2 lg:grid-cols-2">
+          <div className="space-y-2 order-2 lg:order-1">
+            <TradeInfoSection form={form} onChange={handleChange} />
+            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} />
+            <TargetsSection form={form} onChange={handleChange} />
+          </div>
 
-          <RiskSetupSection
-            form={form}
-            onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
-            strategyId={sid}
-          />
+          <div className="space-y-2 order-1 lg:order-2">
+            <EntryConditionsSection form={form} onChange={handleChange} strategyId={sid} />
 
-          <TargetsSection
-            form={form}
-            onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
-          />
-        </div>
-
-        {/* RIGHT (desktop) / TOP (mobile) */}
-        <div className="space-y-2 order-1 lg:order-2">
-          <EntryConditionsSection
-            form={form}
-            onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
-            strategyId={sid}
-            invalidFlags={invalidFlags}
-          />
-
-          <ExecutionGateSection
-            form={form}
-            strategyId={sid}
-            discipline={discipline}
-            acceptedLoss={acceptedLoss}
-            setAcceptedLoss={setAcceptedLoss}
-            replanMode={replanMode}
-            setReplanMode={setReplanMode}
-            rr={rr}
-            rrOk={rrOk}
-            slPctOk={slPctOk}
-            maxRiskNow={maxRiskNow}
-            cooldownActive={cooldownActive}
-            onArm={onArm}
-            onEnter={onEnter}
-          />
-
-          <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
-            <ResultSection
+            <ExecutionGateSection
               form={form}
-              onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
+              strategyId={sid}
+              discipline={discipline}
+              config={CONFIG}
+              acceptedLoss={acceptedLoss}
+              setAcceptedLoss={setAcceptedLoss}
+              replanMode={replanMode}
+              setReplanMode={setReplanMode}
+              canArm={canArm}
+              armDisabledReason={armDisabledReason}
+              onArm={onArm}
+              onArmOverride={onArmOverride}
+              onEnter={onEnter}
+              onEnterOverride={onEnterOverride}
             />
-          </Collapsible>
 
-          <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
-            <ChartSection
-              form={form}
-              onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
-            />
-          </Collapsible>
+            <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
+              <ResultSection form={form} onChange={handleChange} />
+            </Collapsible>
+
+            <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
+              <ChartSection form={form} onChange={handleChange} />
+            </Collapsible>
+          </div>
         </div>
-      </div>
+      </form>
 
-      {/* Sticky action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#020617]/90 backdrop-blur border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="flex justify-end gap-2">
           <button
-            type="submit"
-            className={`h-9 px-5 rounded-full text-sm font-semibold ${
-              gateReady
-                ? "bg-[#00ffa3] text-[#020617] shadow-[0_0_16px_rgba(0,255,163,.35)]"
+            type="button"
+            onClick={triggerSubmit}
+            disabled={isSaving}
+            className={`h-9 px-5 rounded-full text-sm font-semibold transition active:scale-[0.98] ${
+              saveEmphasis
+                ? savePulse
+                  ? "bg-emerald-400 text-[#020617] shadow-[0_0_22px_rgba(0,255,163,.28)]"
+                  : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] shadow-[0_0_18px_rgba(127,90,240,.18)] hover:brightness-110"
                 : "bg-white/5 text-slate-500 border border-white/10"
-            }`}
+            } ${isSaving ? "opacity-70 cursor-wait" : ""}`}
           >
-            {editingTrade ? "Update trade" : "Save"}
+            {isSaving ? (
+              "Saving…"
+            ) : savePulse ? (
+              <span className="inline-flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                Saved
+              </span>
+            ) : editingTrade ? (
+              "Update"
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>
-    </form>
+    </>
   );
 }

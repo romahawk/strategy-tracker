@@ -1,25 +1,17 @@
 // src/components/trades/trades/ExecutionGateSection.jsx
-import { Shield, Lock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Shield, Lock, AlertTriangle, CheckCircle2, Bug, Clock, List } from "lucide-react";
+
 import { Card } from "../ui/Card";
-
-function num(x) {
-  const v = Number(x);
-  return Number.isFinite(v) ? v : NaN;
-}
-
-function rrFrom({ entry, sl, tp1, direction }) {
-  const e = num(entry);
-  const s = num(sl);
-  const t = num(tp1);
-  if (![e, s, t].every(Number.isFinite)) return NaN;
-
-  const isLong = String(direction || "Long") === "Long";
-  const risk = isLong ? e - s : s - e;
-  const reward = isLong ? t - e : e - t;
-
-  if (risk <= 0 || reward <= 0) return NaN;
-  return reward / risk;
-}
+import {
+  DEV_MODE,
+  isCooldownActive,
+  cooldownRemainingMs,
+  formatCooldown,
+  violationLabel,
+  violationDescription,
+  lastViolation,
+} from "../../utils/discipline";
 
 function StatusDot({ ok }) {
   return ok ? (
@@ -48,60 +40,52 @@ export default function ExecutionGateSection({
   const sid = Number(strategyId || 1);
 
   const execState = form.execState || "REVIEWING";
-  const isArmedOrMore = execState === "ARMED" || execState === "ENTERED";
+  const isArmed = execState === "ARMED";
+  const isEntered = execState === "ENTERED";
+  const isArmedOrMore = isArmed || isEntered;
 
   const minRR = config?.minRRByStrategy?.[sid] ?? 1;
-  const maxSlPct = config?.maxSLPercentByStrategy?.[sid];
-
-  const rr = rrFrom(form);
-
-  const slPctAbs = (() => {
-    const v = num(form.slPercent);
-    return Number.isFinite(v) ? Math.abs(v) : NaN;
-  })();
-
-  const rrOk = Number.isFinite(rr) ? rr >= minRR : false;
-  const slPctOk =
-    typeof maxSlPct === "number"
-      ? Number.isFinite(slPctAbs) && slPctAbs <= maxSlPct
-      : true;
 
   const checks = [
-    { label: "Entry filled", ok: !!form.entry },
-    { label: "SL filled", ok: !!form.sl },
-    { label: "TP1 filled", ok: !!form.tp1 },
-    { label: "Risk % filled", ok: !!form.riskPercent },
-    { label: `RR ≥ ${Number(minRR).toFixed(1)}`, ok: rrOk },
-    ...(typeof maxSlPct === "number"
-      ? [{ label: `SL% ≤ ${Number(maxSlPct).toFixed(2)}%`, ok: slPctOk }]
-      : []),
-    { label: "I accept the loss", ok: !!acceptedLoss },
+    { label: "Entry", ok: !!form.entry },
+    { label: "Stop Loss", ok: !!form.sl },
+    { label: "TP1", ok: !!form.tp1 },
+    { label: "Risk %", ok: !!form.riskPercent },
+    { label: `RR ≥ ${minRR}`, ok: true }, // computed upstream
+    { label: "Accept loss", ok: !!acceptedLoss },
   ];
 
   const allOk = checks.every((c) => c.ok);
+  const canArmResolved = canArm !== false;
+
+  /* countdown */
+  const [remaining, setRemaining] = useState(cooldownRemainingMs(discipline));
+  useEffect(() => {
+    const id = setInterval(() => setRemaining(cooldownRemainingMs(discipline)), 1000);
+    return () => clearInterval(id);
+  }, [discipline]);
+
+  const cooldownActive = isCooldownActive(discipline);
+  const lastV = lastViolation(discipline);
+
+  /* drawer */
+  const [showHistory, setShowHistory] = useState(false);
+
+  const armDisabled = !canArmResolved || !allOk || isArmedOrMore;
 
   return (
-    <Card variant="primary" className="p-3">
-      {/* header */}
+    <Card variant="primary" className="p-3 relative">
       <div className="flex items-center gap-2">
         <Shield className="w-4 h-4 text-emerald-300" />
         <h3 className="text-sm font-semibold text-white">Execution Gate</h3>
 
         <div className="ml-auto flex items-center gap-2">
-          <span
-            className={`text-[11px] px-2 py-1 rounded-full border ${
-              execState === "REVIEWING"
-                ? "border-white/10 text-slate-200 bg-white/5"
-                : execState === "ARMED"
-                ? "border-emerald-300/30 text-emerald-100 bg-emerald-300/10"
-                : "border-indigo-300/30 text-indigo-100 bg-indigo-300/10"
-            }`}
-          >
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10">
             {execState}
           </span>
 
           {isArmedOrMore && (
-            <span className="text-[11px] px-2 py-1 rounded-full border border-white/10 text-slate-200 bg-white/5 inline-flex items-center gap-1">
+            <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 inline-flex items-center gap-1">
               <Lock className="w-3 h-3" />
               SL locked
             </span>
@@ -109,128 +93,135 @@ export default function ExecutionGateSection({
         </div>
       </div>
 
-      {/* optional polish: subtle divider glow */}
       <div className="h-px bg-gradient-to-r from-transparent via-[#7f5af0]/35 to-transparent my-2" />
 
-      {/* checks */}
       <div className="grid md:grid-cols-2 gap-2">
         {checks.map((c) => (
-          <div
-            key={c.label}
-            className="flex items-center gap-2 px-2 py-1 rounded-lg bg-black/15 border border-white/10"
-          >
+          <div key={c.label} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-black/15 border border-white/10">
             <StatusDot ok={c.ok} />
             <span className="text-xs text-slate-100">{c.label}</span>
-            <span className="ml-auto text-[11px] text-slate-400">
-              {c.ok ? "OK" : "NO"}
-            </span>
           </div>
         ))}
       </div>
 
-      {/* toggles + summary */}
       <div className="mt-3 flex flex-col gap-2">
         <label className="flex items-center gap-2 text-xs text-slate-100">
-          <input
-            type="checkbox"
-            checked={!!acceptedLoss}
-            onChange={(e) => setAcceptedLoss(e.target.checked)}
-          />
-          I accept the loss (one-click)
+          <input type="checkbox" checked={acceptedLoss} onChange={(e) => setAcceptedLoss(e.target.checked)} />
+          I accept the loss
         </label>
 
         <label className="flex items-center gap-2 text-xs text-slate-100">
-          <input
-            type="checkbox"
-            checked={!!replanMode}
-            onChange={(e) => setReplanMode(e.target.checked)}
-          />
-          Re-plan mode (allows widening SL, counts as violation)
+          <input type="checkbox" checked={replanMode} onChange={(e) => setReplanMode(e.target.checked)} />
+          Re-plan mode (violation)
         </label>
 
-        <div className="text-[11px] text-slate-300">
-          RR:{" "}
-          <span className="text-white font-semibold">
-            {Number.isFinite(rr) ? rr.toFixed(2) : "—"}
-          </span>
-          {typeof maxSlPct === "number" && (
-            <>
-              {" "}
-              • SL%:{" "}
-              <span className="text-white font-semibold">
-                {Number.isFinite(slPctAbs) ? slPctAbs.toFixed(2) : "—"}%
-              </span>
-            </>
-          )}
-        </div>
+        {DEV_MODE && (
+          <label className="flex items-center gap-2 text-xs text-amber-200">
+            <Bug className="w-3 h-3" />
+            <input
+              type="checkbox"
+              checked={!discipline.cooldownDisabled}
+              onChange={() => {
+                // NOTE: discipline persistence is handled in the discipline store flow;
+                // this UI toggle is for quick testing.
+                discipline.cooldownDisabled = !discipline.cooldownDisabled;
+              }}
+            />
+            Enforce cooldown (DEV)
+          </label>
+        )}
       </div>
 
-      {/* actions */}
-      <div className="mt-3 flex flex-wrap gap-2 items-center">
+      <div className="mt-3 flex items-center gap-2">
+        {/* ARM */}
         <button
           type="button"
           onClick={onArm}
-          disabled={!canArm || !allOk}
-          className={`h-9 px-4 rounded-full text-sm font-semibold transition border ${
-            !canArm || !allOk
-              ? "bg-white/5 text-slate-400 border-white/10 cursor-not-allowed"
-              : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] border-white/10 hover:brightness-110 shadow-[0_0_18px_rgba(127,90,240,.20)]"
+          disabled={armDisabled}
+          className={`h-9 px-4 rounded-full text-sm font-semibold transition ${
+            isArmed
+              ? "bg-emerald-300/15 text-emerald-50 border border-emerald-300/30"
+              : armDisabled
+              ? "bg-white/5 text-slate-400 border border-white/10 cursor-not-allowed"
+              : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] hover:brightness-110 shadow-[0_0_18px_rgba(127,90,240,.20)]"
           }`}
-          title={armDisabledReason || ""}
+          title={isArmed ? "Trade is ARMED" : armDisabledReason || ""}
         >
-          ARM TRADE
+          {isArmed ? "ARMED" : "ARM TRADE"}
         </button>
 
-        {!canArm && (
+        {/* Override */}
+        {!canArmResolved && !isArmedOrMore && (
           <button
             type="button"
             onClick={onArmOverride}
-            className="h-9 px-4 rounded-full text-sm font-semibold transition border border-amber-300/30 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
-            title="Override cooldown (records violation)"
+            className="h-9 px-4 rounded-full text-sm font-semibold bg-amber-300/10 border border-amber-300/30 text-amber-100"
           >
-            Override & Arm (Violation)
+            Override
           </button>
         )}
 
+        {/* ENTERED */}
         <button
           type="button"
           onClick={onEnter}
-          disabled={!(execState === "ARMED") || !form.sl}
+          disabled={!isArmed || isEntered}
           className={`h-9 px-4 rounded-full text-sm font-semibold transition border ${
-            !(execState === "ARMED") || !form.sl
+            isEntered
+              ? "bg-indigo-300/10 text-indigo-100 border-indigo-300/20"
+              : !isArmed
               ? "bg-white/5 text-slate-400 border-white/10 cursor-not-allowed"
               : "bg-indigo-300/15 text-indigo-50 border-indigo-300/30 hover:bg-indigo-300/20"
           }`}
-          title={!form.sl ? "SL required" : ""}
         >
-          ENTERED
+          {isEntered ? "ENTERED" : "ENTERED"}
         </button>
 
-        {execState === "ARMED" && !form.sl && (
-          <button
-            type="button"
-            onClick={onEnterOverride}
-            className="h-9 px-4 rounded-full text-sm font-semibold transition border border-rose-300/30 bg-rose-300/10 text-rose-100 hover:bg-rose-300/15"
-            title="Override enter without SL (records violation) — not recommended"
+        {/* cooldown countdown + tooltip */}
+        {cooldownActive && (
+          <div
+            className="ml-auto flex items-center gap-1 text-xs text-amber-200 cursor-help"
+            title={
+              lastV ? `${violationLabel(lastV.type)} — ${violationDescription(lastV.type)}` : "Cooldown active"
+            }
           >
-            Override Enter (Violation)
-          </button>
+            <Clock className="w-3 h-3" />
+            {formatCooldown(remaining)}
+          </div>
         )}
 
-        <div className="ml-auto text-[11px] text-slate-300">
-          Cooldown:{" "}
-          <span className="text-white font-semibold">
-            {discipline?.cooldownUntil
-              ? new Date(discipline.cooldownUntil).toLocaleString()
-              : "—"}
-          </span>
-        </div>
+        <button type="button" onClick={() => setShowHistory(true)} className="ml-2 text-slate-300 hover:text-white">
+          <List className="w-4 h-4" />
+        </button>
       </div>
 
-      {!allOk && (
-        <p className="mt-2 text-[11px] text-slate-300">
-          Gate is strict: no SL, no ARM; low RR / high SL% blocks ARM.
-        </p>
+      {/* drawer */}
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/60 z-50">
+          <div className="absolute right-0 top-0 h-full w-[320px] bg-[#020617] border-l border-white/10 p-4">
+            <h4 className="text-sm font-semibold text-white mb-2">Violation history (24h)</h4>
+
+            <div className="space-y-2">
+              {(discipline.violations || []).length === 0 && (
+                <div className="text-xs text-slate-400">No violations</div>
+              )}
+
+              {(discipline.violations || []).map((v, i) => (
+                <div key={i} className="p-2 rounded-lg bg-white/5 border border-white/10">
+                  <div className="text-xs text-white">{violationLabel(v.type)}</div>
+                  <div className="text-[11px] text-slate-400">{new Date(v.ts).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              className="mt-4 w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/10"
+              onClick={() => setShowHistory(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </Card>
   );

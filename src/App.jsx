@@ -27,7 +27,8 @@ export default function App() {
   const strategyId = Number(sidParam || 1);
   const accountId = Number(aidParam || 1);
 
-  const KEY = (suffix) => `strategy:${strategyId}:account:${accountId}:${suffix}`;
+  const KEY = (suffix) =>
+    `strategy:${strategyId}:account:${accountId}:${suffix}`;
 
   const LIVE_STORAGE_KEY = KEY("live-trades");
   const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
@@ -71,30 +72,42 @@ export default function App() {
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
 
     setTrades(storedLiveTrades ? JSON.parse(storedLiveTrades) : []);
-    setBacktestTrades(storedBacktestTrades ? JSON.parse(storedBacktestTrades) : []);
-    setHistoryTrades(storedHistoryTrades ? JSON.parse(storedHistoryTrades) : []);
+    setBacktestTrades(
+      storedBacktestTrades ? JSON.parse(storedBacktestTrades) : [],
+    );
+    setHistoryTrades(
+      storedHistoryTrades ? JSON.parse(storedHistoryTrades) : [],
+    );
 
     setHasLoaded(true);
   }, [strategyId, accountId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist scoped storage
   useEffect(() => {
-    if (hasLoaded) localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
+    if (hasLoaded)
+      localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
   }, [trades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (hasLoaded) localStorage.setItem(BACKTEST_STORAGE_KEY, JSON.stringify(backtestTrades));
+    if (hasLoaded)
+      localStorage.setItem(
+        BACKTEST_STORAGE_KEY,
+        JSON.stringify(backtestTrades),
+      );
   }, [backtestTrades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (hasLoaded) localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
+    if (hasLoaded)
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
   }, [historyTrades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep filters.mode aligned with main tab
   useEffect(() => {
     if (tabIndex === 0) setFilters((prev) => ({ ...prev, mode: "live" }));
-    else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
-    else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
+    else if (tabIndex === 1)
+      setFilters((prev) => ({ ...prev, mode: "backtest" }));
+    else if (tabIndex === 2)
+      setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
 
   // ------------------------
@@ -168,43 +181,41 @@ export default function App() {
   // ------------------------
   const handleAddTrade = (newTrade) => {
     const { mode } = filters;
-    let setTradeFunc;
 
-    if (mode === "backtest") setTradeFunc = setBacktestTrades;
-    else if (mode === "history") setTradeFunc = setHistoryTrades;
-    else setTradeFunc = setTrades;
+    const setTradeFunc =
+      mode === "backtest"
+        ? setBacktestTrades
+        : mode === "history"
+          ? setHistoryTrades
+          : setTrades;
 
-    if (editingTrade) {
-      setTradeFunc((prev) =>
-        [...prev]
-          .map((trade) =>
-            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
-          )
-          .sort(
-            (a, b) =>
-              new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          )
+    const id = newTrade?.id ?? Date.now();
+    const normalized = { ...newTrade, id };
+
+    setTradeFunc((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      const idx = list.findIndex((t) => t.id === id);
+
+      const next =
+        idx >= 0
+          ? list.map((t) => (t.id === id ? { ...t, ...normalized } : t))
+          : [...list, normalized];
+
+      return next.sort(
+        (a, b) =>
+          new Date(`${a.date}T${a.time || "00:00"}`) -
+          new Date(`${b.date}T${b.time || "00:00"}`),
       );
-      setEditingTrade(null);
-    } else {
-      setTradeFunc((prev) => {
-        const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
-        return [...prev, newTrade]
-          .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
-          .sort(
-            (a, b) =>
-              new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          );
-      });
-    }
+    });
+
+    if (editingTrade) setEditingTrade(null);
   };
 
   const handleEditTrade = (trade) => {
     setEditingTrade(trade);
     setInnerTabs((prev) => {
-      const key = tabIndex === 0 ? "live" : tabIndex === 1 ? "backtest" : "history";
+      const key =
+        tabIndex === 0 ? "live" : tabIndex === 1 ? "backtest" : "history";
       return { ...prev, [key]: "trade" };
     });
   };
@@ -224,8 +235,8 @@ export default function App() {
           .sort(
             (a, b) =>
               new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          )
+              new Date(`${b.date}T${b.time || "00:00"}`),
+          ),
       );
     }
   };
@@ -242,8 +253,8 @@ export default function App() {
       [...(importedTrades || [])].sort(
         (a, b) =>
           new Date(`${a.date}T${a.time || "00:00"}`) -
-          new Date(`${b.date}T${b.time || "00:00"}`)
-      )
+          new Date(`${b.date}T${b.time || "00:00"}`),
+      ),
     );
   };
 
@@ -251,7 +262,8 @@ export default function App() {
   // ✅ Scoped clear: only current tab + current strategy + current account
   // ------------------------
   const clearCurrentScope = () => {
-    const tabName = tabIndex === 0 ? "Live" : tabIndex === 1 ? "Backtest" : "History";
+    const tabName =
+      tabIndex === 0 ? "Live" : tabIndex === 1 ? "Backtest" : "History";
     const msg = `Clear ${tabName} trades for Strategy ${strategyId} / Account ${accountId}?\n\nThis will NOT affect other tabs, strategies, or accounts.`;
 
     if (!confirm(msg)) return;
@@ -288,7 +300,9 @@ export default function App() {
       <div className="flex items-center justify-between gap-3 mb-4 bg-[#0f172a] rounded-xl p-2">
         <div className="flex gap-4">
           <button
-            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))}
+            onClick={() =>
+              setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))
+            }
             className={
               active === "trade"
                 ? `${btnBase} bg-[#f97316]/20 text-white`
@@ -299,7 +313,9 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "all" }))}
+            onClick={() =>
+              setInnerTabs((prev) => ({ ...prev, [which]: "all" }))
+            }
             className={
               active === "all"
                 ? `${btnBase} bg-[#f97316]/20 text-white`
@@ -310,7 +326,9 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))}
+            onClick={() =>
+              setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))
+            }
             className={
               active === "kpis"
                 ? `${btnBase} bg-[#f97316]/20 text-white`
@@ -321,7 +339,9 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))}
+            onClick={() =>
+              setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))
+            }
             className={
               active === "equity"
                 ? `${btnBase} bg-[#f97316]/20 text-white`
