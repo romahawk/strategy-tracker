@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
 import {
   Pencil,
@@ -9,6 +9,67 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+
+/**
+ * Build entryConditions from legacy flat fields for backward compatibility.
+ * If trade already has entryConditions[], keep it.
+ */
+function buildEntryConditionsFromLegacy(trade, sid) {
+  const existing = Array.isArray(trade?.entryConditions)
+    ? trade.entryConditions
+    : [];
+  if (existing.length > 0) return existing;
+
+  const out = [];
+  const pushIf = (key, raw) => {
+    if (raw === undefined || raw === null || raw === "") return;
+    out.push({
+      key,
+      ok: String(raw).toLowerCase() !== "no" && String(raw).toLowerCase() !== "false",
+      value: String(raw),
+    });
+  };
+
+  // Common legacy fields shown in your previous table details
+  pushIf("ST", trade.stTrend);
+  pushIf("USDT.D", trade.usdtTrend);
+  pushIf("Overlay", trade.overlay);
+  pushIf("MA200", trade.ma200);
+
+  // TS2 extras
+  if (Number(sid) === 2) {
+    pushIf("15m CHoCH/BoS", trade.chochBos15m);
+    pushIf("1m ST", trade.st1m);
+    pushIf("1m Overlay", trade.overlay1m);
+    pushIf("1m MA200", trade.ma2001m);
+  }
+
+  // TS4 extras
+  if (Number(sid) === 4) {
+    pushIf("1m BoS", trade.bos1m);
+  }
+
+  return out;
+}
+
+/**
+ * Normalize trade shape so TradeForm receives a consistent object:
+ * - direction always present ("Long"/"Short")
+ * - entryConditions always present (array) using legacy fallback
+ */
+function normalizeTrade(trade, sid) {
+  const direction = trade?.direction || "Long";
+  const entryConditions = buildEntryConditionsFromLegacy(
+    { ...trade, direction },
+    sid
+  );
+
+  return {
+    ...trade,
+    direction,
+    entryConditions,
+  };
+}
 
 export default function TradeTable({
   trades,
@@ -26,10 +87,16 @@ export default function TradeTable({
   const [expandedRows, setExpandedRows] = useState({});
 
   const rowsPerPage = 10;
-  const totalPages = Math.ceil((trades?.length || 0) / rowsPerPage);
+
+  // Normalize trades once per render for stable UI + stable edit payload
+  const normalizedTrades = useMemo(() => {
+    return (trades || []).map((t) => normalizeTrade(t, sid));
+  }, [trades, sid]);
+
+  const totalPages = Math.ceil((normalizedTrades.length || 0) / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedTrades = (trades || []).slice(startIndex, endIndex);
+  const paginatedTrades = normalizedTrades.slice(startIndex, endIndex);
 
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
@@ -78,25 +145,24 @@ export default function TradeTable({
 
   // Keep a rolling backup of last 10 states
   useEffect(() => {
-    if ((trades?.length || 0) > 0) {
+    if ((normalizedTrades?.length || 0) > 0) {
       try {
         const backups = JSON.parse(localStorage.getItem("tradeBackups") || "[]");
-        backups.push({ trades, timestamp: new Date().toISOString() });
+        backups.push({ trades: normalizedTrades, timestamp: new Date().toISOString() });
         if (backups.length > 10) backups.shift();
         localStorage.setItem("tradeBackups", JSON.stringify(backups));
         toast.success("Backup saved to local storage", { autoClose: 2000 });
       } catch (error) {
         console.error("Backup save error:", error);
-        toast.error("Failed to save backup to local storage", {
-          autoClose: 3000,
-        });
+        toast.error("Failed to save backup to local storage", { autoClose: 3000 });
       }
     }
-  }, [trades]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedTrades]);
 
   const exportBackup = () => {
     try {
-      const dataStr = JSON.stringify(trades || [], null, 2);
+      const dataStr = JSON.stringify(normalizedTrades || [], null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -115,11 +181,7 @@ export default function TradeTable({
 
   // Convert current trades to FTMO logic (TS3): 100k start, 1% risk per trade
   // NOTE: App-level computeTimeline() will recompute equity after import.
-  const recalcTradesForFtmo = (
-    rawTrades,
-    startDeposit = 100000,
-    riskPercentPerTrade = 1.0
-  ) => {
+  const recalcTradesForFtmo = (rawTrades, startDeposit = 100000, riskPercentPerTrade = 1.0) => {
     if (!Array.isArray(rawTrades) || rawTrades.length === 0) return rawTrades;
 
     // sort by date+time to replay in correct order
@@ -229,7 +291,11 @@ export default function TradeTable({
 
       const updated = {
         ...t,
-        strategyId: 3, // FTMO mode outputs as strategy 3 format; TS4 can reuse it in UI anyway
+        // keep entryConditions + direction (normalized later too)
+        direction,
+        entryConditions: Array.isArray(t.entryConditions) ? t.entryConditions : [],
+
+        strategyId: 3,
         deposit: Number(balance.toFixed(2)),
         riskPercent: Number(riskActualPct.toFixed(2)),
         riskDollar: Number(riskUsdSigned.toFixed(2)),
@@ -269,31 +335,27 @@ export default function TradeTable({
         if (!Array.isArray(importedTrades)) {
           throw new Error("Backup file must contain an array of trades");
         }
-        for (const [index, trade] of importedTrades.entries()) {
-          if (!trade.id)
-            throw new Error(`Trade at index ${index} missing 'id' field`);
-          if (!trade.date)
-            throw new Error(`Trade at index ${index} missing 'date' field`);
-          if (trade.pair === undefined)
-            throw new Error(`Trade at index ${index} missing 'pair' field`);
+
+        // Normalize immediately on import so edit + details work consistently
+        const normalizedImported = importedTrades.map((t) => normalizeTrade(t, sid));
+
+        for (const [index, trade] of normalizedImported.entries()) {
+          if (!trade.id) throw new Error(`Trade at index ${index} missing 'id' field`);
+          if (!trade.date) throw new Error(`Trade at index ${index} missing 'date' field`);
+          if (trade.pair === undefined) throw new Error(`Trade at index ${index} missing 'pair' field`);
           if (typeof trade.id !== "string" && typeof trade.id !== "number") {
-            throw new Error(
-              `Trade at index ${index} has invalid 'id' type: ${typeof trade.id}`
-            );
+            throw new Error(`Trade at index ${index} has invalid 'id' type: ${typeof trade.id}`);
           }
           if (!/^\d{4}-\d{2}-\d{2}$/.test(trade.date)) {
-            throw new Error(
-              `Trade at index ${index} has invalid 'date' format: ${trade.date}`
-            );
+            throw new Error(`Trade at index ${index} has invalid 'date' format: ${trade.date}`);
           }
         }
-        onUpdateTrades(importedTrades);
+
+        onUpdateTrades(normalizedImported);
         toast.success("Backup imported successfully", { autoClose: 2000 });
       } catch (error) {
         console.error("Import error:", error.message, error.stack);
-        toast.error(`Failed to import backup: ${error.message}`, {
-          autoClose: 5000,
-        });
+        toast.error(`Failed to import backup: ${error.message}`, { autoClose: 5000 });
       }
     };
     reader.onerror = () => {
@@ -305,15 +367,16 @@ export default function TradeTable({
 
   const recalcAsFtmo = () => {
     try {
-      if (!trades || trades.length === 0) {
+      if (!normalizedTrades || normalizedTrades.length === 0) {
         toast.info("No trades to recalculate", { autoClose: 2000 });
         return;
       }
 
-      const START_DEPOSIT = 100000; // FTMO starting balance
-      const RISK_PER_TRADE = 1.0; // % of account per trade
+      const START_DEPOSIT = 100000;
+      const RISK_PER_TRADE = 1.0;
 
-      const converted = recalcTradesForFtmo(trades, START_DEPOSIT, RISK_PER_TRADE);
+      const converted = recalcTradesForFtmo(normalizedTrades, START_DEPOSIT, RISK_PER_TRADE)
+        .map((t) => normalizeTrade_toggleSafe(t, 3)); // sid=3 in output
 
       onUpdateTrades(converted);
       toast.success(
@@ -322,11 +385,14 @@ export default function TradeTable({
       );
     } catch (err) {
       console.error("FTMO recalculation error:", err);
-      toast.error("Failed to recalculate trades for FTMO", {
-        autoClose: 4000,
-      });
+      toast.error("Failed to recalculate trades for FTMO", { autoClose: 4000 });
     }
   };
+
+  // helper to avoid sid closure confusion in recalcAsFtmo mapping
+  function normalizeTrade_toggleSafe(t, sidForNormalize) {
+    return normalizeTrade(t, sidForNormalize);
+  }
 
   // Clamp page if data shrinks
   useEffect(() => {
@@ -341,7 +407,7 @@ export default function TradeTable({
 
   return (
     <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
-      {!trades || trades.length === 0 ? (
+      {!normalizedTrades || normalizedTrades.length === 0 ? (
         <div className="text-center py-4">
           <p className="text-slate-300 italic mb-4">No trades yet.</p>
           <div className="flex justify-center gap-2">
@@ -534,6 +600,8 @@ export default function TradeTable({
                   ? Number(t.commission)
                   : null;
 
+                const dirShort = t.direction === "Short" ? "S" : "L";
+
                 return (
                   <React.Fragment key={t.id}>
                     <tr
@@ -555,7 +623,7 @@ export default function TradeTable({
                       <td className="p-2 text-slate-200 truncate" title={t.pair}>
                         {t.pair || ""}
                       </td>
-                      <td className="p-2 text-slate-200">{t.direction || ""}</td>
+                      <td className="p-2 text-slate-200">{dirShort}</td>
 
                       <td className="p-2 text-slate-200 border-r border-white/10">
                         {equityBefore === null ? "-" : fmt(equityBefore, 2)}
@@ -644,28 +712,28 @@ export default function TradeTable({
                         <td colSpan={totalCols} className="p-3">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex flex-wrap gap-2 text-xs text-slate-200">
-                              <span>ST: {t.stTrend || "-"}</span>
-                              <span>USDT.D: {t.usdtTrend || "-"}</span>
-                              <span>Overlay: {t.overlay || "-"}</span>
-                              <span>MA200: {t.ma200 || "-"}</span>
-
-                              {sid === 2 && (
-                                <>
-                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
-                                  <span>1m ST: {t.st1m || "-"}</span>
-                                  <span>1m Overlay: {t.overlay1m || "-"}</span>
-                                  <span>1m MA200: {t.ma2001m || "-"}</span>
-                                </>
-                              )}
-
-                              {sid === 4 && (
-                                <span>1m BoS: {t.bos1m || "-"}</span>
+                              {(t.entryConditions || []).length === 0 ? (
+                                <span className="opacity-60">No entry conditions</span>
+                              ) : (
+                                t.entryConditions.map((c) => (
+                                  <span
+                                    key={c.key}
+                                    className={`px-2 py-1 rounded border ${
+                                      c.ok
+                                        ? "border-emerald-400 text-emerald-300"
+                                        : "border-rose-400 text-rose-300"
+                                    }`}
+                                    title={c.value || ""}
+                                  >
+                                    {c.key}
+                                  </span>
+                                ))
                               )}
                             </div>
 
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => onEdit(t)}
+                                onClick={() => onEdit(normalizeTrade(t, sid))}
                                 className="h-7 px-3 rounded-full bg-amber-400 text-black text-xs font-medium hover:brightness-110 flex items-center gap-1"
                               >
                                 <Pencil className="w-4 h-4" /> Edit
@@ -771,8 +839,7 @@ export default function TradeTable({
                   />
                 </label>
 
-                {/* ✅ Show FTMO button for Fx (3) AND TS (4) */}
-                {(sid === 3 || sid === 4) && trades.length > 0 && (
+                {(sid === 3 || sid === 4) && normalizedTrades.length > 0 && (
                   <button
                     onClick={recalcAsFtmo}
                     className="h-8 px-3 rounded-full bg-indigo-500 text-white text-xs flex items-center gap-1 hover:brightness-110"
