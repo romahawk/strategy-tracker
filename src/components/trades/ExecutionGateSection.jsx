@@ -1,6 +1,6 @@
 // src/components/trades/trades/ExecutionGateSection.jsx
 import { useEffect, useState } from "react";
-import { Shield, Lock, AlertTriangle, CheckCircle2, Bug, Clock, List } from "lucide-react";
+import { Shield, Lock, AlertTriangle, CheckCircle2, Bug, Clock, List, Trash2, RotateCcw } from "lucide-react";
 
 import { Card } from "../ui/Card";
 import {
@@ -11,6 +11,10 @@ import {
   violationLabel,
   violationDescription,
   lastViolation,
+  saveDiscipline,
+  clearCooldown,
+  clearViolations,
+  resetDisciplineState,
 } from "../../utils/discipline";
 
 function StatusDot({ ok }) {
@@ -24,6 +28,8 @@ function StatusDot({ ok }) {
 export default function ExecutionGateSection({
   form,
   strategyId,
+  accountId = 1,                 // ✅ new (needed to persist clears)
+  onDisciplineChanged,           // ✅ new (recommended)
   discipline,
   config,
   acceptedLoss,
@@ -38,6 +44,7 @@ export default function ExecutionGateSection({
   onEnterOverride,
 }) {
   const sid = Number(strategyId || 1);
+  const aid = Number(accountId || 1);
 
   const execState = form.execState || "REVIEWING";
   const isArmed = execState === "ARMED";
@@ -72,6 +79,25 @@ export default function ExecutionGateSection({
   const [showHistory, setShowHistory] = useState(false);
 
   const armDisabled = !canArmResolved || !allOk || isArmedOrMore;
+
+  const persistDiscipline = (next) => {
+    saveDiscipline(sid, aid, next);
+    if (typeof onDisciplineChanged === "function") {
+      onDisciplineChanged(next);
+    } else {
+      // fallback so UI reflects changes even if parent doesn't pass setter
+      window.location.reload();
+    }
+  };
+
+  const toggleCooldownEnforcement = () => {
+    const next = { ...discipline, cooldownDisabled: !discipline.cooldownDisabled };
+    persistDiscipline(next);
+  };
+
+  const handleClearCooldown = () => persistDiscipline(clearCooldown(discipline));
+  const handleClearViolations = () => persistDiscipline(clearViolations(discipline));
+  const handleResetDiscipline = () => persistDiscipline(resetDisciplineState(discipline));
 
   return (
     <Card variant="primary" className="p-3 relative">
@@ -121,11 +147,7 @@ export default function ExecutionGateSection({
             <input
               type="checkbox"
               checked={!discipline.cooldownDisabled}
-              onChange={() => {
-                // NOTE: discipline persistence is handled in the discipline store flow;
-                // this UI toggle is for quick testing.
-                discipline.cooldownDisabled = !discipline.cooldownDisabled;
-              }}
+              onChange={toggleCooldownEnforcement}
             />
             Enforce cooldown (DEV)
           </label>
@@ -198,8 +220,42 @@ export default function ExecutionGateSection({
       {/* drawer */}
       {showHistory && (
         <div className="fixed inset-0 bg-black/60 z-50">
-          <div className="absolute right-0 top-0 h-full w-[320px] bg-[#020617] border-l border-white/10 p-4">
+          <div className="absolute right-0 top-0 h-full w-[340px] bg-[#020617] border-l border-white/10 p-4">
             <h4 className="text-sm font-semibold text-white mb-2">Violation history (24h)</h4>
+
+            {DEV_MODE && (
+              <div className="flex flex-col gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={handleClearCooldown}
+                  className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-100 hover:bg-white/10 inline-flex items-center justify-center gap-2"
+                  title="Sets cooldownUntil = 0"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Clear active cooldown
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearViolations}
+                  className="w-full h-9 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-100 hover:bg-white/10 inline-flex items-center justify-center gap-2"
+                  title="Clears violations[] and cleanStreak"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear violation history
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetDiscipline}
+                  className="w-full h-9 rounded-lg bg-amber-300/10 border border-amber-300/25 text-sm text-amber-100 hover:bg-amber-300/15 inline-flex items-center justify-center gap-2"
+                  title="Resets discipline state (keeps cooldownDisabled)"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset discipline (DEV)
+                </button>
+              </div>
+            )}
 
             <div className="space-y-2">
               {(discipline.violations || []).length === 0 && (
@@ -215,7 +271,7 @@ export default function ExecutionGateSection({
             </div>
 
             <button
-              className="mt-4 w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/10"
+              className="mt-4 w-full text-sm px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10"
               onClick={() => setShowHistory(false)}
             >
               Close

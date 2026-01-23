@@ -101,18 +101,12 @@ export function violationLabel(type) {
 
 export function violationDescription(type) {
   return {
-    OVERRIDE_COOLDOWN:
-      "Trade was armed during enforced cooldown.",
-    OVERRIDE_ENTRY:
-      "Trade was entered bypassing execution gate.",
-    OVERRIDE_SAVE:
-      "Trade saved without being armed.",
-    NO_SL:
-      "Trade entered without a stop loss.",
-    MOVING_SL_WIDER:
-      "Stop loss was moved further away from entry.",
-    RULE_BROKEN:
-      "One or more strategy rules were violated.",
+    OVERRIDE_COOLDOWN: "Trade was armed during enforced cooldown.",
+    OVERRIDE_ENTRY: "Trade was entered bypassing execution gate.",
+    OVERRIDE_SAVE: "Trade saved without being armed.",
+    NO_SL: "Trade entered without a stop loss.",
+    MOVING_SL_WIDER: "Stop loss was moved further away from entry.",
+    RULE_BROKEN: "One or more strategy rules were violated.",
   }[type] || "Discipline violation.";
 }
 
@@ -134,4 +128,22 @@ export function riskCapMultiplier(discipline) {
   if (count >= 2) return 0.25;
   if (count === 1) return 0.5;
   return 1;
+}
+
+/* ---------- DEV maintenance helpers ---------- */
+
+export function clearCooldown(discipline) {
+  return { ...discipline, cooldownUntil: 0 };
+}
+
+export function clearViolations(discipline) {
+  return { ...discipline, violations: [], cleanStreak: 0 };
+}
+
+export function resetDisciplineState(discipline) {
+  // preserve cooldownDisabled toggle (useful in dev)
+  return {
+    ...defaultDiscipline(),
+    cooldownDisabled: !!discipline?.cooldownDisabled,
+  };
 }
