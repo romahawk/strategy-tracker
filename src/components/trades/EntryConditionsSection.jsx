@@ -17,29 +17,18 @@ function alertWrapClass(violated) {
     : "";
 }
 
-/**
- * Direction-aware confluence violations.
- * Flags clear opposites as "violated".
- * Neutral / ranging values are not hard violations.
- *
- * UPDATED per your rules:
- * - USDT.D: Long => Bear, Short => Bull
- * - 5m Signal: Long => Buy, Short => Sell
- * - 5m MA200: Long => Above, Short => Below
- */
 function getViolationFlags(form) {
-  const dir = String(form?.direction || "Long"); // "Long" | "Short"
+  const dir = String(form?.direction || "Long");
   const isLong = dir === "Long";
 
-  const overlay = form?.overlay; // blue/red/neutral
-  const ma200 = form?.ma200; // above/below/ranging
-  const usdt = form?.usdtTrend; // bull/bear/ranging
-  const st15m = form?.stTrend; // bull/bear
+  const overlay = form?.overlay;
+  const ma200 = form?.ma200;
+  const usdt = form?.usdtTrend;
+  const st15m = form?.stTrend;
 
-  const sig5m = form?.buySell5m; // buy/sell
-  const ma2005m = form?.ma2005m; // above/below/ranging
+  const sig5m = form?.buySell5m;
+  const ma2005m = form?.ma2005m;
 
-  // Overlay: Long wants blue; Short wants red
   const overlayViolated =
     overlay === "neutral" || !overlay
       ? false
@@ -47,7 +36,6 @@ function getViolationFlags(form) {
       ? overlay === "red"
       : overlay === "blue";
 
-  // MA200: Long wants above; Short wants below
   const ma200Violated =
     ma200 === "ranging" || !ma200
       ? false
@@ -55,7 +43,7 @@ function getViolationFlags(form) {
       ? ma200 === "below"
       : ma200 === "above";
 
-  // USDT.D UPDATED: Long wants BEAR; Short wants BULL
+  // USDT.D: Long => Bear, Short => Bull
   const usdtViolated =
     usdt === "ranging" || !usdt
       ? false
@@ -63,21 +51,21 @@ function getViolationFlags(form) {
       ? usdt === "bull"
       : usdt === "bear";
 
-  // 15m ST: Long wants bull; Short wants bear
+  // 15m ST: Long => Bull, Short => Bear
   const st15mViolated = !st15m
     ? false
     : isLong
     ? st15m === "bear"
     : st15m === "bull";
 
-  // 5m Signal UPDATED: Long wants buy; Short wants sell
+  // 5m Signal: Long => Buy, Short => Sell
   const sig5mViolated = !sig5m
     ? false
     : isLong
     ? sig5m === "sell"
     : sig5m === "buy";
 
-  // 5m MA200 UPDATED: Long wants above; Short wants below
+  // 5m MA200: Long => Above, Short => Below
   const ma2005mViolated =
     ma2005m === "ranging" || !ma2005m
       ? false
@@ -115,18 +103,17 @@ export default function EntryConditionsSection({
         </h3>
       </div>
 
-      {/* Primary conditions */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* 15m ST field for 15m ST strategy (assumed strategyId === 1) */}
         {strategyId === 1 && (
           <div className={alertWrapClass(v.st15mViolated)}>
             <Select
               label="15m ST"
               name="stTrend"
-              value={form.stTrend}
+              value={form.stTrend ?? ""}
               onChange={onChange}
               className={selectBorder({ invalid: v.st15mViolated })}
               options={[
+                ["", "— Select —"],
                 ["bull", "Bull"],
                 ["bear", "Bear"],
               ]}
@@ -138,12 +125,13 @@ export default function EntryConditionsSection({
           <Select
             label="Overlay"
             name="overlay"
-            value={form.overlay}
+            value={form.overlay ?? ""}
             onChange={onChange}
             className={selectBorder({
               invalid: invalidFlags.overlayInvalid || v.overlayViolated,
             })}
             options={[
+              ["", "— Select —"],
               ["blue", "Blue"],
               ["red", "Red"],
               ["neutral", "Neutral"],
@@ -155,13 +143,14 @@ export default function EntryConditionsSection({
           <Select
             label="MA200"
             name="ma200"
-            value={form.ma200}
+            value={form.ma200 ?? ""}
             onChange={onChange}
             className={selectBorder({
               invalid: invalidFlags.ma200Invalid || v.ma200Violated,
               ranging: form.ma200 === "ranging",
             })}
             options={[
+              ["", "— Select —"],
               ["above", "Above"],
               ["below", "Below"],
               ["ranging", "Ranging"],
@@ -173,13 +162,14 @@ export default function EntryConditionsSection({
           <Select
             label="15m USDT.D"
             name="usdtTrend"
-            value={form.usdtTrend}
+            value={form.usdtTrend ?? ""}
             onChange={onChange}
             className={selectBorder({
               invalid: invalidFlags.usdtInvalid || v.usdtViolated,
               ranging: form.usdtTrend === "ranging",
             })}
             options={[
+              ["", "— Select —"],
               ["bull", "Bull"],
               ["bear", "Bear"],
               ["ranging", "Ranging"],
@@ -193,12 +183,13 @@ export default function EntryConditionsSection({
               <Select
                 label="5m Signal"
                 name="buySell5m"
-                value={form.buySell5m}
+                value={form.buySell5m ?? ""}
                 onChange={onChange}
                 className={selectBorder({
                   invalid: invalidFlags.buySell5mInvalid || v.sig5mViolated,
                 })}
                 options={[
+                  ["", "— Select —"],
                   ["buy", "Buy"],
                   ["sell", "Sell"],
                 ]}
@@ -209,13 +200,14 @@ export default function EntryConditionsSection({
               <Select
                 label="5m MA200"
                 name="ma2005m"
-                value={form.ma2005m}
+                value={form.ma2005m ?? ""}
                 onChange={onChange}
                 className={selectBorder({
                   invalid: invalidFlags.ma2005mInvalid || v.ma2005mViolated,
                   ranging: form.ma2005m === "ranging",
                 })}
                 options={[
+                  ["", "— Select —"],
                   ["above", "Above"],
                   ["below", "Below"],
                   ["ranging", "Ranging"],
@@ -230,12 +222,11 @@ export default function EntryConditionsSection({
             <Select
               label="15m CHoCH/BoS"
               name="chochBos15m"
-              value={form.chochBos15m}
+              value={form.chochBos15m ?? ""}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.chochBos15mInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.chochBos15mInvalid })}
               options={[
+                ["", "— Select —"],
                 ["bull_choch", "Bull CHoCH"],
                 ["bull_bos", "Bull BoS"],
                 ["bear_choch", "Bear CHoCH"],
@@ -246,12 +237,11 @@ export default function EntryConditionsSection({
             <Select
               label="1m ST"
               name="st1m"
-              value={form.st1m}
+              value={form.st1m ?? ""}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.st1mInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.st1mInvalid })}
               options={[
+                ["", "— Select —"],
                 ["bull", "Bull"],
                 ["bear", "Bear"],
               ]}
@@ -260,13 +250,14 @@ export default function EntryConditionsSection({
             <Select
               label="1m MA200"
               name="ma2001m"
-              value={form.ma2001m}
+              value={form.ma2001m ?? ""}
               onChange={onChange}
               className={selectBorder({
                 invalid: invalidFlags.ma2001mInvalid,
                 ranging: form.ma2001m === "ranging",
               })}
               options={[
+                ["", "— Select —"],
                 ["above", "Above"],
                 ["below", "Below"],
                 ["ranging", "Ranging"],
@@ -279,10 +270,11 @@ export default function EntryConditionsSection({
           <Select
             label="1m BoS"
             name="bos1m"
-            value={form.bos1m}
+            value={form.bos1m ?? ""}
             onChange={onChange}
             className={selectBorder({ invalid: invalidFlags.bos1mInvalid })}
             options={[
+              ["", "— Select —"],
               ["bull", "Bull BoS"],
               ["bear", "Bear BoS"],
             ]}
@@ -290,7 +282,6 @@ export default function EntryConditionsSection({
         )}
       </div>
 
-      {/* Extras toggle */}
       <button
         type="button"
         onClick={() => setShowExtras((v) => !v)}
@@ -313,17 +304,17 @@ export default function EntryConditionsSection({
         </span>
       </button>
 
-      {/* Extras */}
       {showExtras && (
         <div className="mt-3 border border-white/10 rounded-xl p-3 bg-black/10">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             <Select
               label="Session"
               name="session"
-              value={form.session || "ny"}
+              value={form.session ?? ""}
               onChange={onChange}
               className={selectBorder({ invalid: invalidFlags.sessionInvalid })}
               options={[
+                ["", "— Select —"],
                 ["asia", "Asia"],
                 ["london", "London"],
                 ["ny", "NY"],
@@ -334,12 +325,11 @@ export default function EntryConditionsSection({
             <Select
               label="Structure"
               name="structure"
-              value={form.structure || "na"}
+              value={form.structure ?? ""}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.structureInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.structureInvalid })}
               options={[
+                ["", "— Select —"],
                 ["bullish", "Bullish"],
                 ["bearish", "Bearish"],
                 ["mixed", "Mixed / unclear"],
@@ -350,12 +340,11 @@ export default function EntryConditionsSection({
             <Select
               label="Liquidity sweep"
               name="liquiditySweep"
-              value={form.liquiditySweep || "na"}
+              value={form.liquiditySweep ?? ""}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.liquiditySweepInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.liquiditySweepInvalid })}
               options={[
+                ["", "— Select —"],
                 ["yes", "Yes"],
                 ["no", "No"],
                 ["na", "N/A"],
@@ -365,12 +354,11 @@ export default function EntryConditionsSection({
             <Select
               label="Retest / OTE"
               name="oteRetest"
-              value={form.oteRetest || "na"}
+              value={form.oteRetest ?? ""}
               onChange={onChange}
-              className={selectBorder({
-                invalid: invalidFlags.oteRetestInvalid,
-              })}
+              className={selectBorder({ invalid: invalidFlags.oteRetestInvalid })}
               options={[
+                ["", "— Select —"],
                 ["yes", "Yes"],
                 ["no", "No"],
                 ["na", "N/A"],
@@ -380,10 +368,11 @@ export default function EntryConditionsSection({
             <Select
               label="News risk"
               name="newsRisk"
-              value={form.newsRisk || "none"}
+              value={form.newsRisk ?? ""}
               onChange={onChange}
               className={selectBorder({ invalid: invalidFlags.newsRiskInvalid })}
               options={[
+                ["", "— Select —"],
                 ["none", "None"],
                 ["medium", "Medium"],
                 ["high", "High"],
@@ -400,8 +389,6 @@ export default function EntryConditionsSection({
     </Card>
   );
 }
-
-/* ---------- Small helpers ---------- */
 
 function Select({ label, name, value, onChange, options, className }) {
   return (
