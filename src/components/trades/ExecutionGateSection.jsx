@@ -1,6 +1,16 @@
 // src/components/trades/trades/ExecutionGateSection.jsx
 import { useEffect, useState } from "react";
-import { Shield, Lock, AlertTriangle, CheckCircle2, Bug, Clock, List, Trash2, RotateCcw } from "lucide-react";
+import {
+  Shield,
+  Lock,
+  AlertTriangle,
+  CheckCircle2,
+  Bug,
+  Clock,
+  List,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
 
 import { Card } from "../ui/Card";
 import {
@@ -28,8 +38,8 @@ function StatusDot({ ok }) {
 export default function ExecutionGateSection({
   form,
   strategyId,
-  accountId = 1,                 // ✅ new (needed to persist clears)
-  onDisciplineChanged,           // ✅ new (recommended)
+  accountId = 1,
+  onDisciplineChanged,
   discipline,
   config,
   acceptedLoss,
@@ -42,6 +52,10 @@ export default function ExecutionGateSection({
   onArmOverride,
   onEnter,
   onEnterOverride,
+
+  // ✅ NEW: RR inputs from TradeForm
+  rr,
+  rrOk,
 }) {
   const sid = Number(strategyId || 1);
   const aid = Number(accountId || 1);
@@ -53,12 +67,18 @@ export default function ExecutionGateSection({
 
   const minRR = config?.minRRByStrategy?.[sid] ?? 1;
 
+  const hasRR = Number.isFinite(Number(rr));
+  const rrLabel = hasRR ? `RR ≥ ${minRR} (${Number(rr).toFixed(2)})` : `RR ≥ ${minRR}`;
+
   const checks = [
     { label: "Entry", ok: !!form.entry },
     { label: "Stop Loss", ok: !!form.sl },
     { label: "TP1", ok: !!form.tp1 },
     { label: "Risk %", ok: !!form.riskPercent },
-    { label: `RR ≥ ${minRR}`, ok: true }, // computed upstream
+
+    // ✅ fixed: RR is only ok if computed + passes threshold
+    { label: rrLabel, ok: !!rrOk },
+
     { label: "Accept loss", ok: !!acceptedLoss },
   ];
 
@@ -68,7 +88,10 @@ export default function ExecutionGateSection({
   /* countdown */
   const [remaining, setRemaining] = useState(cooldownRemainingMs(discipline));
   useEffect(() => {
-    const id = setInterval(() => setRemaining(cooldownRemainingMs(discipline)), 1000);
+    const id = setInterval(
+      () => setRemaining(cooldownRemainingMs(discipline)),
+      1000
+    );
     return () => clearInterval(id);
   }, [discipline]);
 
@@ -78,6 +101,7 @@ export default function ExecutionGateSection({
   /* drawer */
   const [showHistory, setShowHistory] = useState(false);
 
+  // ARM disabled if: cooldown blocks OR not all checks OR already armed/entered
   const armDisabled = !canArmResolved || !allOk || isArmedOrMore;
 
   const persistDiscipline = (next) => {
@@ -85,7 +109,6 @@ export default function ExecutionGateSection({
     if (typeof onDisciplineChanged === "function") {
       onDisciplineChanged(next);
     } else {
-      // fallback so UI reflects changes even if parent doesn't pass setter
       window.location.reload();
     }
   };
@@ -123,7 +146,10 @@ export default function ExecutionGateSection({
 
       <div className="grid md:grid-cols-2 gap-2">
         {checks.map((c) => (
-          <div key={c.label} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-black/15 border border-white/10">
+          <div
+            key={c.label}
+            className="flex items-center gap-2 px-2 py-1 rounded-lg bg-black/15 border border-white/10"
+          >
             <StatusDot ok={c.ok} />
             <span className="text-xs text-slate-100">{c.label}</span>
           </div>
@@ -132,12 +158,20 @@ export default function ExecutionGateSection({
 
       <div className="mt-3 flex flex-col gap-2">
         <label className="flex items-center gap-2 text-xs text-slate-100">
-          <input type="checkbox" checked={acceptedLoss} onChange={(e) => setAcceptedLoss(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={acceptedLoss}
+            onChange={(e) => setAcceptedLoss(e.target.checked)}
+          />
           I accept the loss
         </label>
 
         <label className="flex items-center gap-2 text-xs text-slate-100">
-          <input type="checkbox" checked={replanMode} onChange={(e) => setReplanMode(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={replanMode}
+            onChange={(e) => setReplanMode(e.target.checked)}
+          />
           Re-plan mode (violation)
         </label>
 
@@ -183,7 +217,7 @@ export default function ExecutionGateSection({
           </button>
         )}
 
-        {/* ENTERED */}
+        {/* ENTERED (highlighted when ARMED) */}
         <button
           type="button"
           onClick={onEnter}
@@ -193,18 +227,21 @@ export default function ExecutionGateSection({
               ? "bg-indigo-300/10 text-indigo-100 border-indigo-300/20"
               : !isArmed
               ? "bg-white/5 text-slate-400 border-white/10 cursor-not-allowed"
-              : "bg-indigo-300/15 text-indigo-50 border-indigo-300/30 hover:bg-indigo-300/20"
+              : "bg-gradient-to-r from-[#7f5af0] to-[#00ffa3] text-[#020617] hover:brightness-110 shadow-[0_0_18px_rgba(0,255,163,.12)] border-white/10"
           }`}
+          title={!isArmed ? "Arm trade first" : ""}
         >
-          {isEntered ? "ENTERED" : "ENTERED"}
+          ENTERED
         </button>
 
-        {/* cooldown countdown + tooltip */}
+        {/* cooldown countdown */}
         {cooldownActive && (
           <div
             className="ml-auto flex items-center gap-1 text-xs text-amber-200 cursor-help"
             title={
-              lastV ? `${violationLabel(lastV.type)} — ${violationDescription(lastV.type)}` : "Cooldown active"
+              lastV
+                ? `${violationLabel(lastV.type)} — ${violationDescription(lastV.type)}`
+                : "Cooldown active"
             }
           >
             <Clock className="w-3 h-3" />
@@ -212,7 +249,11 @@ export default function ExecutionGateSection({
           </div>
         )}
 
-        <button type="button" onClick={() => setShowHistory(true)} className="ml-2 text-slate-300 hover:text-white">
+        <button
+          type="button"
+          onClick={() => setShowHistory(true)}
+          className="ml-2 text-slate-300 hover:text-white"
+        >
           <List className="w-4 h-4" />
         </button>
       </div>
@@ -221,7 +262,9 @@ export default function ExecutionGateSection({
       {showHistory && (
         <div className="fixed inset-0 bg-black/60 z-50">
           <div className="absolute right-0 top-0 h-full w-[340px] bg-[#020617] border-l border-white/10 p-4">
-            <h4 className="text-sm font-semibold text-white mb-2">Violation history (24h)</h4>
+            <h4 className="text-sm font-semibold text-white mb-2">
+              Violation history (24h)
+            </h4>
 
             {DEV_MODE && (
               <div className="flex flex-col gap-2 mb-3">
@@ -263,9 +306,14 @@ export default function ExecutionGateSection({
               )}
 
               {(discipline.violations || []).map((v, i) => (
-                <div key={i} className="p-2 rounded-lg bg-white/5 border border-white/10">
+                <div
+                  key={i}
+                  className="p-2 rounded-lg bg-white/5 border border-white/10"
+                >
                   <div className="text-xs text-white">{violationLabel(v.type)}</div>
-                  <div className="text-[11px] text-slate-400">{new Date(v.ts).toLocaleString()}</div>
+                  <div className="text-[11px] text-slate-400">
+                    {new Date(v.ts).toLocaleString()}
+                  </div>
                 </div>
               ))}
             </div>
