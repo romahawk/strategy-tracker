@@ -20,7 +20,7 @@ import WeeklyCompounding from "./components/WeeklyCompounding";
 
 import { computeTimeline } from "./utils/computeTimeline";
 
-import { BarChart3, Trash2, HandCoins } from "lucide-react";
+import { BarChart3, Gauge, List, Plus, Trash2, HandCoins, TrendingUp } from "lucide-react";
 
 export default function App() {
   const { strategyId: sidParam, accountId: aidParam } = useParams();
@@ -293,35 +293,44 @@ export default function App() {
   // ------------------------
   const InnerNav = ({ which }) => {
     const active = innerTabs[which];
-    const btnBase =
-      "px-5 py-2 rounded-full border border-[#f97316]/40 text-sm font-medium transition-all duration-200";
+
+    const base =
+      "px-4 h-8 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-2";
+
+    const ghost = "text-slate-300 hover:text-white hover:bg-white/5";
+
+    const activePill =
+      "bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.35)] scale-[1.02]";
+
+    const primary =
+      "bg-gradient-to-r from-[#f97316] to-[#fb923c] text-black font-semibold shadow hover:brightness-110";
+
+    const iconCls = "w-4 h-4 opacity-90";
 
     return (
       <div className="flex items-center justify-between gap-3 mb-4 bg-[#0f172a] rounded-xl p-2">
-        <div className="flex gap-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() =>
               setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))
             }
-            className={
+            className={`${base} ${
               active === "trade"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+                ? primary
+                : "bg-[#f97316]/15 text-[#f97316] hover:bg-[#f97316]/25"
+            }`}
           >
-            + new trade
+            <Plus className={iconCls} />
+            new trade
           </button>
 
           <button
             onClick={() =>
               setInnerTabs((prev) => ({ ...prev, [which]: "all" }))
             }
-            className={
-              active === "all"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "all" ? activePill : ghost}`}
           >
+            <List className={iconCls} />
             all trades
           </button>
 
@@ -329,12 +338,9 @@ export default function App() {
             onClick={() =>
               setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))
             }
-            className={
-              active === "kpis"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "kpis" ? activePill : ghost}`}
           >
+            <Gauge className={iconCls} />
             KPIs
           </button>
 
@@ -342,19 +348,16 @@ export default function App() {
             onClick={() =>
               setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))
             }
-            className={
-              active === "equity"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "equity" ? activePill : ghost}`}
           >
+            <TrendingUp className={iconCls} />
             equity curve
           </button>
         </div>
 
         <button
           onClick={clearCurrentScope}
-          className="h-9 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
+          className="h-8 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-medium hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
           title="Clears only current tab + current strategy + current account"
         >
           <Trash2 className="w-4 h-4" />
