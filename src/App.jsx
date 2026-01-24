@@ -18,17 +18,27 @@ import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
 import WeeklyCompounding from "./components/WeeklyCompounding";
 
+import RightNavCluster from "./components/navbar/RightNavCluster";
+import RightSidePanel from "./components/panels/RightSidePanel";
+
 import { computeTimeline } from "./utils/computeTimeline";
 
-import { BarChart3, Gauge, List, Plus, Trash2, HandCoins, TrendingUp } from "lucide-react";
+import {
+  BarChart3,
+  Gauge,
+  List,
+  Plus,
+  Trash2,
+  HandCoins,
+  TrendingUp,
+} from "lucide-react";
 
 export default function App() {
   const { strategyId: sidParam, accountId: aidParam } = useParams();
   const strategyId = Number(sidParam || 1);
   const accountId = Number(aidParam || 1);
 
-  const KEY = (suffix) =>
-    `strategy:${strategyId}:account:${accountId}:${suffix}`;
+  const KEY = (suffix) => `strategy:${strategyId}:account:${accountId}:${suffix}`;
 
   const LIVE_STORAGE_KEY = KEY("live-trades");
   const BACKTEST_STORAGE_KEY = KEY("backtest-trades");
@@ -64,6 +74,19 @@ export default function App() {
   const [initialDeposit, setInitialDeposit] = useState(1000);
 
   // ------------------------
+  // Right-side panel (Guide | Tools | Journal | Profile)
+  // ------------------------
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState("guide");
+
+  const openRightPanel = (tabKey) => {
+    setRightPanelTab(tabKey);
+    setRightPanelOpen(true);
+  };
+
+  const closeRightPanel = () => setRightPanelOpen(false);
+
+  // ------------------------
   // Load scoped storage
   // ------------------------
   useEffect(() => {
@@ -72,42 +95,30 @@ export default function App() {
     const storedHistoryTrades = localStorage.getItem(HISTORY_STORAGE_KEY);
 
     setTrades(storedLiveTrades ? JSON.parse(storedLiveTrades) : []);
-    setBacktestTrades(
-      storedBacktestTrades ? JSON.parse(storedBacktestTrades) : [],
-    );
-    setHistoryTrades(
-      storedHistoryTrades ? JSON.parse(storedHistoryTrades) : [],
-    );
+    setBacktestTrades(storedBacktestTrades ? JSON.parse(storedBacktestTrades) : []);
+    setHistoryTrades(storedHistoryTrades ? JSON.parse(storedHistoryTrades) : []);
 
     setHasLoaded(true);
   }, [strategyId, accountId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist scoped storage
   useEffect(() => {
-    if (hasLoaded)
-      localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
+    if (hasLoaded) localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(trades));
   }, [trades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (hasLoaded)
-      localStorage.setItem(
-        BACKTEST_STORAGE_KEY,
-        JSON.stringify(backtestTrades),
-      );
+    if (hasLoaded) localStorage.setItem(BACKTEST_STORAGE_KEY, JSON.stringify(backtestTrades));
   }, [backtestTrades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (hasLoaded)
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
+    if (hasLoaded) localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyTrades));
   }, [historyTrades, hasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep filters.mode aligned with main tab
   useEffect(() => {
     if (tabIndex === 0) setFilters((prev) => ({ ...prev, mode: "live" }));
-    else if (tabIndex === 1)
-      setFilters((prev) => ({ ...prev, mode: "backtest" }));
-    else if (tabIndex === 2)
-      setFilters((prev) => ({ ...prev, mode: "history" }));
+    else if (tabIndex === 1) setFilters((prev) => ({ ...prev, mode: "backtest" }));
+    else if (tabIndex === 2) setFilters((prev) => ({ ...prev, mode: "history" }));
   }, [tabIndex]);
 
   // ------------------------
@@ -186,8 +197,8 @@ export default function App() {
       mode === "backtest"
         ? setBacktestTrades
         : mode === "history"
-          ? setHistoryTrades
-          : setTrades;
+        ? setHistoryTrades
+        : setTrades;
 
     const id = newTrade?.id ?? Date.now();
     const normalized = { ...newTrade, id };
@@ -214,8 +225,7 @@ export default function App() {
   const handleEditTrade = (trade) => {
     setEditingTrade(trade);
     setInnerTabs((prev) => {
-      const key =
-        tabIndex === 0 ? "live" : tabIndex === 1 ? "backtest" : "history";
+      const key = tabIndex === 0 ? "live" : tabIndex === 1 ? "backtest" : "history";
       return { ...prev, [key]: "trade" };
     });
   };
@@ -262,8 +272,7 @@ export default function App() {
   // ✅ Scoped clear: only current tab + current strategy + current account
   // ------------------------
   const clearCurrentScope = () => {
-    const tabName =
-      tabIndex === 0 ? "Live" : tabIndex === 1 ? "Backtest" : "History";
+    const tabName = tabIndex === 0 ? "Live" : tabIndex === 1 ? "Backtest" : "History";
     const msg = `Clear ${tabName} trades for Strategy ${strategyId} / Account ${accountId}?\n\nThis will NOT affect other tabs, strategies, or accounts.`;
 
     if (!confirm(msg)) return;
@@ -311,9 +320,7 @@ export default function App() {
       <div className="flex items-center justify-between gap-3 mb-4 bg-[#0f172a] rounded-xl p-2">
         <div className="flex items-center gap-2">
           <button
-            onClick={() =>
-              setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))
-            }
+            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))}
             className={`${base} ${
               active === "trade"
                 ? primary
@@ -325,9 +332,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() =>
-              setInnerTabs((prev) => ({ ...prev, [which]: "all" }))
-            }
+            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "all" }))}
             className={`${base} ${active === "all" ? activePill : ghost}`}
           >
             <List className={iconCls} />
@@ -335,9 +340,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() =>
-              setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))
-            }
+            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))}
             className={`${base} ${active === "kpis" ? activePill : ghost}`}
           >
             <Gauge className={iconCls} />
@@ -345,9 +348,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() =>
-              setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))
-            }
+            onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))}
             className={`${base} ${active === "equity" ? activePill : ghost}`}
           >
             <TrendingUp className={iconCls} />
@@ -417,7 +418,16 @@ export default function App() {
             <AccountNav />
           </div>
 
+          {/* spacer */}
           <div className="ml-auto" />
+
+          {/* RIGHT: Guide | Tools | Journal | Profile */}
+          <div className="relative z-10 flex items-center gap-2 shrink-0">
+            <RightNavCluster
+              active={rightPanelOpen ? rightPanelTab : null}
+              onOpen={openRightPanel}
+            />
+          </div>
         </header>
 
         {/* ===== MAIN ===== */}
@@ -437,9 +447,7 @@ export default function App() {
               <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
                 <FilterBar
                   filters={filters}
-                  setFilters={(newFilters) =>
-                    setFilters({ ...newFilters, mode: "live" })
-                  }
+                  setFilters={(newFilters) => setFilters({ ...newFilters, mode: "live" })}
                 />
                 <TradeTable
                   trades={filteredCurrentTrades}
@@ -465,9 +473,7 @@ export default function App() {
                 <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                   <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
                     <HandCoins className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">
-                      Weekly Compounding
-                    </h2>
+                    <h2 className="text-xl font-semibold">Weekly Compounding</h2>
                   </div>
                   <WeeklyCompounding
                     strategyId={strategyId}
@@ -571,6 +577,14 @@ export default function App() {
         </main>
       </Tabs>
 
+      {/* Right-side panel mount */}
+      <RightSidePanel
+        open={rightPanelOpen}
+        activeTab={rightPanelTab}
+        onClose={closeRightPanel}
+        onTabChange={setRightPanelTab}
+      />
+
       {selectedTrade && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
@@ -579,10 +593,7 @@ export default function App() {
               Trade Chart
             </h2>
             <img
-              src={
-                selectedTrade.screenshot ||
-                "https://via.placeholder.com/400x200?text=No+Chart"
-              }
+              src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Chart"}
               alt="Trade Chart"
               className="w-full rounded-lg"
             />
