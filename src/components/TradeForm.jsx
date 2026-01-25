@@ -136,6 +136,8 @@ export default function TradeForm({
   const [form, setForm] = useState({
     direction: "Long",
     entryConditions: [],
+    leverageX: "10",
+    usedDepositPercent: "25",
   });
 
   const [acceptedLoss, setAcceptedLoss] = useState(false);
@@ -217,7 +219,7 @@ export default function TradeForm({
 
     if (!isFunded) {
       const usedPct = Math.max(0, num(form.usedDepositPercent || 25));
-      const levX = Math.max(1, num(form.leverageX || 5));
+      const levX = Math.max(1, num(form.leverageX || 10));
 
       const positionSize = d * (usedPct / 100) * levX;
       const slDollar = positionSize * (slPctSigned / 100);
