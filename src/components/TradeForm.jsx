@@ -445,7 +445,6 @@ export default function TradeForm({
 
   /* ---------- actions ---------- */
   const onArm = () => {
-    if (!gateReady) return;
     setForm((prev) => ({
       ...prev,
       execState: "ARMED",
@@ -587,6 +586,8 @@ export default function TradeForm({
               onEnterOverride={onEnterOverride}
               rr={rr}
               rrOk={rrOk}
+              gateReady={gateReady}   
+              slPctOk={slPctOk}       
             />
 
             <Collapsible
