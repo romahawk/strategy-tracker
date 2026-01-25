@@ -354,6 +354,19 @@ export default function App() {
             <TrendingUp className={iconCls} />
             equity curve
           </button>
+
+          {/* ✅ Live-only: Weekly Compounding as separate inner tab */}
+          {which === "live" && (
+            <button
+              onClick={() =>
+                setInnerTabs((prev) => ({ ...prev, [which]: "compound" }))
+              }
+              className={`${base} ${active === "compound" ? activePill : ghost}`}
+            >
+              <HandCoins className={iconCls} />
+              weekly compounding
+            </button>
+          )}
         </div>
 
         <button
@@ -434,6 +447,7 @@ export default function App() {
         <main className="p-4 pt-6 flex-1 overflow-y-auto space-y-6">
           <TabPanel className="mt-4">
             <InnerNav which="live" />
+
             {innerTabs.live === "trade" && (
               <TradeForm
                 onAddTrade={handleAddTrade}
@@ -443,6 +457,7 @@ export default function App() {
                 accountId={accountId}
               />
             )}
+
             {innerTabs.live === "all" && (
               <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
                 <FilterBar
@@ -460,29 +475,29 @@ export default function App() {
                 />
               </div>
             )}
+
             {innerTabs.live === "kpis" && (
               <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
+
             {innerTabs.live === "equity" && (
-              <div className="space-y-4">
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <EquityCurveChart trades={filteredCurrentTrades} />
-                </div>
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <HandCoins className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">Weekly Compounding</h2>
-                  </div>
-                  <WeeklyCompounding
-                    strategyId={strategyId}
-                    accountId={accountId}
-                    mode="live"
-                    includeCurrentWeek={true}
-                    refreshKey={JSON.stringify(trades)}
-                  />
-                </div>
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
+
+            {/* ✅ Live-only compounding tab */}
+            {innerTabs.live === "compound" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <WeeklyCompounding
+                  strategyId={strategyId}
+                  accountId={accountId}
+                  mode="live"
+                  includeCurrentWeek={true}
+                  refreshKey={JSON.stringify(trades)}
+                />
               </div>
             )}
           </TabPanel>
