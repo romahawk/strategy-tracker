@@ -1,5 +1,3 @@
-// src/components/TradeForm.jsx
-// (only showing full file as requested)
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
@@ -25,6 +23,11 @@ import {
 function num(x) {
   const v = Number(x);
   return Number.isFinite(v) ? v : NaN;
+}
+
+function toMoneyStr(v, decimals = 2) {
+  const x = Number(v);
+  return Number.isFinite(x) ? x.toFixed(decimals) : "";
 }
 
 function clamp(n, a, b) {
@@ -133,13 +136,7 @@ export default function TradeForm({
     [],
   );
 
-  const [form, setForm] = useState({
-    direction: "Long",
-    entryConditions: [],
-    leverageX: "10",
-    usedDepositPercent: "25",
-  });
-
+  const [form, setForm] = useState({});
   const [acceptedLoss, setAcceptedLoss] = useState(false);
   const [replanMode, setReplanMode] = useState(false);
 
@@ -154,36 +151,6 @@ export default function TradeForm({
   const [isSaving, setIsSaving] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
 
-  useEffect(() => {
-    if (!editingTrade) return;
-
-    const hydrated = {
-      ...editingTrade,
-      direction: editingTrade.direction || "Long",
-    };
-
-    hydrated.entryConditions = buildEntryConditions(hydrated, sid);
-
-    setForm((prev) => ({
-      ...prev,
-      ...hydrated,
-    }));
-
-    setAcceptedLoss(!!editingTrade.acceptedLoss);
-  }, [editingTrade, sid]);
-
-  useEffect(() => {
-    if (editingTrade) return;
-    if (form.deposit != null && String(form.deposit) !== "") return;
-    if (initialDeposit == null) return;
-
-    setForm((prev) => ({
-      ...prev,
-      deposit: prev.deposit ?? initialDeposit,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialDeposit, editingTrade]);
-
   const setField = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -192,6 +159,48 @@ export default function TradeForm({
     const { name, value } = e.target;
     setField(name, value);
   };
+
+  // ✅ Seed deposit for NEW trade from last equity (initialDeposit)
+  useEffect(() => {
+    if (editingTrade) return;
+
+    const cur = form.deposit;
+    const hasDeposit = cur != null && String(cur).trim() !== "";
+    if (hasDeposit) return;
+
+    if (initialDeposit == null) return;
+
+    setForm((prev) => ({
+      ...prev,
+      deposit: toMoneyStr(initialDeposit),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDeposit, editingTrade]);
+
+  // Normalize deposit display to 2 decimals (prevents float artifacts like 196.42999999999998).
+  // Only normalizes when the user has more than 2 decimals (does not interrupt normal typing).
+  useEffect(() => {
+    const d = form.deposit;
+    if (d == null || String(d).trim() === "") return;
+
+    const s = String(d).trim();
+
+    // allow user to type "123." without snapping
+    if (s.endsWith(".")) return;
+
+    const n = Number(s);
+    if (!Number.isFinite(n)) return;
+
+    const parts = s.split(".");
+    const decimals = parts.length === 2 ? parts[1].length : 0;
+
+    if (decimals <= 2) return;
+
+    const fixed = toMoneyStr(n, 2);
+    if (fixed && fixed !== s) {
+      setForm((prev) => ({ ...prev, deposit: fixed }));
+    }
+  }, [form.deposit]);
 
   /* ---------- Risk calc ---------- */
   useEffect(() => {
@@ -222,8 +231,8 @@ export default function TradeForm({
       const levX = Math.max(1, num(form.leverageX || 10));
 
       const positionSize = d * (usedPct / 100) * levX;
-      const slDollar = positionSize * (slPctSigned / 100);
-      const riskDollar = slDollar;
+      const slDollar = positionSize * (slPctSigned / 100); // signed
+      const riskDollar = slDollar; // signed
       const riskPercentAbs = (Math.abs(riskDollar) / d) * 100;
 
       next = {
@@ -364,18 +373,20 @@ export default function TradeForm({
     setForm((prev) => ({
       ...prev,
       result,
+
       tp1Percent: tp1PctMove == null ? null : Number(tp1PctMove.toFixed(2)),
       tp2Percent: tp2PctMove == null ? null : Number(tp2PctMove.toFixed(2)),
       tp3Percent: tp3PctMove == null ? null : Number(tp3PctMove.toFixed(2)),
+
       tp1Dollar: Number(tp1Dollar.toFixed(2)),
       tp2Dollar: Number(tp2Dollar.toFixed(2)),
       tp3Dollar: Number(tp3Dollar.toFixed(2)),
       tpTotal: Number(tpTotal.toFixed(2)),
+
       commission: Number(commissionUsed.toFixed(2)),
+
       ...(pnl != null ? { pnl: Number(pnl.toFixed(2)) } : {}),
-      ...(nextDeposit != null
-        ? { nextDeposit: Number(nextDeposit.toFixed(2)) }
-        : {}),
+      ...(nextDeposit != null ? { nextDeposit: toMoneyStr(nextDeposit) } : {}),
     }));
   }, [
     form.entry,
@@ -428,27 +439,9 @@ export default function TradeForm({
   const execState = form.execState || "REVIEWING";
   const isArmedOrEntered = execState === "ARMED" || execState === "ENTERED";
 
-  // ✅ Save gating after ARM/ENTER:
-  // Allow saving OPEN trades too (Entered + still open).
-  const tpsHit = form.tpsHit || "OPEN";
-  const resultValue = form.result || "Open";
-
-  // post-trade finalized
-  const postTradeReady = tpsHit !== "OPEN" && resultValue !== "Open";
-
-  // trade is still open
-  const openTradeReady = tpsHit === "OPEN" && resultValue === "Open";
-
-  // Keep emphasis behavior
   const saveBasicReady =
     !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
-
   const saveEmphasis = isArmedOrEntered || gateReady || saveBasicReady;
-
-  // ✅ Only restrict Save when ARMED/ENTERED, but allow Open trades too
-  const saveDisabled = isArmedOrEntered
-    ? !(postTradeReady || openTradeReady)
-    : false;
 
   /* ---------- actions ---------- */
   const onArm = () => {
@@ -497,16 +490,6 @@ export default function TradeForm({
     e.preventDefault();
     if (isSaving) return;
 
-    // ✅ prevent saving ARMED/ENTERED without post-trade completion
-    if (saveDisabled) {
-      toast.info(
-        "To save after ARM/ENTER: either keep trade Open (TP status = Not closed yet, Result = Open) OR finalize TP status + Result.",
-        { autoClose: 2500 },
-      );
-      return;
-    }
-
-
     setIsSaving(true);
     try {
       const id = editingTrade?.id ?? Date.now();
@@ -534,6 +517,10 @@ export default function TradeForm({
 
       onAddTrade({
         ...form,
+        deposit: toMoneyStr(form.deposit),
+        ...(form.nextDeposit != null && String(form.nextDeposit) !== ""
+          ? { nextDeposit: toMoneyStr(form.nextDeposit) }
+          : {}),
         direction: form.direction || "Long",
         entryConditions: normalizedEntryConditions,
         id,
@@ -598,7 +585,6 @@ export default function TradeForm({
               onArmOverride={onArmOverride}
               onEnter={onEnter}
               onEnterOverride={onEnterOverride}
-              // ✅ RR props
               rr={rr}
               rrOk={rrOk}
             />
@@ -629,19 +615,14 @@ export default function TradeForm({
           <button
             type="button"
             onClick={triggerSubmit}
-            disabled={isSaving || saveDisabled}
-            title={
-              saveDisabled
-                ? "Save is locked after ARM/ENTER unless trade is Open (TP status=Not closed yet, Result=Open) or post-trade is finalized."
-                : ""
-            }
+            disabled={isSaving}
             className={`h-9 px-5 rounded-full text-sm font-semibold transition active:scale-[0.98] ${
               saveEmphasis
                 ? savePulse
                   ? "bg-emerald-400 text-[#020617] shadow-[0_0_22px_rgba(0,255,163,.28)]"
                   : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] shadow-[0_0_18px_rgba(127,90,240,.18)] hover:brightness-110"
                 : "bg-white/5 text-slate-500 border border-white/10"
-            } ${isSaving || saveDisabled ? "opacity-70 cursor-not-allowed" : ""}`}
+            } ${isSaving ? "opacity-70 cursor-wait" : ""}`}
           >
             {isSaving ? (
               "Saving…"
