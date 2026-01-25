@@ -130,7 +130,7 @@ export default function TradeForm({
       cooldownMinutesByStrategy: { 1: 1440, 2: 60, 3: 60, 4: 60 },
       baseRiskByStrategy: { 1: 1, 2: 1, 3: 0.5, 4: 0.5 },
     }),
-    []
+    [],
   );
 
   const [form, setForm] = useState({
@@ -199,7 +199,12 @@ export default function TradeForm({
     const s = num(form.sl);
     const d = num(form.deposit);
 
-    if (!Number.isFinite(e) || !Number.isFinite(s) || !Number.isFinite(d) || d <= 0)
+    if (
+      !Number.isFinite(e) ||
+      !Number.isFinite(s) ||
+      !Number.isFinite(d) ||
+      d <= 0
+    )
       return;
 
     const direction = form.direction || "Long";
@@ -220,11 +225,15 @@ export default function TradeForm({
       const riskPercentAbs = (Math.abs(riskDollar) / d) * 100;
 
       next = {
-        leverageAmount: Number.isFinite(positionSize) ? positionSize.toFixed(2) : "",
+        leverageAmount: Number.isFinite(positionSize)
+          ? positionSize.toFixed(2)
+          : "",
         slPercent: Number.isFinite(slPctSigned) ? slPctSigned.toFixed(2) : "",
         slDollar: Number.isFinite(slDollar) ? slDollar.toFixed(2) : "",
         riskDollar: Number.isFinite(riskDollar) ? riskDollar.toFixed(2) : "",
-        riskPercent: Number.isFinite(riskPercentAbs) ? riskPercentAbs.toFixed(2) : "",
+        riskPercent: Number.isFinite(riskPercentAbs)
+          ? riskPercentAbs.toFixed(2)
+          : "",
       };
     } else {
       let targetRisk = num(form.riskPercent || 0.5);
@@ -243,11 +252,19 @@ export default function TradeForm({
 
       next = {
         usedDepositPercent: lotPct.toFixed(2),
-        leverageAmount: Number.isFinite(positionSize) ? positionSize.toFixed(2) : "",
+        leverageAmount: Number.isFinite(positionSize)
+          ? positionSize.toFixed(2)
+          : "",
         slPercent: Number.isFinite(slPctSigned) ? slPctSigned.toFixed(2) : "",
-        slDollar: Number.isFinite(riskUsdSigned) ? riskUsdSigned.toFixed(2) : "",
-        riskDollar: Number.isFinite(riskUsdSigned) ? riskUsdSigned.toFixed(2) : "",
-        riskPercent: Number.isFinite(riskActualPct) ? riskActualPct.toFixed(2) : "",
+        slDollar: Number.isFinite(riskUsdSigned)
+          ? riskUsdSigned.toFixed(2)
+          : "",
+        riskDollar: Number.isFinite(riskUsdSigned)
+          ? riskUsdSigned.toFixed(2)
+          : "",
+        riskPercent: Number.isFinite(riskActualPct)
+          ? riskActualPct.toFixed(2)
+          : "",
       };
     }
 
@@ -279,7 +296,12 @@ export default function TradeForm({
     const entry = num(form.entry);
     const deposit = num(form.deposit);
     const positionSize = num(form.leverageAmount);
-    if (!Number.isFinite(entry) || !Number.isFinite(deposit) || !Number.isFinite(positionSize)) return;
+    if (
+      !Number.isFinite(entry) ||
+      !Number.isFinite(deposit) ||
+      !Number.isFinite(positionSize)
+    )
+      return;
 
     const direction = form.direction || "Long";
 
@@ -307,7 +329,9 @@ export default function TradeForm({
     const tp3Dollar = tpUsd(tp3PctMove, a3);
     const tpTotal = tp1Dollar + tp2Dollar + tp3Dollar;
 
-    const riskDollarSigned = Number.isFinite(num(form.riskDollar)) ? num(form.riskDollar) : 0;
+    const riskDollarSigned = Number.isFinite(num(form.riskDollar))
+      ? num(form.riskDollar)
+      : 0;
 
     const makerFee = num(form.makerFeePct);
     const takerFee = num(form.takerFeePct);
@@ -324,7 +348,9 @@ export default function TradeForm({
         : 0;
 
     const commissionManual = num(form.commissionManual);
-    const commissionUsed = Number.isFinite(commissionManual) ? commissionManual : commissionAuto;
+    const commissionUsed = Number.isFinite(commissionManual)
+      ? commissionManual
+      : commissionAuto;
 
     let pnl = null;
     if (result === "Win") pnl = tpTotal - commissionUsed;
@@ -345,7 +371,9 @@ export default function TradeForm({
       tpTotal: Number(tpTotal.toFixed(2)),
       commission: Number(commissionUsed.toFixed(2)),
       ...(pnl != null ? { pnl: Number(pnl.toFixed(2)) } : {}),
-      ...(nextDeposit != null ? { nextDeposit: Number(nextDeposit.toFixed(2)) } : {}),
+      ...(nextDeposit != null
+        ? { nextDeposit: Number(nextDeposit.toFixed(2)) }
+        : {}),
     }));
   }, [
     form.entry,
@@ -375,7 +403,8 @@ export default function TradeForm({
   const slPctAbs = Math.abs(num(form.slPercent));
   const slPctOk =
     CONFIG.maxSLPercentByStrategy[sid] == null ||
-    (Number.isFinite(slPctAbs) && slPctAbs <= CONFIG.maxSLPercentByStrategy[sid]);
+    (Number.isFinite(slPctAbs) &&
+      slPctAbs <= CONFIG.maxSLPercentByStrategy[sid]);
 
   const cooldownActive = isCooldownActive(discipline);
 
@@ -390,23 +419,34 @@ export default function TradeForm({
     !cooldownActive;
 
   const canArm = !cooldownActive;
-  const armDisabledReason = cooldownActive ? "Cooldown active. You can override (Violation)." : "";
+  const armDisabledReason = cooldownActive
+    ? "Cooldown active. You can override (Violation)."
+    : "";
 
   const execState = form.execState || "REVIEWING";
   const isArmedOrEntered = execState === "ARMED" || execState === "ENTERED";
 
   // ✅ Save gating after ARM/ENTER:
-  // must choose TP status AND result must not be Open
+  // Allow saving OPEN trades too (Entered + still open).
   const tpsHit = form.tpsHit || "OPEN";
   const resultValue = form.result || "Open";
+
+  // post-trade finalized
   const postTradeReady = tpsHit !== "OPEN" && resultValue !== "Open";
 
-  const saveBasicReady = !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
+  // trade is still open
+  const openTradeReady = tpsHit === "OPEN" && resultValue === "Open";
+
+  // Keep emphasis behavior
+  const saveBasicReady =
+    !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
 
   const saveEmphasis = isArmedOrEntered || gateReady || saveBasicReady;
 
-  // ✅ Only restrict Save when ARMED/ENTERED
-  const saveDisabled = isArmedOrEntered ? !postTradeReady : false;
+  // ✅ Only restrict Save when ARMED/ENTERED, but allow Open trades too
+  const saveDisabled = isArmedOrEntered
+    ? !(postTradeReady || openTradeReady)
+    : false;
 
   /* ---------- actions ---------- */
   const onArm = () => {
@@ -457,16 +497,22 @@ export default function TradeForm({
 
     // ✅ prevent saving ARMED/ENTERED without post-trade completion
     if (saveDisabled) {
-      toast.info("Select TP status and finalize Result before saving.", { autoClose: 2000 });
+      toast.info(
+        "To save after ARM/ENTER: either keep trade Open (TP status = Not closed yet, Result = Open) OR finalize TP status + Result.",
+        { autoClose: 2500 },
+      );
       return;
     }
+
 
     setIsSaving(true);
     try {
       const id = editingTrade?.id ?? Date.now();
       const normalizedExecState = normalizeExecStateForSave(form.execState);
 
-      const savedAsViolation = !(normalizedExecState === "ARMED" || normalizedExecState === "ENTERED");
+      const savedAsViolation = !(
+        normalizedExecState === "ARMED" || normalizedExecState === "ENTERED"
+      );
 
       if (savedAsViolation) {
         const next = applyViolation({
@@ -497,7 +543,9 @@ export default function TradeForm({
 
       setSavePulse(true);
       setTimeout(() => setSavePulse(false), 650);
-      toast.success(savedAsViolation ? "Saved (Violation)" : "Trade saved", { autoClose: 1500 });
+      toast.success(savedAsViolation ? "Saved (Violation)" : "Trade saved", {
+        autoClose: 1500,
+      });
     } finally {
       setTimeout(() => setIsSaving(false), 250);
     }
@@ -507,7 +555,8 @@ export default function TradeForm({
     const f = formRef.current;
     if (!f) return;
     if (typeof f.requestSubmit === "function") f.requestSubmit();
-    else f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    else
+      f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
   };
 
   return (
@@ -516,12 +565,20 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} />
+            <RiskSetupSection
+              form={form}
+              onChange={handleChange}
+              strategyId={sid}
+            />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <EntryConditionsSection form={form} onChange={handleChange} strategyId={sid} />
+            <EntryConditionsSection
+              form={form}
+              onChange={handleChange}
+              strategyId={sid}
+            />
 
             <ExecutionGateSection
               form={form}
@@ -539,17 +596,26 @@ export default function TradeForm({
               onArmOverride={onArmOverride}
               onEnter={onEnter}
               onEnterOverride={onEnterOverride}
-
               // ✅ RR props
               rr={rr}
               rrOk={rrOk}
             />
 
-            <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
+            <Collapsible
+              title="Result"
+              open={showResult}
+              setOpen={setShowResult}
+              hint="post-trade"
+            >
               <ResultSection form={form} onChange={handleChange} />
             </Collapsible>
 
-            <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
+            <Collapsible
+              title="Chart"
+              open={showChart}
+              setOpen={setShowChart}
+              hint="optional"
+            >
               <ChartSection form={form} onChange={handleChange} />
             </Collapsible>
           </div>
@@ -562,14 +628,18 @@ export default function TradeForm({
             type="button"
             onClick={triggerSubmit}
             disabled={isSaving || saveDisabled}
-            title={saveDisabled ? "Select TP status and finalize Result to enable saving." : ""}
+            title={
+              saveDisabled
+                ? "Save is locked after ARM/ENTER unless trade is Open (TP status=Not closed yet, Result=Open) or post-trade is finalized."
+                : ""
+            }
             className={`h-9 px-5 rounded-full text-sm font-semibold transition active:scale-[0.98] ${
               saveEmphasis
                 ? savePulse
                   ? "bg-emerald-400 text-[#020617] shadow-[0_0_22px_rgba(0,255,163,.28)]"
                   : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] shadow-[0_0_18px_rgba(127,90,240,.18)] hover:brightness-110"
                 : "bg-white/5 text-slate-500 border border-white/10"
-            } ${(isSaving || saveDisabled) ? "opacity-70 cursor-not-allowed" : ""}`}
+            } ${isSaving || saveDisabled ? "opacity-70 cursor-not-allowed" : ""}`}
           >
             {isSaving ? (
               "Saving…"
