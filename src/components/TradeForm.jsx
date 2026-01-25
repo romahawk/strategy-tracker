@@ -74,9 +74,7 @@ function Collapsible({ title, open, setOpen, children, hint }) {
           <span className="text-sm font-semibold text-slate-100">{title}</span>
           {hint && <span className="text-[11px] text-slate-400">{hint}</span>}
         </div>
-        <span className="text-[11px] text-slate-400">
-          {open ? "Hide" : "Show"}
-        </span>
+        <span className="text-[11px] text-slate-400">{open ? "Hide" : "Show"}</span>
       </button>
       {open && <div className="p-2 pt-0">{children}</div>}
     </div>
@@ -133,7 +131,7 @@ export default function TradeForm({
       cooldownMinutesByStrategy: { 1: 1440, 2: 60, 3: 60, 4: 60 },
       baseRiskByStrategy: { 1: 1, 2: 1, 3: 0.5, 4: 0.5 },
     }),
-    [],
+    []
   );
 
   const [form, setForm] = useState({});
@@ -147,7 +145,6 @@ export default function TradeForm({
   useEffect(() => setDiscipline(loadDiscipline(sid, aid)), [sid, aid]);
 
   const formRef = useRef(null);
-
   const [isSaving, setIsSaving] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
 
@@ -160,7 +157,38 @@ export default function TradeForm({
     setField(name, value);
   };
 
-  // ✅ Seed deposit for NEW trade from last equity (initialDeposit)
+  /* =========================================================
+     ✅ FIX: Hydrate the form when editingTrade changes
+     ========================================================= */
+  useEffect(() => {
+    if (!editingTrade) return;
+
+    const hydrated = {
+      ...editingTrade,
+      direction: editingTrade.direction || "Long",
+
+      // normalize money fields so UI never shows float artifacts
+      deposit: toMoneyStr(editingTrade.deposit),
+      ...(editingTrade.nextDeposit != null && String(editingTrade.nextDeposit) !== ""
+        ? { nextDeposit: toMoneyStr(editingTrade.nextDeposit) }
+        : {}),
+    };
+
+    hydrated.entryConditions = buildEntryConditions(hydrated, sid);
+
+    setForm((prev) => ({
+      ...prev,
+      ...hydrated,
+    }));
+
+    setAcceptedLoss(!!editingTrade.acceptedLoss);
+    // keep replanMode false by default when editing
+    setReplanMode(!!editingTrade.replanMode);
+  }, [editingTrade, sid]);
+
+  /* =========================================================
+     ✅ Seed deposit for NEW trade from last equity (initialDeposit)
+     ========================================================= */
   useEffect(() => {
     if (editingTrade) return;
 
@@ -177,15 +205,12 @@ export default function TradeForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDeposit, editingTrade]);
 
-  // Normalize deposit display to 2 decimals (prevents float artifacts like 196.42999999999998).
-  // Only normalizes when the user has more than 2 decimals (does not interrupt normal typing).
+  // Normalize deposit display to 2 decimals only when it contains too many decimals.
   useEffect(() => {
     const d = form.deposit;
     if (d == null || String(d).trim() === "") return;
 
     const s = String(d).trim();
-
-    // allow user to type "123." without snapping
     if (s.endsWith(".")) return;
 
     const n = Number(s);
@@ -193,7 +218,6 @@ export default function TradeForm({
 
     const parts = s.split(".");
     const decimals = parts.length === 2 ? parts[1].length : 0;
-
     if (decimals <= 2) return;
 
     const fixed = toMoneyStr(n, 2);
@@ -210,13 +234,7 @@ export default function TradeForm({
     const s = num(form.sl);
     const d = num(form.deposit);
 
-    if (
-      !Number.isFinite(e) ||
-      !Number.isFinite(s) ||
-      !Number.isFinite(d) ||
-      d <= 0
-    )
-      return;
+    if (!Number.isFinite(e) || !Number.isFinite(s) || !Number.isFinite(d) || d <= 0) return;
 
     const direction = form.direction || "Long";
     const isLong = String(direction) === "Long";
@@ -236,15 +254,11 @@ export default function TradeForm({
       const riskPercentAbs = (Math.abs(riskDollar) / d) * 100;
 
       next = {
-        leverageAmount: Number.isFinite(positionSize)
-          ? positionSize.toFixed(2)
-          : "",
+        leverageAmount: Number.isFinite(positionSize) ? positionSize.toFixed(2) : "",
         slPercent: Number.isFinite(slPctSigned) ? slPctSigned.toFixed(2) : "",
         slDollar: Number.isFinite(slDollar) ? slDollar.toFixed(2) : "",
         riskDollar: Number.isFinite(riskDollar) ? riskDollar.toFixed(2) : "",
-        riskPercent: Number.isFinite(riskPercentAbs)
-          ? riskPercentAbs.toFixed(2)
-          : "",
+        riskPercent: Number.isFinite(riskPercentAbs) ? riskPercentAbs.toFixed(2) : "",
       };
     } else {
       let targetRisk = num(form.riskPercent || 0.5);
@@ -263,19 +277,11 @@ export default function TradeForm({
 
       next = {
         usedDepositPercent: lotPct.toFixed(2),
-        leverageAmount: Number.isFinite(positionSize)
-          ? positionSize.toFixed(2)
-          : "",
+        leverageAmount: Number.isFinite(positionSize) ? positionSize.toFixed(2) : "",
         slPercent: Number.isFinite(slPctSigned) ? slPctSigned.toFixed(2) : "",
-        slDollar: Number.isFinite(riskUsdSigned)
-          ? riskUsdSigned.toFixed(2)
-          : "",
-        riskDollar: Number.isFinite(riskUsdSigned)
-          ? riskUsdSigned.toFixed(2)
-          : "",
-        riskPercent: Number.isFinite(riskActualPct)
-          ? riskActualPct.toFixed(2)
-          : "",
+        slDollar: Number.isFinite(riskUsdSigned) ? riskUsdSigned.toFixed(2) : "",
+        riskDollar: Number.isFinite(riskUsdSigned) ? riskUsdSigned.toFixed(2) : "",
+        riskPercent: Number.isFinite(riskActualPct) ? riskActualPct.toFixed(2) : "",
       };
     }
 
@@ -307,18 +313,12 @@ export default function TradeForm({
     const entry = num(form.entry);
     const deposit = num(form.deposit);
     const positionSize = num(form.leverageAmount);
-    if (
-      !Number.isFinite(entry) ||
-      !Number.isFinite(deposit) ||
-      !Number.isFinite(positionSize)
-    )
-      return;
+    if (!Number.isFinite(entry) || !Number.isFinite(deposit) || !Number.isFinite(positionSize)) return;
 
     const direction = form.direction || "Long";
 
     const tpsHit = form.tpsHit || "OPEN";
     let result = form.result || "Open";
-
     if (tpsHit === "SL") result = "Loss";
 
     const tp1PctMove = pctMove({ entry, price: form.tp1, direction });
@@ -340,9 +340,7 @@ export default function TradeForm({
     const tp3Dollar = tpUsd(tp3PctMove, a3);
     const tpTotal = tp1Dollar + tp2Dollar + tp3Dollar;
 
-    const riskDollarSigned = Number.isFinite(num(form.riskDollar))
-      ? num(form.riskDollar)
-      : 0;
+    const riskDollarSigned = Number.isFinite(num(form.riskDollar)) ? num(form.riskDollar) : 0;
 
     const makerFee = num(form.makerFeePct);
     const takerFee = num(form.takerFeePct);
@@ -359,9 +357,7 @@ export default function TradeForm({
         : 0;
 
     const commissionManual = num(form.commissionManual);
-    const commissionUsed = Number.isFinite(commissionManual)
-      ? commissionManual
-      : commissionAuto;
+    const commissionUsed = Number.isFinite(commissionManual) ? commissionManual : commissionAuto;
 
     let pnl = null;
     if (result === "Win") pnl = tpTotal - commissionUsed;
@@ -373,18 +369,14 @@ export default function TradeForm({
     setForm((prev) => ({
       ...prev,
       result,
-
       tp1Percent: tp1PctMove == null ? null : Number(tp1PctMove.toFixed(2)),
       tp2Percent: tp2PctMove == null ? null : Number(tp2PctMove.toFixed(2)),
       tp3Percent: tp3PctMove == null ? null : Number(tp3PctMove.toFixed(2)),
-
       tp1Dollar: Number(tp1Dollar.toFixed(2)),
       tp2Dollar: Number(tp2Dollar.toFixed(2)),
       tp3Dollar: Number(tp3Dollar.toFixed(2)),
       tpTotal: Number(tpTotal.toFixed(2)),
-
       commission: Number(commissionUsed.toFixed(2)),
-
       ...(pnl != null ? { pnl: Number(pnl.toFixed(2)) } : {}),
       ...(nextDeposit != null ? { nextDeposit: toMoneyStr(nextDeposit) } : {}),
     }));
@@ -416,8 +408,7 @@ export default function TradeForm({
   const slPctAbs = Math.abs(num(form.slPercent));
   const slPctOk =
     CONFIG.maxSLPercentByStrategy[sid] == null ||
-    (Number.isFinite(slPctAbs) &&
-      slPctAbs <= CONFIG.maxSLPercentByStrategy[sid]);
+    (Number.isFinite(slPctAbs) && slPctAbs <= CONFIG.maxSLPercentByStrategy[sid]);
 
   const cooldownActive = isCooldownActive(discipline);
 
@@ -432,15 +423,12 @@ export default function TradeForm({
     !cooldownActive;
 
   const canArm = !cooldownActive;
-  const armDisabledReason = cooldownActive
-    ? "Cooldown active. You can override (Violation)."
-    : "";
+  const armDisabledReason = cooldownActive ? "Cooldown active. You can override (Violation)." : "";
 
   const execState = form.execState || "REVIEWING";
   const isArmedOrEntered = execState === "ARMED" || execState === "ENTERED";
 
-  const saveBasicReady =
-    !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
+  const saveBasicReady = !!form.deposit && !!form.entry && !!form.sl && !!form.pair && !!form.date;
   const saveEmphasis = isArmedOrEntered || gateReady || saveBasicReady;
 
   /* ---------- actions ---------- */
@@ -494,9 +482,7 @@ export default function TradeForm({
       const id = editingTrade?.id ?? Date.now();
       const normalizedExecState = normalizeExecStateForSave(form.execState);
 
-      const savedAsViolation = !(
-        normalizedExecState === "ARMED" || normalizedExecState === "ENTERED"
-      );
+      const savedAsViolation = !(normalizedExecState === "ARMED" || normalizedExecState === "ENTERED");
 
       if (savedAsViolation) {
         const next = applyViolation({
@@ -531,9 +517,7 @@ export default function TradeForm({
 
       setSavePulse(true);
       setTimeout(() => setSavePulse(false), 650);
-      toast.success(savedAsViolation ? "Saved (Violation)" : "Trade saved", {
-        autoClose: 1500,
-      });
+      toast.success(savedAsViolation ? "Saved (Violation)" : "Trade saved", { autoClose: 1500 });
     } finally {
       setTimeout(() => setIsSaving(false), 250);
     }
@@ -543,8 +527,7 @@ export default function TradeForm({
     const f = formRef.current;
     if (!f) return;
     if (typeof f.requestSubmit === "function") f.requestSubmit();
-    else
-      f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    else f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
   };
 
   return (
@@ -553,20 +536,12 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection
-              form={form}
-              onChange={handleChange}
-              strategyId={sid}
-            />
+            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <EntryConditionsSection
-              form={form}
-              onChange={handleChange}
-              strategyId={sid}
-            />
+            <EntryConditionsSection form={form} onChange={handleChange} strategyId={sid} />
 
             <ExecutionGateSection
               form={form}
@@ -586,25 +561,15 @@ export default function TradeForm({
               onEnterOverride={onEnterOverride}
               rr={rr}
               rrOk={rrOk}
-              gateReady={gateReady}   
-              slPctOk={slPctOk}       
+              gateReady={gateReady}
+              slPctOk={slPctOk}
             />
 
-            <Collapsible
-              title="Result"
-              open={showResult}
-              setOpen={setShowResult}
-              hint="post-trade"
-            >
+            <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
               <ResultSection form={form} onChange={handleChange} />
             </Collapsible>
 
-            <Collapsible
-              title="Chart"
-              open={showChart}
-              setOpen={setShowChart}
-              hint="optional"
-            >
+            <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
               <ChartSection form={form} onChange={handleChange} />
             </Collapsible>
           </div>
