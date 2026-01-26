@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
 import {
   Pencil,
@@ -9,6 +9,106 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+
+/* ---------------- Confluence normalization + evaluation ---------------- */
+
+const norm = (v) => String(v ?? "").trim().toLowerCase();
+
+function expectedOkForKey({ key, value, direction }) {
+  const dir = String(direction || "Long");
+  const isLong = dir === "Long";
+  const k = String(key || "").trim().toLowerCase();
+  const v = norm(value);
+
+  // USDT.D: Long => Bear, Short => Bull
+  if (k === "usdt.d") return isLong ? v === "bear" : v === "bull";
+
+  // Overlay: Long => Blue, Short => Red
+  if (k === "overlay") return isLong ? v === "blue" : v === "red";
+
+  // MA200: Long => Above, Short => Below
+  if (k === "ma200") return isLong ? v === "above" : v === "below";
+
+  // 15m ST / ST: Long => Bull, Short => Bear
+  if (k === "15m st" || k === "st") return isLong ? v === "bull" : v === "bear";
+
+  // 5m Signal: Long => Buy, Short => Sell
+  if (k === "5m signal") return isLong ? v === "buy" : v === "sell";
+
+  // 5m MA200: Long => Above, Short => Below
+  if (k === "5m ma200") return isLong ? v === "above" : v === "below";
+
+  // Everything else: treat as informational (not evaluated)
+  return true;
+}
+
+/**
+ * Build a full confluence list from BOTH:
+ * - entryConditions[] (if present)
+ * - legacy scalar fields (overlay, ma200, usdtTrend, stTrend, buySell5m, ma2005m, TS2/TS4 extras)
+ *
+ * Output items: { key, value, ok }
+ */
+function buildConfluences(trade) {
+  const direction = trade?.direction || "Long";
+
+  const outMap = new Map();
+
+  const put = (key, value) => {
+    if (!key) return;
+    const raw = value ?? "";
+    if (raw === "" || raw === null || raw === undefined) return;
+
+    const item = {
+      key,
+      value: String(raw),
+      ok: expectedOkForKey({ key, value: raw, direction }),
+    };
+    outMap.set(String(key), item);
+  };
+
+  // 1) existing entryConditions
+  if (Array.isArray(trade?.entryConditions)) {
+    for (const c of trade.entryConditions) {
+      if (!c?.key) continue;
+      const value = c.value ?? c.label ?? c.val ?? c.state ?? "";
+      // If existing condition has no value, keep as empty string (will be filtered out by put)
+      put(c.key, value);
+    }
+  }
+
+  // 2) legacy common fields (always consider)
+  put("USDT.D", trade.usdtTrend);
+  put("Overlay", trade.overlay);
+  put("MA200", trade.ma200);
+  put("15m ST", trade.stTrend); // show as 15m ST label in table
+
+  // 3) legacy 5m fields (TS1 / funded style)
+  put("5m Signal", trade.buySell5m);
+  put("5m MA200", trade.ma2005m);
+
+  // 4) TS2 extras (only if present on trade — independent of current selected sid)
+  put("15m CHoCH/BoS", trade.chochBos15m);
+  put("1m ST", trade.st1m);
+  put("1m Overlay", trade.overlay1m);
+  put("1m MA200", trade.ma2001m);
+
+  // 5) TS4 extras
+  put("1m BoS", trade.bos1m);
+
+  // Return list
+  return Array.from(outMap.values());
+}
+
+function normalizeTrade(trade) {
+  return {
+    ...trade,
+    direction: trade?.direction || "Long",
+    entryConditions: Array.isArray(trade?.entryConditions) ? trade.entryConditions : [],
+  };
+}
+
+/* ---------------- Component ---------------- */
 
 export default function TradeTable({
   trades,
@@ -26,10 +126,16 @@ export default function TradeTable({
   const [expandedRows, setExpandedRows] = useState({});
 
   const rowsPerPage = 10;
-  const totalPages = Math.ceil((trades?.length || 0) / rowsPerPage);
+
+  const normalizedTrades = useMemo(
+    () => (trades || []).map(normalizeTrade),
+    [trades]
+  );
+
+  const totalPages = Math.ceil((normalizedTrades.length || 0) / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedTrades = (trades || []).slice(startIndex, endIndex);
+  const paginatedTrades = normalizedTrades.slice(startIndex, endIndex);
 
   const isDataImage = (src) => /^data:image\//i.test(src || "");
   const isDirectImageUrl = (src) =>
@@ -78,25 +184,21 @@ export default function TradeTable({
 
   // Keep a rolling backup of last 10 states
   useEffect(() => {
-    if ((trades?.length || 0) > 0) {
+    if ((normalizedTrades?.length || 0) > 0) {
       try {
         const backups = JSON.parse(localStorage.getItem("tradeBackups") || "[]");
-        backups.push({ trades, timestamp: new Date().toISOString() });
+        backups.push({ trades: normalizedTrades, timestamp: new Date().toISOString() });
         if (backups.length > 10) backups.shift();
         localStorage.setItem("tradeBackups", JSON.stringify(backups));
-        toast.success("Backup saved to local storage", { autoClose: 2000 });
       } catch (error) {
         console.error("Backup save error:", error);
-        toast.error("Failed to save backup to local storage", {
-          autoClose: 3000,
-        });
       }
     }
-  }, [trades]);
+  }, [normalizedTrades]);
 
   const exportBackup = () => {
     try {
-      const dataStr = JSON.stringify(trades || [], null, 2);
+      const dataStr = JSON.stringify(normalizedTrades || [], null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -111,151 +213,6 @@ export default function TradeTable({
       console.error("Export error:", error);
       toast.error("Failed to download backup", { autoClose: 3000 });
     }
-  };
-
-  // Convert current trades to FTMO logic (TS3): 100k start, 1% risk per trade
-  // NOTE: App-level computeTimeline() will recompute equity after import.
-  const recalcTradesForFtmo = (
-    rawTrades,
-    startDeposit = 100000,
-    riskPercentPerTrade = 1.0
-  ) => {
-    if (!Array.isArray(rawTrades) || rawTrades.length === 0) return rawTrades;
-
-    // sort by date+time to replay in correct order
-    const tradesSorted = [...rawTrades].sort((a, b) => {
-      const aKey = `${a.date || ""} ${a.time || ""}`;
-      const bKey = `${b.date || ""} ${b.time || ""}`;
-      return aKey.localeCompare(bKey);
-    });
-
-    let balance = Number(startDeposit);
-
-    const converted = tradesSorted.map((t) => {
-      const n = (v) => {
-        const x = parseFloat(v);
-        return Number.isFinite(x) ? x : 0;
-      };
-
-      const entry = n(t.entry);
-      const sl = n(t.sl);
-      const direction = t.direction || "Long";
-
-      // SL% from price distance
-      let slP =
-        direction === "Long"
-          ? (sl / entry - 1) * 100
-          : (1 - sl / entry) * 100;
-      if (!Number.isFinite(slP)) slP = 0;
-      const absSl = Math.abs(slP);
-
-      let targetRisk = Number(riskPercentPerTrade);
-      if (!Number.isFinite(targetRisk) || targetRisk <= 0) targetRisk = 1;
-      if (targetRisk < 0.25) targetRisk = 0.25;
-      if (targetRisk > 2) targetRisk = 2;
-
-      let lotPct = 0;
-      let positionSize = 0;
-      let riskUsdAbs = 0;
-      let riskActualPct = 0;
-
-      if (absSl > 0) {
-        lotPct = (targetRisk * 100) / absSl;
-        if (lotPct > 100) lotPct = 100;
-        positionSize = balance * (lotPct / 100);
-        riskUsdAbs = positionSize * (absSl / 100);
-        riskActualPct = (riskUsdAbs / balance) * 100;
-      }
-
-      const riskUsdSigned = -riskUsdAbs;
-      const lots = positionSize / 100000;
-
-      // TP maths
-      const tp1 = n(t.tp1);
-      const tp2 = n(t.tp2);
-      const tp3 = n(t.tp3);
-      const tpsHit = t.tpsHit || "SL";
-
-      const tpPct = (tpPrice) => {
-        if (!tpPrice || !entry) return null;
-        return direction === "Long"
-          ? (tpPrice / entry - 1) * 100
-          : (1 - tpPrice / entry) * 100;
-      };
-
-      const tp1Pct = tpPct(tp1);
-      const tp2Pct = tpPct(tp2);
-      const tp3Pct = tpPct(tp3);
-
-      const tpVal = (pct, factor) => {
-        if (pct == null) return { pct: null, usd: 0 };
-        const usd = positionSize * (pct / 100) * factor;
-        return { pct: Number(pct.toFixed(2)), usd };
-      };
-
-      let tp1Data, tp2Data, tp3Data;
-      if (tpsHit === "3") {
-        tp1Data = tpVal(tp1Pct, 1 / 3);
-        tp2Data = tpVal(tp2Pct, 1 / 3);
-        tp3Data = tpVal(tp3Pct, 1 / 3);
-      } else if (tpsHit === "2") {
-        tp1Data = tpVal(tp1Pct, 1 / 3);
-        tp2Data = tpVal(tp2Pct, 2 / 3);
-        tp3Data = { pct: null, usd: 0 };
-      } else if (tpsHit === "SL") {
-        tp1Data = { pct: null, usd: 0 };
-        tp2Data = { pct: null, usd: 0 };
-        tp3Data = { pct: null, usd: 0 };
-      } else {
-        // treat anything else as TP1 full
-        tp1Data = tpVal(tp1Pct, 1);
-        tp2Data = { pct: null, usd: 0 };
-        tp3Data = { pct: null, usd: 0 };
-      }
-
-      const tpTotal = tp1Data.usd + tp2Data.usd + tp3Data.usd;
-
-      let pnl;
-      let result;
-      if (tpsHit === "SL") {
-        pnl = riskUsdSigned;
-        result = "Loss";
-      } else {
-        pnl = tpTotal;
-        result = pnl > 0 ? "Win" : "Break Even";
-      }
-
-      const nextBalance = balance + pnl;
-
-      const updated = {
-        ...t,
-        strategyId: 3, // FTMO mode outputs as strategy 3 format; TS4 can reuse it in UI anyway
-        deposit: Number(balance.toFixed(2)),
-        riskPercent: Number(riskActualPct.toFixed(2)),
-        riskDollar: Number(riskUsdSigned.toFixed(2)),
-        usedDepositPercent: Number(lotPct.toFixed(2)),
-        leverageX: 1,
-        leverageAmount: Number(positionSize.toFixed(2)),
-        lots: Number(lots.toFixed(2)),
-        slPercent: Number(slP.toFixed(2)),
-        slDollar: Number(riskUsdSigned.toFixed(2)),
-        tp1Percent: tp1Data.pct,
-        tp1Dollar: Number(tp1Data.usd.toFixed(2)),
-        tp2Percent: tp2Data.pct,
-        tp2Dollar: Number(tp2Data.usd.toFixed(2)),
-        tp3Percent: tp3Data.pct,
-        tp3Dollar: Number(tp3Data.usd.toFixed(2)),
-        tpTotal: Number(tpTotal.toFixed(2)),
-        pnl: Number(pnl.toFixed(2)),
-        nextDeposit: Number(nextBalance.toFixed(2)),
-        result,
-      };
-
-      balance = nextBalance;
-      return updated;
-    });
-
-    return converted;
   };
 
   const importBackup = (event) => {
@@ -303,31 +260,6 @@ export default function TradeTable({
     reader.readAsText(file);
   };
 
-  const recalcAsFtmo = () => {
-    try {
-      if (!trades || trades.length === 0) {
-        toast.info("No trades to recalculate", { autoClose: 2000 });
-        return;
-      }
-
-      const START_DEPOSIT = 100000; // FTMO starting balance
-      const RISK_PER_TRADE = 1.0; // % of account per trade
-
-      const converted = recalcTradesForFtmo(trades, START_DEPOSIT, RISK_PER_TRADE);
-
-      onUpdateTrades(converted);
-      toast.success(
-        `Recalculated for FTMO ${START_DEPOSIT.toLocaleString()} @ ${RISK_PER_TRADE}% risk`,
-        { autoClose: 3000 }
-      );
-    } catch (err) {
-      console.error("FTMO recalculation error:", err);
-      toast.error("Failed to recalculate trades for FTMO", {
-        autoClose: 4000,
-      });
-    }
-  };
-
   // Clamp page if data shrinks
   useEffect(() => {
     if (totalPages === 0) {
@@ -341,7 +273,7 @@ export default function TradeTable({
 
   return (
     <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
-      {!trades || trades.length === 0 ? (
+      {!normalizedTrades || normalizedTrades.length === 0 ? (
         <div className="text-center py-4">
           <p className="text-slate-300 italic mb-4">No trades yet.</p>
           <div className="flex justify-center gap-2">
@@ -416,97 +348,35 @@ export default function TradeTable({
               </tr>
 
               <tr className="text-slate-300/90 text-[11px] bg-[#0f172a] border-b border-white/5">
-                <th
-                  className="p-2 sticky left-0 bg-[#0f172a] z-20"
-                  style={{ minWidth: "40px", width: "40px" }}
-                />
-                <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>
-                  Date
-                </th>
-                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
-                  Time
-                </th>
-                <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>
-                  Pair
-                </th>
-                <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>
-                  Dir
-                </th>
-                <th
-                  className="p-2 border-r border-white/10"
-                  style={{ minWidth: "90px", width: "90px" }}
-                >
-                  Eq. Before
-                </th>
+                <th className="p-2 sticky left-0 bg-[#0f172a] z-20" style={{ minWidth: "40px", width: "40px" }} />
+                <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>Date</th>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Time</th>
+                <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>Pair</th>
+                <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>Dir</th>
+                <th className="p-2 border-r border-white/10" style={{ minWidth: "90px", width: "90px" }}>Eq. Before</th>
 
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  Entry
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  SL
-                </th>
-                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>
-                  SL %
-                </th>
-                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>
-                  SL $
-                </th>
-                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
-                  Risk %
-                </th>
-                <th
-                  className="p-2 border-r border-white/10"
-                  style={{ minWidth: "70px", width: "70px" }}
-                >
-                  Risk $
-                </th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>Entry</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>SL</th>
+                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>SL %</th>
+                <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>SL $</th>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Risk %</th>
+                <th className="p-2 border-r border-white/10" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
 
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TPs Hit
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1 %
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP1 $
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2 %
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP2 $
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP3
-                </th>
-                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>
-                  TP3 %
-                </th>
-                <th
-                  className="p-2 border-r border-white/10"
-                  style={{ minWidth: "45px", width: "45px" }}
-                >
-                  TP3 $
-                </th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TPs Hit</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP1</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP1 %</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP1 $</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP2</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP2 %</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP2 $</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP3</th>
+                <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP3 %</th>
+                <th className="p-2 border-r border-white/10" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
 
-                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
-                  Result
-                </th>
-                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
-                  Comm $
-                </th>
-                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>
-                  PnL $
-                </th>
-                <th className="p-2" style={{ minWidth: "90px", width: "90px" }}>
-                  Eq. After
-                </th>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Result</th>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Comm $</th>
+                <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>PnL $</th>
+                <th className="p-2" style={{ minWidth: "90px", width: "90px" }}>Eq. After</th>
               </tr>
             </thead>
 
@@ -534,6 +404,12 @@ export default function TradeTable({
                   ? Number(t.commission)
                   : null;
 
+                const dirShort = t.direction === "Short" ? "S" : "L";
+
+                const confluences = buildConfluences(t);
+                const matching = confluences.filter((c) => c.ok);
+                const violated = confluences.filter((c) => !c.ok);
+
                 return (
                   <React.Fragment key={t.id}>
                     <tr
@@ -548,14 +424,10 @@ export default function TradeTable({
                         {startIndex + index + 1}
                       </td>
 
-                      <td className="p-2 text-slate-200">
-                        {t.date ? formatDate(t.date) : ""}
-                      </td>
+                      <td className="p-2 text-slate-200">{t.date ? formatDate(t.date) : ""}</td>
                       <td className="p-2 text-slate-200">{t.time || ""}</td>
-                      <td className="p-2 text-slate-200 truncate" title={t.pair}>
-                        {t.pair || ""}
-                      </td>
-                      <td className="p-2 text-slate-200">{t.direction || ""}</td>
+                      <td className="p-2 text-slate-200 truncate" title={t.pair}>{t.pair || ""}</td>
+                      <td className="p-2 text-slate-200">{dirShort}</td>
 
                       <td className="p-2 text-slate-200 border-r border-white/10">
                         {equityBefore === null ? "-" : fmt(equityBefore, 2)}
@@ -564,74 +436,48 @@ export default function TradeTable({
                       <td className="p-2 text-slate-200">{t.entry ?? ""}</td>
                       <td className="p-2 text-slate-200">{t.sl ?? ""}</td>
                       <td className="p-2 text-slate-200">
-                        {t.slPercent !== undefined && t.slPercent !== null
-                          ? fmtPct(t.slPercent, 2)
-                          : "-"}
+                        {t.slPercent !== undefined && t.slPercent !== null ? fmtPct(t.slPercent, 2) : "-"}
                       </td>
                       <td className="p-2 text-slate-200">
-                        {t.slDollar !== undefined && t.slDollar !== null
-                          ? `$${fmt(t.slDollar, 2)}`
-                          : "-"}
+                        {t.slDollar !== undefined && t.slDollar !== null ? `$${fmt(t.slDollar, 2)}` : "-"}
                       </td>
                       <td className="p-2 text-slate-200">
-                        {t.riskPercent !== undefined && t.riskPercent !== null
-                          ? fmtPct(t.riskPercent, 2)
-                          : "-"}
+                        {t.riskPercent !== undefined && t.riskPercent !== null ? fmtPct(t.riskPercent, 2) : "-"}
                       </td>
                       <td className="p-2 text-slate-200 border-r border-white/10">
-                        {t.riskDollar !== undefined && t.riskDollar !== null
-                          ? `$${fmt(t.riskDollar, 2)}`
-                          : "-"}
+                        {t.riskDollar !== undefined && t.riskDollar !== null ? `$${fmt(t.riskDollar, 2)}` : "-"}
                       </td>
 
                       <td className="p-2 text-slate-200">{t.tpsHit ?? ""}</td>
                       <td className="p-2 text-slate-200">{t.tp1 ?? ""}</td>
                       <td className="p-2 text-slate-200">
-                        {t.tp1Percent !== undefined && t.tp1Percent !== null
-                          ? fmtPct(t.tp1Percent, 2)
-                          : "-"}
+                        {t.tp1Percent !== undefined && t.tp1Percent !== null ? fmtPct(t.tp1Percent, 2) : "-"}
                       </td>
                       <td className="p-2 text-slate-200">
-                        {t.tp1Dollar !== undefined && t.tp1Dollar !== null
-                          ? `$${fmt(t.tp1Dollar, 2)}`
-                          : "-"}
+                        {t.tp1Dollar !== undefined && t.tp1Dollar !== null ? `$${fmt(t.tp1Dollar, 2)}` : "-"}
                       </td>
 
                       <td className="p-2 text-slate-200">{t.tp2 ?? ""}</td>
                       <td className="p-2 text-slate-200">
-                        {t.tp2Percent !== undefined && t.tp2Percent !== null
-                          ? fmtPct(t.tp2Percent, 2)
-                          : "-"}
+                        {t.tp2Percent !== undefined && t.tp2Percent !== null ? fmtPct(t.tp2Percent, 2) : "-"}
                       </td>
                       <td className="p-2 text-slate-200">
-                        {t.tp2Dollar !== undefined && t.tp2Dollar !== null
-                          ? `$${fmt(t.tp2Dollar, 2)}`
-                          : "-"}
+                        {t.tp2Dollar !== undefined && t.tp2Dollar !== null ? `$${fmt(t.tp2Dollar, 2)}` : "-"}
                       </td>
 
                       <td className="p-2 text-slate-200">{t.tp3 ?? ""}</td>
                       <td className="p-2 text-slate-200">
-                        {t.tp3Percent !== undefined && t.tp3Percent !== null
-                          ? fmtPct(t.tp3Percent, 2)
-                          : "-"}
+                        {t.tp3Percent !== undefined && t.tp3Percent !== null ? fmtPct(t.tp3Percent, 2) : "-"}
                       </td>
                       <td className="p-2 text-slate-200 border-r border-white/10">
-                        {t.tp3Dollar !== undefined && t.tp3Dollar !== null
-                          ? `$${fmt(t.tp3Dollar, 2)}`
-                          : "-"}
+                        {t.tp3Dollar !== undefined && t.tp3Dollar !== null ? `$${fmt(t.tp3Dollar, 2)}` : "-"}
                       </td>
 
                       <td className="p-2 text-slate-200">{t.result ?? ""}</td>
                       <td className="p-2 text-slate-200">
                         {commissionValue === null ? "-" : `$${fmt(commissionValue, 2)}`}
                       </td>
-                      <td
-                        className={`p-2 font-semibold ${
-                          pnlValue !== null && pnlValue >= 0
-                            ? "text-emerald-400"
-                            : "text-rose-400"
-                        }`}
-                      >
+                      <td className={`p-2 font-semibold ${pnlValue !== null && pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         {pnlValue === null ? "-" : `$${fmt(pnlValue, 2)}`}
                       </td>
                       <td className="p-2 text-slate-200">
@@ -643,29 +489,41 @@ export default function TradeTable({
                       <tr className="bg-[#020617]/50">
                         <td colSpan={totalCols} className="p-3">
                           <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="flex flex-wrap gap-2 text-xs text-slate-200">
-                              <span>ST: {t.stTrend || "-"}</span>
-                              <span>USDT.D: {t.usdtTrend || "-"}</span>
-                              <span>Overlay: {t.overlay || "-"}</span>
-                              <span>MA200: {t.ma200 || "-"}</span>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                                {matching.length === 0 ? (
+                                  <span className="opacity-60">No matching confluences</span>
+                                ) : (
+                                  matching.map((c) => (
+                                    <span
+                                      key={`ok-${c.key}`}
+                                      className="px-2 py-1 rounded border border-emerald-400 text-emerald-300"
+                                      title={c.value}
+                                    >
+                                      {c.key}
+                                    </span>
+                                  ))
+                                )}
+                              </div>
 
-                              {sid === 2 && (
-                                <>
-                                  <span>15m CHoCH/BoS: {t.chochBos15m || "-"}</span>
-                                  <span>1m ST: {t.st1m || "-"}</span>
-                                  <span>1m Overlay: {t.overlay1m || "-"}</span>
-                                  <span>1m MA200: {t.ma2001m || "-"}</span>
-                                </>
-                              )}
-
-                              {sid === 4 && (
-                                <span>1m BoS: {t.bos1m || "-"}</span>
+                              {violated.length > 0 && (
+                                <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                                  {violated.map((c) => (
+                                    <span
+                                      key={`bad-${c.key}`}
+                                      className="px-2 py-1 rounded border border-rose-400 text-rose-300"
+                                      title={c.value}
+                                    >
+                                      {c.key}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
 
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => onEdit(t)}
+                                onClick={() => onEdit(normalizeTrade(t))}
                                 className="h-7 px-3 rounded-full bg-amber-400 text-black text-xs font-medium hover:brightness-110 flex items-center gap-1"
                               >
                                 <Pencil className="w-4 h-4" /> Edit
@@ -770,17 +628,6 @@ export default function TradeTable({
                     className="hidden"
                   />
                 </label>
-
-                {/* ✅ Show FTMO button for Fx (3) AND TS (4) */}
-                {(sid === 3 || sid === 4) && trades.length > 0 && (
-                  <button
-                    onClick={recalcAsFtmo}
-                    className="h-8 px-3 rounded-full bg-indigo-500 text-white text-xs flex items-center gap-1 hover:brightness-110"
-                  >
-                    <LineChart className="w-4 h-4" />
-                    Recalc as FTMO 100k @ 1%
-                  </button>
-                )}
               </div>
             </div>
           )}

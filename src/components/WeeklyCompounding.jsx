@@ -15,17 +15,13 @@ const LS_ACCOUNTS_KEY = (sid) => `strategy:${sid}:accounts`;
 
 /* ---------------- ISO week helpers ---------------- */
 function getISOWeek(date) {
-  const d = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  );
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 function getISOWeekYear(date) {
-  const d = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  );
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   return d.getUTCFullYear();
 }
@@ -68,7 +64,7 @@ function aggregateByWeek(trades) {
   const sorted = [...trades].sort(
     (a, b) =>
       new Date(`${a.date}T${a.time || "00:00"}`) -
-      new Date(`${b.date}T${b.time || "00:00"}`)
+      new Date(`${b.date}T${b.time || "00:00"}`),
   );
 
   for (const t of sorted) {
@@ -76,6 +72,7 @@ function aggregateByWeek(trades) {
     const wy = getISOWeekYear(dt);
     const wk = getISOWeek(dt);
     const key = `${wy}-${wk}`;
+
     if (!map.has(key)) {
       map.set(key, {
         wy,
@@ -85,14 +82,13 @@ function aggregateByWeek(trades) {
         lastNextDeposit: Number(t.nextDeposit || 0),
       });
     }
+
     const rec = map.get(key);
     rec.pnlSum += Number(t.pnl || 0);
     rec.lastNextDeposit = Number(t.nextDeposit ?? rec.lastNextDeposit);
   }
 
-  const list = Array.from(map.values()).sort(
-    (a, b) => a.wy - b.wy || a.wk - b.wk
-  );
+  const list = Array.from(map.values()).sort((a, b) => a.wy - b.wy || a.wk - b.wk);
   list.forEach((r, i) => (r.tradingWeek = i + 1));
   return list;
 }
@@ -158,7 +154,7 @@ export default function WeeklyCompounding({
       setAccounts(
         Array.isArray(parsed) && parsed.length
           ? parsed
-          : [{ id: 1, name: "Account 1" }]
+          : [{ id: 1, name: "Account 1" }],
       );
     } catch {
       setAccounts([{ id: 1, name: "Account 1" }]);
@@ -220,9 +216,7 @@ export default function WeeklyCompounding({
 
     const rows = [];
     for (let i = 0; i < rowCount; i++) {
-      const labelDate = new Date(
-        seedStart.getTime() + i * 7 * 24 * 3600 * 1000
-      );
+      const labelDate = new Date(seedStart.getTime() + i * 7 * 24 * 3600 * 1000);
       const labelWY = getISOWeekYear(labelDate);
       const labelWK = getISOWeek(labelDate);
 
@@ -232,7 +226,7 @@ export default function WeeklyCompounding({
         accounts: accounts.map((a) => {
           const aw = accountWeekly[a.id]?.weeks || [];
           const found = aw.find((w) => w.wy === labelWY && w.wk === labelWK);
-          if (!found)
+          if (!found) {
             return {
               id: a.id,
               name: a.name,
@@ -240,10 +234,10 @@ export default function WeeklyCompounding({
               pnlDollar: "",
               pnlPct: "",
             };
+          }
           const dep = round2(found.depositAtStart);
           const pnl$ = round2(found.pnlSum);
-          const pnlPct =
-            dep > 0 ? `${round2((pnl$ / dep) * 100)}%` : "–";
+          const pnlPct = dep > 0 ? `${round2((pnl$ / dep) * 100)}%` : "–";
           return {
             id: a.id,
             name: a.name,
@@ -265,130 +259,159 @@ export default function WeeklyCompounding({
         deposit: refDeposit,
         pnlPct: Number(refPct) || 0,
       }),
-    [refWeeks, refDeposit, refPct]
+    [refWeeks, refDeposit, refPct],
   );
 
+  const outerCard =
+    "bg-gradient-to-b from-[#0b1120] to-[#020617] border border-white/10 rounded-2xl p-5 space-y-8 shadow-[0_0_0_1px_rgba(127,90,240,.15),0_20px_60px_rgba(0,0,0,.6)]";
+
+  const sectionBar =
+    "flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10";
+
+  const thBase =
+    "p-2 text-left text-[11px] font-semibold tracking-wide text-slate-200/80";
+  const tdBase = "p-2 text-[12px] text-slate-100/90";
+
   return (
-    <div className="bg-[#0b1120] border border-white/5 rounded-2xl p-4 space-y-6">
-      {/* REAL FIRST */}
-      <div className="overflow-x-auto">
-        <div className="flex items-center gap-2 mb-2 text-gray-200">
+    <div className={outerCard}>
+      {/* ===== REAL FIRST ===== */}
+      <div className="space-y-3">
+        <div className={sectionBar}>
           <TableIcon className="w-4 h-4 text-[#00ffa3]" />
-          <span className="text-sm font-semibold">
-            Real Accounts (by ISO calendar week)
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-slate-100">
+              Real Accounts
+            </span>
+            <span className="text-[10px] text-slate-400">
+              grouped by ISO calendar week
+            </span>
+          </div>
         </div>
-        <table className="table-auto w-full text-xs">
-          <thead className="bg-[#0f172a] text-gray-300">
-            <tr>
-              <th className="p-2 text-left">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-[#00ffa3]" />
-                  Calendar week
-                </div>
-              </th>
-              <th className="p-2 text-left">
-                <div className="flex items-center gap-1">
-                  <LineChart className="w-3.5 h-3.5 text-[#00ffa3]" />
-                  Trading week
-                </div>
-              </th>
 
-              {accounts.map((a) => (
-                <th key={`d-${a.id}`} className="p-2 text-left">
+        <div className="overflow-x-auto rounded-xl border border-white/10">
+          <table className="table-auto w-full text-xs">
+            <thead className="bg-[#0f172a] text-gray-300">
+              <tr>
+                <th className={thBase}>
                   <div className="flex items-center gap-1">
-                    <PiggyBank className="w-3.5 h-3.5 text-[#00ffa3]" />
-                    {a.name} Deposit
+                    <Calendar className="w-3.5 h-3.5 text-[#00ffa3]" />
+                    Calendar week
                   </div>
                 </th>
-              ))}
-
-              {accounts.map((a) => (
-                <th key={`p-${a.id}`} className="p-2 text-left">
+                <th className={thBase}>
                   <div className="flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-[#00ffa3]" />
-                    {a.name} PnL $
+                    <LineChart className="w-3.5 h-3.5 text-[#00ffa3]" />
+                    Trading week
                   </div>
                 </th>
-              ))}
 
-              {accounts.map((a) => (
-                <th key={`pp-${a.id}`} className="p-2 text-left">
-                  <div className="flex items-center gap-1">
-                    <BadgePercent className="w-3.5 h-3.5 text-[#00ffa3]" />
-                    {a.name} PnL %
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {realRows.map((r) => (
-              <tr
-                key={r.tradingWeek}
-                className={
-                  r.tradingWeek % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"
-                }
-              >
-                <td className="p-2 text-gray-200">{r.calendar}</td>
-                <td className="p-2 text-gray-200">Week {r.tradingWeek}</td>
-                {r.accounts.map((a) => (
-                  <td
-                    key={`rd-${r.tradingWeek}-${a.id}`}
-                    className="p-2 text-gray-200"
-                  >
-                    {a.deposit === ""
-                      ? ""
-                      : a.deposit.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                        })}
-                  </td>
+                {accounts.map((a) => (
+                  <th key={`d-${a.id}`} className={thBase}>
+                    <div className="flex items-center gap-1">
+                      <PiggyBank className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      {a.name} Deposit
+                    </div>
+                  </th>
                 ))}
-                {r.accounts.map((a) => (
-                  <td
-                    key={`rp-${r.tradingWeek}-${a.id}`}
-                    className={`p-2 ${
-                      a.pnlDollar === ""
-                        ? "text-gray-200"
-                        : Number(a.pnlDollar) >= 0
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                    }`}
-                  >
-                    {a.pnlDollar === ""
-                      ? ""
-                      : a.pnlDollar.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                        })}
-                  </td>
+
+                {accounts.map((a) => (
+                  <th key={`p-${a.id}`} className={thBase}>
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      {a.name} PnL $
+                    </div>
+                  </th>
                 ))}
-                {r.accounts.map((a) => (
-                  <td
-                    key={`rpp-${r.tradingWeek}-${a.id}`}
-                    className="p-2 text-gray-200"
-                  >
-                    {a.pnlPct}
-                  </td>
+
+                {accounts.map((a) => (
+                  <th key={`pp-${a.id}`} className={thBase}>
+                    <div className="flex items-center gap-1">
+                      <BadgePercent className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      {a.name} PnL %
+                    </div>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
 
-        <p className="text-[11px] text-slate-500 mt-2">
-          Real rows are generated from actual trades stored in localStorage,
-          grouped by ISO calendar week per account.
+            <tbody>
+              {realRows.map((r) => (
+                <tr
+                  key={r.tradingWeek}
+                  className={`${
+                    r.tradingWeek % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"
+                  } hover:bg-white/5 transition`}
+                >
+                  <td className={tdBase}>{r.calendar}</td>
+                  <td className={tdBase}>Week {r.tradingWeek}</td>
+
+                  {r.accounts.map((a) => (
+                    <td key={`rd-${r.tradingWeek}-${a.id}`} className={tdBase}>
+                      {a.deposit === ""
+                        ? ""
+                        : a.deposit.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                          })}
+                    </td>
+                  ))}
+
+                  {r.accounts.map((a) => (
+                    <td
+                      key={`rp-${r.tradingWeek}-${a.id}`}
+                      className={`p-2 text-[12px] ${
+                        a.pnlDollar === ""
+                          ? "text-slate-400"
+                          : Number(a.pnlDollar) >= 0
+                          ? "text-[#00ffa3] font-medium"
+                          : "text-rose-400 font-medium"
+                      }`}
+                    >
+                      {a.pnlDollar === ""
+                        ? ""
+                        : a.pnlDollar.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                          })}
+                    </td>
+                  ))}
+
+                  {r.accounts.map((a) => (
+                    <td key={`rpp-${r.tradingWeek}-${a.id}`} className={tdBase}>
+                      {a.pnlPct}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+
+              {realRows.length === 0 && (
+                <tr className="bg-[#0f172a]/30">
+                  <td className="p-3 text-slate-400 text-xs" colSpan={2 + accounts.length * 3}>
+                    No weekly data yet. Add trades to populate ISO-week rows.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Real rows are generated from trades in localStorage and grouped per ISO week per account.
         </p>
       </div>
 
-      {/* REFERENCE LAST */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-gray-200">
+      <div className="h-px bg-white/10" />
+
+      {/* ===== REFERENCE LAST ===== */}
+      <div className="space-y-4">
+        <div className={sectionBar}>
           <LineChart className="w-4 h-4 text-[#7f5af0]" />
-          <span className="text-sm font-semibold">Reference (compounded)</span>
-          <span className="text-[10px] text-slate-400">
-            starts from Week 1 — adjust manually
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-slate-100">
+              Reference Projection
+            </span>
+            <span className="text-[10px] text-slate-400">
+              manual compounding, starts at Week 1
+            </span>
+          </div>
         </div>
 
         {/* controls */}
@@ -404,13 +427,12 @@ export default function WeeklyCompounding({
               max={99}
               value={refWeeks}
               onChange={(e) =>
-                setRefWeeks(
-                  Math.max(1, Math.min(99, Number(e.target.value) || 1))
-                )
+                setRefWeeks(Math.max(1, Math.min(99, Number(e.target.value) || 1)))
               }
-              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
             />
           </div>
+
           <div className="flex flex-col">
             <label className="text-xs text-gray-300 mb-1 flex items-center gap-1">
               <PiggyBank className="w-3.5 h-3.5 text-[#7f5af0]" />
@@ -422,13 +444,12 @@ export default function WeeklyCompounding({
               step="1"
               value={refDeposit}
               onChange={(e) =>
-                setRefDeposit(
-                  Math.max(1, Math.floor(Number(e.target.value) || 1))
-                )
+                setRefDeposit(Math.max(1, Math.floor(Number(e.target.value) || 1)))
               }
-              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
             />
           </div>
+
           <div className="flex flex-col">
             <label className="text-xs text-gray-300 mb-1 flex items-center gap-1">
               <BadgePercent className="w-3.5 h-3.5 text-[#7f5af0]" />
@@ -440,47 +461,48 @@ export default function WeeklyCompounding({
               max={500}
               step="0.1"
               value={refPct}
-              onChange={(e) =>
-                setRefPct(Math.max(0, Number(e.target.value) || 0))
-              }
-              className="bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              onChange={(e) => setRefPct(Math.max(0, Number(e.target.value) || 0))}
+              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="table-auto w-full text-xs">
             <thead className="bg-[#0f172a] text-gray-300">
               <tr>
-                <th className="p-2 text-left">Week</th>
-                <th className="p-2 text-left">Deposit</th>
-                <th className="p-2 text-left">PnL %</th>
-                <th className="p-2 text-left">PnL $</th>
+                <th className={thBase}>Week</th>
+                <th className={thBase}>Deposit</th>
+                <th className={thBase}>PnL %</th>
+                <th className={thBase}>PnL $</th>
               </tr>
             </thead>
+
             <tbody>
               {reference.map((r) => (
                 <tr
                   key={`ref-${r.week}`}
-                  className={r.week % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"}
+                  className={`${
+                    r.week % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"
+                  } hover:bg-white/5 transition`}
                 >
-                  <td className="p-2 text-gray-200">Week {r.week}</td>
-                  <td className="p-2 text-gray-200">
-                    {r.deposit.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                  <td className={tdBase}>Week {r.week}</td>
+                  <td className={tdBase}>
+                    {r.deposit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="p-2 text-gray-200">{r.pnlPct.toFixed(2)}%</td>
-                  <td className="p-2 text-gray-200">
-                    {r.pnlDollar.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                  <td className={tdBase}>{r.pnlPct.toFixed(2)}%</td>
+                  <td className={tdBase}>
+                    {r.pnlDollar.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <p className="text-[11px] text-slate-500">
+          This projection is independent of real trades. Use it as a discipline target, not a report.
+        </p>
       </div>
     </div>
   );

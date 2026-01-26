@@ -7,7 +7,9 @@ import { useParams } from "react-router-dom";
 import "./index.css";
 import "react-tabs/style/react-tabs.css";
 
+// ✅ UPDATED: TradeForm moved under /components/trades
 import TradeForm from "./components/TradeForm";
+
 import TradeTable from "./components/TradeTable";
 import FilterBar from "./components/FilterBar";
 import Metrics from "./components/Metrics";
@@ -16,9 +18,20 @@ import AccountNav from "./components/AccountNav";
 import StrategyNav from "./components/StrategyNav";
 import WeeklyCompounding from "./components/WeeklyCompounding";
 
+import RightNavCluster from "./components/navbar/RightNavCluster";
+import RightSidePanel from "./components/panels/RightSidePanel";
+
 import { computeTimeline } from "./utils/computeTimeline";
 
-import { BarChart3, Trash2, HandCoins } from "lucide-react";
+import {
+  BarChart3,
+  Gauge,
+  List,
+  Plus,
+  Trash2,
+  HandCoins,
+  TrendingUp,
+} from "lucide-react";
 
 export default function App() {
   const { strategyId: sidParam, accountId: aidParam } = useParams();
@@ -59,6 +72,19 @@ export default function App() {
 
   // UI hint only (TradeForm no longer auto-fills)
   const [initialDeposit, setInitialDeposit] = useState(1000);
+
+  // ------------------------
+  // Right-side panel (Guide | Tools | Journal | Profile)
+  // ------------------------
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState("guide");
+
+  const openRightPanel = (tabKey) => {
+    setRightPanelTab(tabKey);
+    setRightPanelOpen(true);
+  };
+
+  const closeRightPanel = () => setRightPanelOpen(false);
 
   // ------------------------
   // Load scoped storage
@@ -166,37 +192,34 @@ export default function App() {
   // ------------------------
   const handleAddTrade = (newTrade) => {
     const { mode } = filters;
-    let setTradeFunc;
 
-    if (mode === "backtest") setTradeFunc = setBacktestTrades;
-    else if (mode === "history") setTradeFunc = setHistoryTrades;
-    else setTradeFunc = setTrades;
+    const setTradeFunc =
+      mode === "backtest"
+        ? setBacktestTrades
+        : mode === "history"
+        ? setHistoryTrades
+        : setTrades;
 
-    if (editingTrade) {
-      setTradeFunc((prev) =>
-        [...prev]
-          .map((trade) =>
-            trade.id === editingTrade.id ? { ...newTrade, id: editingTrade.id } : trade
-          )
-          .sort(
-            (a, b) =>
-              new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          )
+    const id = newTrade?.id ?? Date.now();
+    const normalized = { ...newTrade, id };
+
+    setTradeFunc((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      const idx = list.findIndex((t) => t.id === id);
+
+      const next =
+        idx >= 0
+          ? list.map((t) => (t.id === id ? { ...t, ...normalized } : t))
+          : [...list, normalized];
+
+      return next.sort(
+        (a, b) =>
+          new Date(`${a.date}T${a.time || "00:00"}`) -
+          new Date(`${b.date}T${b.time || "00:00"}`),
       );
-      setEditingTrade(null);
-    } else {
-      setTradeFunc((prev) => {
-        const isDuplicate = prev.some((trade) => trade.id === newTrade.id);
-        return [...prev, newTrade]
-          .filter((trade) => !isDuplicate || trade.id !== newTrade.id)
-          .sort(
-            (a, b) =>
-              new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          );
-      });
-    }
+    });
+
+    if (editingTrade) setEditingTrade(null);
   };
 
   const handleEditTrade = (trade) => {
@@ -222,8 +245,8 @@ export default function App() {
           .sort(
             (a, b) =>
               new Date(`${a.date}T${a.time || "00:00"}`) -
-              new Date(`${b.date}T${b.time || "00:00"}`)
-          )
+              new Date(`${b.date}T${b.time || "00:00"}`),
+          ),
       );
     }
   };
@@ -240,8 +263,8 @@ export default function App() {
       [...(importedTrades || [])].sort(
         (a, b) =>
           new Date(`${a.date}T${a.time || "00:00"}`) -
-          new Date(`${b.date}T${b.time || "00:00"}`)
-      )
+          new Date(`${b.date}T${b.time || "00:00"}`),
+      ),
     );
   };
 
@@ -279,61 +302,76 @@ export default function App() {
   // ------------------------
   const InnerNav = ({ which }) => {
     const active = innerTabs[which];
-    const btnBase =
-      "px-5 py-2 rounded-full border border-[#f97316]/40 text-sm font-medium transition-all duration-200";
+
+    const base =
+      "px-4 h-8 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-2";
+
+    const ghost = "text-slate-300 hover:text-white hover:bg-white/5";
+
+    const activePill =
+      "bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.35)] scale-[1.02]";
+
+    const primary =
+      "bg-gradient-to-r from-[#f97316] to-[#fb923c] text-black font-semibold shadow hover:brightness-110";
+
+    const iconCls = "w-4 h-4 opacity-90";
 
     return (
       <div className="flex items-center justify-between gap-3 mb-4 bg-[#0f172a] rounded-xl p-2">
-        <div className="flex gap-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))}
-            className={
+            className={`${base} ${
               active === "trade"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+                ? primary
+                : "bg-[#f97316]/15 text-[#f97316] hover:bg-[#f97316]/25"
+            }`}
           >
-            + new trade
+            <Plus className={iconCls} />
+            new trade
           </button>
 
           <button
             onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "all" }))}
-            className={
-              active === "all"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "all" ? activePill : ghost}`}
           >
+            <List className={iconCls} />
             all trades
           </button>
 
           <button
             onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "kpis" }))}
-            className={
-              active === "kpis"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "kpis" ? activePill : ghost}`}
           >
+            <Gauge className={iconCls} />
             KPIs
           </button>
 
           <button
             onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "equity" }))}
-            className={
-              active === "equity"
-                ? `${btnBase} bg-[#f97316]/20 text-white`
-                : `${btnBase} text-gray-300 hover:bg-[#f97316]/10`
-            }
+            className={`${base} ${active === "equity" ? activePill : ghost}`}
           >
+            <TrendingUp className={iconCls} />
             equity curve
           </button>
+
+          {/* ✅ Live-only: Weekly Compounding as separate inner tab */}
+          {which === "live" && (
+            <button
+              onClick={() =>
+                setInnerTabs((prev) => ({ ...prev, [which]: "compound" }))
+              }
+              className={`${base} ${active === "compound" ? activePill : ghost}`}
+            >
+              <HandCoins className={iconCls} />
+              weekly compounding
+            </button>
+          )}
         </div>
 
-        {/* ✅ Scoped clear button (per tab / strategy / account) */}
         <button
           onClick={clearCurrentScope}
-          className="h-9 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
+          className="h-8 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-medium hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
           title="Clears only current tab + current strategy + current account"
         >
           <Trash2 className="w-4 h-4" />
@@ -348,10 +386,9 @@ export default function App() {
       <ToastContainer position="top-right" theme="dark" />
 
       <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
-        {/* ===== NAVBAR ===== */}
-        <header className="h-16 px-5 bg-[#020617] border-b border-white/5 flex items-center gap-4">
-          {/* Brand */}
-          <div className="flex items-center gap-2 min-w-fit">
+        {/* ✅ UPDATED NAVBAR */}
+        <header className="sticky top-0 z-50 h-16 px-5 bg-[#020617]/90 backdrop-blur border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex items-center gap-4">
+          <div className="flex items-center gap-2 min-w-fit shrink-0">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
             </div>
@@ -360,8 +397,7 @@ export default function App() {
             </span>
           </div>
 
-          {/* Main Tabs */}
-          <TabList className="flex items-center gap-1 bg-[#0f172a] rounded-full px-1 py-1 ml-2 h-9">
+          <TabList className="flex items-center gap-1 bg-[#0f172a]/80 rounded-full px-1 py-1 ml-2 h-9 shrink-0">
             <Tab
               className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
               selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
@@ -382,29 +418,33 @@ export default function App() {
             </Tab>
           </TabList>
 
-          {/* Divider */}
-          <div className="h-7 w-px bg-white/10 mx-2" />
+          <div className="h-7 w-px bg-white/10 mx-2 shrink-0" />
 
-          {/* Strategy */}
-          <div className="flex items-center gap-2 h-8">
+          {/* ✅ isolate nav controls to prevent overlay/focus weirdness */}
+          <div className="relative z-10 flex items-center gap-3 text-white shrink-0">
             <StrategyNav />
           </div>
 
-          {/* Divider */}
-          <div className="h-7 w-px bg-white/10 mx-1" />
+          <div className="h-7 w-px bg-white/10 mx-1 shrink-0" />
 
-          {/* Accounts */}
-          <div className="flex items-center gap-2 h-8">
+          <div className="relative z-10 flex items-center gap-3 text-white shrink-0">
             <AccountNav />
           </div>
 
-          {/* ✅ Removed global "Clear All" from navbar (too risky) */}
+          {/* spacer */}
           <div className="ml-auto" />
+
+          {/* RIGHT: Guide | Tools | Journal | Profile */}
+          <div className="relative z-10 flex items-center gap-2 shrink-0">
+            <RightNavCluster
+              active={rightPanelOpen ? rightPanelTab : null}
+              onOpen={openRightPanel}
+            />
+          </div>
         </header>
 
         {/* ===== MAIN ===== */}
-        <main className="p-4 flex-1 overflow-y-auto space-y-6">
-          {/* ---------- LIVE ---------- */}
+        <main className="p-4 pt-6 flex-1 overflow-y-auto space-y-6">
           <TabPanel className="mt-4">
             <InnerNav which="live" />
 
@@ -443,155 +483,123 @@ export default function App() {
             )}
 
             {innerTabs.live === "equity" && (
-              <div className="space-y-4">
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <EquityCurveChart trades={filteredCurrentTrades} />
-                </div>
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                    <HandCoins className="w-5 h-5" />
-                    <h2 className="text-xl font-semibold">Weekly Compounding</h2>
-                  </div>
-                  <WeeklyCompounding
-                    strategyId={strategyId}
-                    accountId={accountId}
-                    mode="live"
-                    includeCurrentWeek={true}
-                    refreshKey={JSON.stringify(trades)}
-                  />
-                </div>
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
+
+            {/* ✅ Live-only compounding tab */}
+            {innerTabs.live === "compound" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <WeeklyCompounding
+                  strategyId={strategyId}
+                  accountId={accountId}
+                  mode="live"
+                  includeCurrentWeek={true}
+                  refreshKey={JSON.stringify(trades)}
+                />
               </div>
             )}
           </TabPanel>
 
-          {/* ---------- BACKTEST ---------- */}
-          <TabPanel>
-            <div className="-mt-2">
-              <InnerNav which="backtest" />
+          <TabPanel className="mt-4">
+            <InnerNav which="backtest" />
 
-              {innerTabs.backtest === "trade" && (
-                <TradeForm
-                  onAddTrade={handleAddTrade}
-                  editingTrade={editingTrade}
-                  initialDeposit={initialDeposit}
+            {innerTabs.backtest === "trade" && (
+              <TradeForm
+                onAddTrade={handleAddTrade}
+                editingTrade={editingTrade}
+                initialDeposit={initialDeposit}
+                strategyId={strategyId}
+                accountId={accountId}
+              />
+            )}
+
+            {innerTabs.backtest === "all" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                <FilterBar
+                  filters={filters}
+                  setFilters={(f) => setFilters({ ...f, mode: "backtest" })}
+                />
+                <TradeTable
+                  trades={filteredCurrentTrades}
+                  onEdit={handleEditTrade}
+                  onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
                   strategyId={strategyId}
                   accountId={accountId}
                 />
-              )}
+              </div>
+            )}
 
-              {innerTabs.backtest === "all" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <FilterBar
-                    filters={filters}
-                    setFilters={(newFilters) => setFilters({ ...newFilters, mode: "backtest" })}
-                  />
-                  <TradeTable
-                    trades={filteredCurrentTrades}
-                    onEdit={handleEditTrade}
-                    onDelete={handleDeleteTrade}
-                    onViewChart={(trade) => setSelectedTrade(trade)}
-                    onUpdateTrades={handleUpdateTrades}
-                    strategyId={strategyId}
-                    accountId={accountId}
-                  />
-                </div>
-              )}
+            {innerTabs.backtest === "kpis" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <Metrics trades={filteredCurrentTrades} />
+              </div>
+            )}
 
-              {innerTabs.backtest === "kpis" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <Metrics trades={filteredCurrentTrades} />
-                </div>
-              )}
-
-              {innerTabs.backtest === "equity" && (
-                <div className="space-y-4">
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <EquityCurveChart trades={filteredCurrentTrades} />
-                  </div>
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <HandCoins className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">Weekly Compounding</h2>
-                    </div>
-                    <WeeklyCompounding
-                      strategyId={strategyId}
-                      accountId={accountId}
-                      mode="backtest"
-                      includeCurrentWeek={true}
-                      refreshKey={JSON.stringify(backtestTrades)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            {innerTabs.backtest === "equity" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
           </TabPanel>
 
-          {/* ---------- HISTORY ---------- */}
-          <TabPanel>
-            <div className="-mt-2">
-              <InnerNav which="history" />
+          <TabPanel className="mt-4">
+            <InnerNav which="history" />
 
-              {innerTabs.history === "trade" && (
-                <TradeForm
-                  onAddTrade={handleAddTrade}
-                  editingTrade={editingTrade}
-                  initialDeposit={initialDeposit}
+            {innerTabs.history === "trade" && (
+              <TradeForm
+                onAddTrade={handleAddTrade}
+                editingTrade={editingTrade}
+                initialDeposit={initialDeposit}
+                strategyId={strategyId}
+                accountId={accountId}
+              />
+            )}
+
+            {innerTabs.history === "all" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+                <FilterBar
+                  filters={filters}
+                  setFilters={(f) => setFilters({ ...f, mode: "history" })}
+                />
+                <TradeTable
+                  trades={filteredCurrentTrades}
+                  onEdit={handleEditTrade}
+                  onDelete={handleDeleteTrade}
+                  onViewChart={(trade) => setSelectedTrade(trade)}
+                  onUpdateTrades={handleUpdateTrades}
                   strategyId={strategyId}
                   accountId={accountId}
-                  showTitle={false}
                 />
-              )}
+              </div>
+            )}
 
-              {innerTabs.history === "all" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
-                  <FilterBar
-                    filters={filters}
-                    setFilters={(newFilters) => setFilters({ ...newFilters, mode: "history" })}
-                  />
-                  <TradeTable
-                    trades={filteredCurrentTrades}
-                    onEdit={handleEditTrade}
-                    onDelete={handleDeleteTrade}
-                    onViewChart={(trade) => setSelectedTrade(trade)}
-                    onUpdateTrades={handleUpdateTrades}
-                    strategyId={strategyId}
-                    accountId={accountId}
-                  />
-                </div>
-              )}
+            {innerTabs.history === "kpis" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <Metrics trades={filteredCurrentTrades} />
+              </div>
+            )}
 
-              {innerTabs.history === "kpis" && (
-                <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                  <Metrics trades={filteredCurrentTrades} />
-                </div>
-              )}
-
-              {innerTabs.history === "equity" && (
-                <div className="space-y-4">
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <EquityCurveChart trades={filteredCurrentTrades} />
-                  </div>
-                  <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
-                    <div className="flex items-center gap-2 mb-3 text-[#00ffa3]">
-                      <HandCoins className="w-5 h-5" />
-                      <h2 className="text-xl font-semibold">Weekly Compounding</h2>
-                    </div>
-                    <WeeklyCompounding
-                      strategyId={strategyId}
-                      accountId={accountId}
-                      mode="history"
-                      includeCurrentWeek={true}
-                      refreshKey={JSON.stringify(historyTrades)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            {innerTabs.history === "equity" && (
+              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+                <EquityCurveChart trades={filteredCurrentTrades} />
+              </div>
+            )}
           </TabPanel>
         </main>
       </Tabs>
 
-      {/* ===== MODAL ===== */}
+      {/* Right-side panel mount */}
+      <RightSidePanel
+        open={rightPanelOpen}
+        activeTab={rightPanelTab}
+        onClose={closeRightPanel}
+        onTabChange={setRightPanelTab}
+      />
+
       {selectedTrade && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
@@ -600,10 +608,7 @@ export default function App() {
               Trade Chart
             </h2>
             <img
-              src={
-                selectedTrade.screenshot ||
-                "https://via.placeholder.com/400x200?text=No+Chart"
-              }
+              src={selectedTrade.screenshot || "https://via.placeholder.com/400x200?text=No+Chart"}
               alt="Trade Chart"
               className="w-full rounded-lg"
             />
