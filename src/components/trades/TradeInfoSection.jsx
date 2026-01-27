@@ -10,6 +10,7 @@ const PAIRS = {
     "DOTUSDT","LINKUSDT","MATICUSDT","ATOMUSDT","LTCUSDT","BCHUSDT","INJUSDT",
   ],
   forex: ["EURUSD", "GBPUSD", "USDJPY", "USDCHF"],
+  indices: ["SPX", "DAX", "NAS"]
 };
 
 /* ===== % CHECKPOINTS ===== */
@@ -139,6 +140,7 @@ export default function TradeInfoSection({ form, onChange }) {
           >
             <option value="crypto">Crypto</option>
             <option value="forex">Forex</option>
+            <option value="indices">Indices</option>
           </select>
         </div>
 
