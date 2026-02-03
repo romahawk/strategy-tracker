@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
-import EntryConditionsSection from "./trades/EntryConditionsSection";
+import EntryConditionsSection from "../features/entryConditions/components/EntryConditionsSection";
 import RiskSetupSection from "./trades/RiskSetupSection";
 import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
