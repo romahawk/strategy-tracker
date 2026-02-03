@@ -10,8 +10,9 @@ export default function HomeRedirect() {
   useEffect(() => {
     const strategies = strategyStore.ensureDefaults();
     const firstStrategyId = Number(strategies?.[0]?.id) || 1;
-
-    const firstAccountId = accountStore.getFirstAccountId(firstStrategyId);
+    accountStore.ensureDefaults(firstStrategyId);
+    const firstAccountIdRaw = accountStore.getFirstAccountId(firstStrategyId);
+    const firstAccountId = Number(firstAccountIdRaw) || 1;
 
     navigate(`/strategy/${firstStrategyId}/account/${firstAccountId}`, { replace: true });
   }, [navigate]);

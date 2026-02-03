@@ -2,7 +2,7 @@
 // Accounts CRUD + defaults per strategy (localStorage MVP)
 //
 // Storage key:
-// - strategy:{strategyId}:accounts  -> [{ id, name, createdAt?, updatedAt? }, ...]
+// - strategy:{strategyId}:accounts  -> [{ id, name, ...meta }, ...]
 //
 // Notes:
 // - Keeps numeric IDs for compatibility with current routing
@@ -25,9 +25,18 @@ const keyAccounts = (strategyId) => `strategy:${Number(strategyId)}:accounts`;
 
 function normalizeAccount(a, fallbackId = 1) {
   const id = Number(a?.id ?? fallbackId);
+
   return {
     id,
     name: (a?.name || `Account ${id}`).toString(),
+
+    // NEW: account split foundation
+    accountType: a?.accountType === "funded" ? "funded" : "personal",
+    venue: ["CEX", "DEX", "prop"].includes(a?.venue) ? a.venue : "CEX",
+    broker: (a?.broker || "").toString(), // e.g. "Binance" / "FTMO"
+    baseCurrency: (a?.baseCurrency || "USDT").toString(), // USDT/USD/EUR
+    status: a?.status === "archived" ? "archived" : "active",
+
     createdAt: typeof a?.createdAt === "string" ? a.createdAt : nowISO(),
     updatedAt: typeof a?.updatedAt === "string" ? a.updatedAt : nowISO(),
   };
@@ -40,12 +49,26 @@ export const accountStore = {
 
     const parsed = safeParseJSON(localStorage.getItem(k));
     if (Array.isArray(parsed) && parsed.length) {
-      const normalized = parsed.map((a) => normalizeAccount(a)).sort((a, b) => a.id - b.id);
+      const normalized = parsed
+        .map((a) => normalizeAccount(a))
+        .sort((a, b) => a.id - b.id);
       localStorage.setItem(k, JSON.stringify(normalized));
       return normalized;
     }
 
-    const def = [normalizeAccount({ id: 1, name: "Account 1" })];
+    // Default: personal crypto account
+    const def = [
+      normalizeAccount({
+        id: 1,
+        name: "Personal (Crypto)",
+        accountType: "personal",
+        venue: "CEX",
+        broker: "CEX",
+        baseCurrency: "USDT",
+        status: "active",
+      }),
+    ];
+
     localStorage.setItem(k, JSON.stringify(def));
     return def;
   },
