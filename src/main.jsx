@@ -8,10 +8,13 @@ import "./index.css";
 import HomeRedirect from "./routes/HomeRedirect.jsx";
 import StrategyAccountGuard from "./routes/StrategyAccountGuard.jsx";
 
-// NEW
+// Auth
 import AuthPage from "./routes/AuthPage.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import { AuthProvider } from "./storage/auth/AuthContext.jsx";
+
+// NEW
+import AccountsPage from "./routes/AccountsPage.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -23,19 +26,17 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
-            {/* Dynamic home redirect (keep your current logic) */}
             <Route path="/" element={<HomeRedirect />} />
 
-            {/* Guarded strategy/account route */}
             <Route
               path="/strategy/:strategyId/account/:accountId"
               element={<StrategyAccountGuard />}
             >
               <Route index element={<App />} />
+              <Route path="accounts" element={<AccountsPage />} />
             </Route>
           </Route>
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

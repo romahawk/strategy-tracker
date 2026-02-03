@@ -10,11 +10,15 @@ export default function HomeRedirect() {
   useEffect(() => {
     const strategies = strategyStore.ensureDefaults();
     const firstStrategyId = Number(strategies?.[0]?.id) || 1;
-    accountStore.ensureDefaults(firstStrategyId);
-    const firstAccountIdRaw = accountStore.getFirstAccountId(firstStrategyId);
-    const firstAccountId = Number(firstAccountIdRaw) || 1;
 
-    navigate(`/strategy/${firstStrategyId}/account/${firstAccountId}`, { replace: true });
+    // ensure accounts exist for this strategy
+    accountStore.ensureDefaults(firstStrategyId);
+
+    const firstAccountId = accountStore.getFirstAccountId(firstStrategyId);
+
+    navigate(`/strategy/${firstStrategyId}/account/${firstAccountId}`, {
+      replace: true,
+    });
   }, [navigate]);
 
   return null;

@@ -1,11 +1,11 @@
 // src/storage/strategyStore.js
-// Strategy (Trading System / TS) CRUD + persistence for localStorage (MVP)
+// Strategy CRUD + persistence for localStorage (MVP)
 // Single source of truth: "strategies:list"
 //
 // Notes:
 // - Keeps numeric IDs for compatibility with current routing (/strategy/:id/account/:id)
 // - Migrates legacy names from "strategy:names" if present
-// - On delete, cleans up known per-strategy keys (entry, trades) and accounts if needed
+// - On delete, cleans up known per-strategy keys (entry, trades, accounts)
 
 const STRATEGIES_KEY = "strategies:list";
 const LEGACY_NAMES_KEY = "strategy:names";
@@ -69,7 +69,7 @@ function readLegacyNamesMap() {
 }
 
 function cleanupStrategyStorage(strategyId) {
-  // READ accounts first (for trade keys), then delete
+  // Read accounts first (for trade keys), then delete
   const accounts = safeParseJSON(
     localStorage.getItem(`strategy:${strategyId}:accounts`)
   );
@@ -78,7 +78,6 @@ function cleanupStrategyStorage(strategyId) {
     ? accounts.map((a) => Number(a?.id)).filter((n) => Number.isFinite(n))
     : [];
 
-  // remove trades keys per known accounts
   const modes = ["live", "backtest", "history"];
   for (const aid of accountIds) {
     for (const mode of modes) {
@@ -88,7 +87,6 @@ function cleanupStrategyStorage(strategyId) {
     }
   }
 
-  // remove entry definition + accounts list
   localStorage.removeItem(`strategy:${strategyId}:entry:v1`);
   localStorage.removeItem(`strategy:${strategyId}:accounts`);
 }
@@ -170,7 +168,7 @@ export const strategyStore = {
     if (!Number.isFinite(id)) return this.list();
 
     const list = this.ensureDefaults();
-    if (list.length <= 1) return list; // cannot delete last strategy
+    if (list.length <= 1) return list;
 
     const next = list.filter((s) => s.id !== id);
     writeList(next);

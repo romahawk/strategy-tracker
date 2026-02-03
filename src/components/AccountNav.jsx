@@ -1,9 +1,8 @@
 // src/components/AccountNav.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Edit3, Trash2, Plus } from "lucide-react";
-
-const LS_KEY = (sid) => `strategy:${sid}:accounts`;
+import { Edit3, Trash2, Plus, Settings } from "lucide-react";
+import { accountStore } from "../storage/accountStore";
 
 const selectBase =
   "h-8 rounded-full bg-[#0b1120] border border-white/10 px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/40";
@@ -18,31 +17,19 @@ export default function AccountNav() {
   const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState([]);
+
   const [editAccount, setEditAccount] = useState(null);
   const [editName, setEditName] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY(sid));
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) {
-          setAccounts(parsed);
-          const exists = parsed.some((a) => Number(a.id) === aid);
-          if (!exists) {
-            const first = parsed[0];
-            navigate(`/strategy/${sid}/account/${first.id}`, { replace: true });
-          }
-          return;
-        }
-      }
-    } catch (_) {}
+    const list = accountStore.list(sid);
+    setAccounts(list);
 
-    const def = [{ id: 1, name: "Account 1" }];
-    localStorage.setItem(LS_KEY(sid), JSON.stringify(def));
-    setAccounts(def);
-
-    if (aid !== 1) navigate(`/strategy/${sid}/account/1`, { replace: true });
+    const exists = list.some((a) => Number(a.id) === aid);
+    if (!exists) {
+      const first = list[0];
+      navigate(`/strategy/${sid}/account/${first?.id || 1}`, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sid]);
 
@@ -52,18 +39,20 @@ export default function AccountNav() {
     return m;
   }, [accounts]);
 
-  const persist = (next) => {
-    setAccounts(next);
-    localStorage.setItem(LS_KEY(sid), JSON.stringify(next));
-  };
+  const refresh = () => setAccounts(accountStore.list(sid));
 
   const addAccount = () => {
-    const nextId = accounts.length
-      ? Math.max(...accounts.map((a) => Number(a.id))) + 1
-      : 1;
-    const next = [...accounts, { id: nextId, name: `Account ${nextId}` }];
-    persist(next);
-    navigate(`/strategy/${sid}/account/${nextId}`);
+    const { created } = accountStore.create(sid, {
+      name: `Account ${accounts.length + 1}`,
+      accountType: "personal",
+      venue: "CEX",
+      broker: "CEX",
+      baseCurrency: "USDT",
+      status: "active",
+    });
+
+    refresh();
+    navigate(`/strategy/${sid}/account/${created.id}`);
   };
 
   const openEdit = (id) => {
@@ -81,10 +70,10 @@ export default function AccountNav() {
   const handleRename = () => {
     const trimmed = editName.trim();
     if (!trimmed || !editAccount) return;
-    const next = accounts.map((a) =>
-      Number(a.id) === Number(editAccount.id) ? { ...a, name: trimmed } : a
-    );
-    persist(next);
+
+    accountStore.update(sid, editAccount.id, { name: trimmed });
+    refresh();
+
     if (Number(editAccount.id) === aid) {
       navigate(`/strategy/${sid}/account/${editAccount.id}`, { replace: true });
     }
@@ -93,17 +82,21 @@ export default function AccountNav() {
 
   const handleDelete = () => {
     if (!editAccount) return;
-    if (accounts.length <= 1) {
+
+    const list = accountStore.list(sid);
+    if (list.length <= 1) {
       closeEdit();
       return;
     }
+
     const deletingId = Number(editAccount.id);
-    const next = accounts.filter((a) => Number(a.id) !== deletingId);
-    persist(next);
+    accountStore.remove(sid, deletingId);
+    const next = accountStore.list(sid);
+    setAccounts(next);
 
     if (deletingId === aid) {
       const first = next[0];
-      navigate(`/strategy/${sid}/account/${first.id}`, { replace: true });
+      navigate(`/strategy/${sid}/account/${first?.id || 1}`, { replace: true });
     }
     closeEdit();
   };
@@ -115,6 +108,10 @@ export default function AccountNav() {
     navigate(`/strategy/${sid}/account/${nextAid}`);
   };
 
+  const goManage = () => {
+    navigate(`/strategy/${sid}/account/${aid}/accounts`);
+  };
+
   return (
     <div className="relative flex items-center gap-2">
       <span className="text-[9px] uppercase tracking-wide text-slate-300/80">
@@ -124,7 +121,7 @@ export default function AccountNav() {
       <select
         value={aid}
         onChange={(e) => handleSelect(e.target.value)}
-        className={`${selectBase} min-w-[140px]`}
+        className={`${selectBase} min-w-[160px]`}
         title="Select account"
       >
         {accounts.map((a) => (
@@ -134,31 +131,16 @@ export default function AccountNav() {
         ))}
       </select>
 
-      {/* ✅ FORCE icon visibility via color prop */}
-      <button
-        type="button"
-        onClick={() => openEdit(aid)}
-        className={iconBtn}
-        title="Edit current account"
-      >
-        <Edit3
-          size={16}
-          color="rgba(255,255,255,0.9)"
-          className="opacity-90 group-hover:opacity-100"
-        />
+      <button type="button" onClick={goManage} className={iconBtn} title="Manage accounts">
+        <Settings size={16} color="rgba(255,255,255,0.9)" className="opacity-90 group-hover:opacity-100" />
       </button>
 
-      <button
-        type="button"
-        onClick={addAccount}
-        className={iconBtn}
-        title="Add account"
-      >
-        <Plus
-          size={16}
-          color="rgba(255,255,255,0.9)"
-          className="opacity-90 group-hover:opacity-100"
-        />
+      <button type="button" onClick={() => openEdit(aid)} className={iconBtn} title="Rename account">
+        <Edit3 size={16} color="rgba(255,255,255,0.9)" className="opacity-90 group-hover:opacity-100" />
+      </button>
+
+      <button type="button" onClick={addAccount} className={iconBtn} title="Add account">
+        <Plus size={16} color="rgba(255,255,255,0.9)" className="opacity-90 group-hover:opacity-100" />
       </button>
 
       {editAccount && (
@@ -166,7 +148,7 @@ export default function AccountNav() {
           <div className="flex items-center gap-2">
             <Edit3 size={14} color="rgba(255,255,255,0.95)" />
             <span className="text-[11px] font-medium text-slate-100">
-              Edit account
+              Rename account
             </span>
           </div>
 
