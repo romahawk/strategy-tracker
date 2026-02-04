@@ -47,6 +47,11 @@ function rrFrom({ entry, sl, tp1, direction }) {
   return reward / risk;
 }
 
+function moneyNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Number(n.toFixed(2)) : null;
+}
+
 function pctMove({ entry, price, direction }) {
   const e = num(entry);
   const p = num(price);
@@ -500,12 +505,26 @@ export default function TradeForm({
 
       const normalizedEntryConditions = buildEntryConditions(form, sid);
 
+      const eqBefore = moneyNum(form.equityBefore) ?? moneyNum(form.deposit);
+      const eqAfter =
+        moneyNum(form.equityAfter) ??
+        moneyNum(form.nextDeposit) ??
+        (eqBefore != null && Number.isFinite(Number(form.pnl))
+          ? moneyNum(eqBefore + Number(form.pnl))
+          : null);
+
       onAddTrade({
         ...form,
+
+        // canonical equity fields used by table + seeding
+        ...(eqBefore != null ? { equityBefore: eqBefore } : {}),
+        ...(eqAfter != null ? { equityAfter: eqAfter } : {}),
+
         deposit: toMoneyStr(form.deposit),
         ...(form.nextDeposit != null && String(form.nextDeposit) !== ""
           ? { nextDeposit: toMoneyStr(form.nextDeposit) }
           : {}),
+
         direction: form.direction || "Long",
         entryConditions: normalizedEntryConditions,
         id,
