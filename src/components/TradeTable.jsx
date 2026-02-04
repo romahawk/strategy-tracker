@@ -388,11 +388,12 @@ export default function TradeTable({
                   ? Number(t.deposit)
                   : null;
 
-                const equityAfter = Number.isFinite(Number(t?.equityAfter))
-                  ? Number(t.equityAfter)
-                  : Number.isFinite(Number(t?.nextDeposit))
+                const equityAfter = Number.isFinite(Number(t?.nextDeposit))
                   ? Number(t.nextDeposit)
-                  : null;
+                  : Number.isFinite(Number(t?.equityAfter))
+                    ? Number(t.equityAfter)
+                    : null;
+
 
                 const pnlValue = Number.isFinite(Number(t?.pnl))
                   ? Number(t.pnl)
