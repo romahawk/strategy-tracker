@@ -53,7 +53,7 @@ export default function ExecutionGateSection({
   onEnter,
   onEnterOverride,
 
-  // ✅ NEW: RR inputs from TradeForm
+  // ✅ RR inputs from TradeForm
   rr,
   rrOk,
 }) {
@@ -65,10 +65,24 @@ export default function ExecutionGateSection({
   const isEntered = execState === "ENTERED";
   const isArmedOrMore = isArmed || isEntered;
 
-  const minRR = config?.minRRByStrategy?.[sid] ?? 1;
+    const minRR = config?.minRRByStrategy?.[sid] ?? 1;
 
-  const hasRR = Number.isFinite(Number(rr));
-  const rrLabel = hasRR ? `RR ≥ ${minRR} (${Number(rr).toFixed(2)})` : `RR ≥ ${minRR}`;
+  // Local RR compute from form values (no parent dependency)
+  const entry = Number(form.entry);
+  const sl = Number(form.sl);
+  const tp1 = Number(form.tp1);
+
+  const hasRRInputs =
+    Number.isFinite(entry) && Number.isFinite(sl) && Number.isFinite(tp1) && entry !== sl;
+
+  // Reward/Risk (works for both long and short because we use abs deltas)
+  const rrLocal = hasRRInputs ? Math.abs(tp1 - entry) / Math.abs(entry - sl) : NaN;
+  const rrOkLocal = Number.isFinite(rrLocal) && rrLocal >= minRR;
+
+  const rrLabel = Number.isFinite(rrLocal)
+    ? `RR ≥ ${minRR} (${rrLocal.toFixed(2)})`
+    : `RR ≥ ${minRR}`;
+
 
   const checks = [
     { label: "Entry", ok: !!form.entry },
@@ -76,8 +90,8 @@ export default function ExecutionGateSection({
     { label: "TP1", ok: !!form.tp1 },
     { label: "Risk %", ok: !!form.riskPercent },
 
-    // ✅ fixed: RR is only ok if computed + passes threshold
-    { label: rrLabel, ok: !!rrOk },
+    // ✅ use resolved RR ok
+    { label: rrLabel, ok: rrOkLocal },
 
     { label: "Accept loss", ok: !!acceptedLoss },
   ];
@@ -88,10 +102,7 @@ export default function ExecutionGateSection({
   /* countdown */
   const [remaining, setRemaining] = useState(cooldownRemainingMs(discipline));
   useEffect(() => {
-    const id = setInterval(
-      () => setRemaining(cooldownRemainingMs(discipline)),
-      1000
-    );
+    const id = setInterval(() => setRemaining(cooldownRemainingMs(discipline)), 1000);
     return () => clearInterval(id);
   }, [discipline]);
 
@@ -122,7 +133,7 @@ export default function ExecutionGateSection({
   const handleClearViolations = () => persistDiscipline(clearViolations(discipline));
   const handleResetDiscipline = () => persistDiscipline(resetDisciplineState(discipline));
 
-  return (
+    return (
     <Card variant="primary" className="p-3 relative">
       <div className="flex items-center gap-2">
         <Shield className="w-4 h-4 text-emerald-300" />
