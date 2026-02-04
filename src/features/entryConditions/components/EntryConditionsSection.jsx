@@ -128,9 +128,14 @@ export default function EntryConditionsSection({
 
   const entryBlock = config?.blocks?.find((b) => b.id === "entry");
 
-  const enabledTemplates = (entryBlock?.enabled ? entryBlock.conditions : [])
+  // IMPORTANT: keep condition instance "c" so we can read labelOverride.
+  const enabledConditions = (entryBlock?.enabled ? entryBlock.conditions : [])
     .filter((c) => c.enabled)
-    .map((c) => CONDITION_TEMPLATES[c.templateKey])
+    .map((c) => {
+      const tpl = CONDITION_TEMPLATES[c.templateKey];
+      if (!tpl) return null;
+      return { c, tpl };
+    })
     .filter(Boolean);
 
   return (
@@ -161,7 +166,7 @@ export default function EntryConditionsSection({
               Entry conditions are disabled for this Trading System.
             </p>
           </div>
-        ) : enabledTemplates.length === 0 ? (
+        ) : enabledConditions.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-black/10 p-3">
             <p className="text-[11px] text-slate-400">
               No enabled entry conditions. Use Edit to enable at least one.
@@ -169,21 +174,20 @@ export default function EntryConditionsSection({
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {enabledTemplates.map((tpl) => {
+            {enabledConditions.map(({ c, tpl }) => {
               const name = tpl.formField;
               const value = form?.[name] ?? "";
               const violated = tpl.violationKey ? !!v?.[tpl.violationKey] : false;
 
-              const invalid =
-                !!invalidFlags?.[`${name}Invalid`] || violated;
+              const invalid = !!invalidFlags?.[`${name}Invalid`] || violated;
+              const ranging = tpl.rangingValue ? value === tpl.rangingValue : false;
 
-              const ranging =
-                tpl.rangingValue ? value === tpl.rangingValue : false;
+              const displayLabel = (c.labelOverride || "").trim() || tpl.label;
 
               return (
-                <div key={tpl.key} className={alertWrapClass(violated)}>
+                <div key={c.id} className={alertWrapClass(violated)}>
                   <Select
-                    label={tpl.label}
+                    label={displayLabel}
                     name={name}
                     value={value}
                     onChange={onChange}

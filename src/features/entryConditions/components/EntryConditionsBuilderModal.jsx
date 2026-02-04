@@ -45,11 +45,30 @@ export default function EntryConditionsBuilderModal({
     }));
   };
 
+  const setLabelOverride = (condId, nextLabel) => {
+    setDraft((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) => {
+        if (b.id !== "entry") return b;
+        return {
+          ...b,
+          conditions: (b.conditions || []).map((c) =>
+            c.id === condId ? { ...c, labelOverride: nextLabel } : c
+          ),
+        };
+      }),
+    }));
+  };
+
+  const clearLabelOverride = (condId) => {
+    setLabelOverride(condId, "");
+  };
+
   const handleSave = () => {
     // Persist to localStorage
     saveEntryConfig(Number(strategyId), draft);
 
-    // IMPORTANT: re-read from localStorage to guarantee UI uses saved truth
+    // Re-read from localStorage to guarantee UI uses saved truth
     const fresh = loadEntryConfig(Number(strategyId));
 
     if (typeof onSaved === "function") onSaved(fresh);
@@ -110,27 +129,52 @@ export default function EntryConditionsBuilderModal({
             return (
               <div
                 key={c.id}
-                className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-2"
+                className="rounded-xl border border-white/10 px-3 py-2"
               >
-                <div>
-                  <div className="text-sm text-slate-200">{tpl.label}</div>
-                  <div className="text-[11px] text-slate-400">
-                    id: <span className="text-slate-300">{c.id}</span> • key:{" "}
-                    <span className="text-slate-300">{c.templateKey}</span>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm text-slate-200">{tpl.label}</div>
+                    <div className="text-[11px] text-slate-400">
+                      id: <span className="text-slate-300">{c.id}</span> • key:{" "}
+                      <span className="text-slate-300">{c.templateKey}</span>
+                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleConditionEnabled(c.id)}
+                    className={`shrink-0 text-xs px-2 py-1 rounded ${
+                      c.enabled
+                        ? "bg-emerald-400/20 text-emerald-300"
+                        : "bg-white/5 text-slate-400"
+                    }`}
+                  >
+                    {c.enabled ? "Enabled" : "Disabled"}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => toggleConditionEnabled(c.id)}
-                  className={`text-xs px-2 py-1 rounded ${
-                    c.enabled
-                      ? "bg-emerald-400/20 text-emerald-300"
-                      : "bg-white/5 text-slate-400"
-                  }`}
-                >
-                  {c.enabled ? "Enabled" : "Disabled"}
-                </button>
+                {/* NEW: label override */}
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-slate-400">
+                      Custom label (optional)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => clearLabelOverride(c.id)}
+                      className="text-[11px] text-slate-400 hover:text-slate-200 transition"
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <input
+                    value={c.labelOverride ?? ""}
+                    onChange={(e) => setLabelOverride(c.id, e.target.value)}
+                    placeholder={tpl.label}
+                    className="w-full h-8 rounded-lg bg-[#0b1120] px-3 text-sm text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  />
+                </div>
               </div>
             );
           })}
