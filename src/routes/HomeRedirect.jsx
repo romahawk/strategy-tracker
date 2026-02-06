@@ -11,9 +11,14 @@ export default function HomeRedirect() {
     const strategies = strategyStore.ensureDefaults();
     const firstStrategyId = Number(strategies?.[0]?.id) || 1;
 
+    // ensure accounts exist for this strategy
+    accountStore.ensureDefaults(firstStrategyId);
+
     const firstAccountId = accountStore.getFirstAccountId(firstStrategyId);
 
-    navigate(`/strategy/${firstStrategyId}/account/${firstAccountId}`, { replace: true });
+    navigate(`/strategy/${firstStrategyId}/account/${firstAccountId}`, {
+      replace: true,
+    });
   }, [navigate]);
 
   return null;

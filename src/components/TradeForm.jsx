@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
-import EntryConditionsSection from "./trades/EntryConditionsSection";
+import EntryConditionsSection from "../features/entryConditions/components/EntryConditionsSection";
 import RiskSetupSection from "./trades/RiskSetupSection";
 import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
@@ -18,6 +18,9 @@ import {
   riskCapMultiplier,
   isCooldownActive,
 } from "../utils/discipline";
+
+import { strategyStore } from "../storage/strategyStore";
+import { accountStore } from "../storage/accountStore";
 
 /* ---------- helpers ---------- */
 function num(x) {
@@ -86,37 +89,22 @@ function Collapsible({ title, open, setOpen, children, hint }) {
   );
 }
 
-function buildEntryConditions(form, sid) {
+function buildEntryConditions(form) {
   const existing = Array.isArray(form?.entryConditions) ? form.entryConditions : [];
-  if (existing.length > 0) return existing;
-
-  const pushIf = (arr, key, raw) => {
-    if (raw === undefined || raw === null || raw === "") return;
-    arr.push({
-      key,
-      ok: String(raw).toLowerCase() !== "no" && String(raw).toLowerCase() !== "false",
-      value: String(raw),
-    });
-  };
-
-  const out = [];
-  pushIf(out, "ST", form.stTrend);
-  pushIf(out, "USDT.D", form.usdtTrend);
-  pushIf(out, "Overlay", form.overlay);
-  pushIf(out, "MA200", form.ma200);
-
-  if (Number(sid) === 2) {
-    pushIf(out, "15m CHoCH/BoS", form.chochBos15m);
-    pushIf(out, "1m ST", form.st1m);
-    pushIf(out, "1m Overlay", form.overlay1m);
-    pushIf(out, "1m MA200", form.ma2001m);
+  if (existing.length > 0) {
+    // Normalize old/mixed formats → ensure every item has the new shape
+    return existing.map((c, i) => ({
+      id: c.id || `c_${Date.now()}_${i}`,
+      label: c.label || c.key || "",
+      type: c.type || "text",
+      value: c.value ?? "",
+      options: c.options || "",
+      ok: typeof c.ok === "boolean" ? c.ok : false,
+    }));
   }
 
-  if (Number(sid) === 4) {
-    pushIf(out, "1m BoS", form.bos1m);
-  }
-
-  return out;
+  // No conditions yet → single empty placeholder
+  return [{ id: `c_${Date.now()}`, label: "", type: "select", value: "", options: "", ok: false }];
 }
 
 export default function TradeForm({
@@ -126,8 +114,12 @@ export default function TradeForm({
   strategyId,
   accountId,
 }) {
-  const sid = Number(strategyId) || 1;
-  const aid = Number(accountId) || 1;
+  const sid = Number(strategyId) || strategyStore.list()[0]?.id || 1;
+  const aid = Number(accountId) || accountStore.getFirstAccountId(sid);
+
+  // Account-driven funded/prop detection (replaces hardcoded sid === 3 || sid === 4)
+  const account = accountStore.list(sid).find((a) => a.id === aid);
+  const isFunded = account?.accountType === "funded" || account?.venue === "prop";
 
   const CONFIG = useMemo(
     () => ({
@@ -179,7 +171,7 @@ export default function TradeForm({
         : {}),
     };
 
-    hydrated.entryConditions = buildEntryConditions(hydrated, sid);
+    hydrated.entryConditions = buildEntryConditions(hydrated);
 
     setForm((prev) => ({
       ...prev,
@@ -233,8 +225,6 @@ export default function TradeForm({
 
   /* ---------- Risk calc ---------- */
   useEffect(() => {
-    const isFunded = sid === 3 || sid === 4;
-
     const e = num(form.entry);
     const s = num(form.sl);
     const d = num(form.deposit);
@@ -303,7 +293,7 @@ export default function TradeForm({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    sid,
+    isFunded,
     form.entry,
     form.sl,
     form.deposit,
@@ -503,7 +493,7 @@ export default function TradeForm({
         setDiscipline(next);
       }
 
-      const normalizedEntryConditions = buildEntryConditions(form, sid);
+      const normalizedEntryConditions = buildEntryConditions(form);
 
       const eqBefore = moneyNum(form.equityBefore) ?? moneyNum(form.deposit);
       const eqAfter =
@@ -555,12 +545,16 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} />
+            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} account={account} />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <EntryConditionsSection form={form} onChange={handleChange} strategyId={sid} />
+            <EntryConditionsSection
+              conditions={form.entryConditions || []}
+              onConditionsChange={(next) => setField("entryConditions", next)}
+              direction={form.direction}
+            />
 
             <ExecutionGateSection
               form={form}
