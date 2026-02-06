@@ -25,12 +25,16 @@ const keyAccounts = (strategyId) => `strategy:${Number(strategyId)}:accounts`;
 
 function normalizeAccount(a, fallbackId = 1) {
   const id = Number(a?.id ?? fallbackId);
-  return {
+  const out = {
     id,
     name: (a?.name || `Account ${id}`).toString(),
     createdAt: typeof a?.createdAt === "string" ? a.createdAt : nowISO(),
     updatedAt: typeof a?.updatedAt === "string" ? a.updatedAt : nowISO(),
   };
+  // Preserve optional account classification fields
+  if (a?.accountType) out.accountType = String(a.accountType);
+  if (a?.venue) out.venue = String(a.venue);
+  return out;
 }
 
 export const accountStore = {

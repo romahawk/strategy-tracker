@@ -2,8 +2,7 @@
 import { ShieldCheck } from "lucide-react";
 import { Card } from "../ui/Card";
 
-export default function RiskSetupSection({ form, onChange, strategyId, riskTooHigh }) {
-  const isFTMO = strategyId === 3 || strategyId === 4;
+export default function RiskSetupSection({ form, onChange, strategyId, isFunded, riskTooHigh }) {
 
   const MIN_LEV = 1;
   const MAX_LEV = 50;
@@ -77,7 +76,7 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
         </div>
       </div>
 
-      {!isFTMO ? (
+      {!isFunded ? (
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300 flex justify-between">

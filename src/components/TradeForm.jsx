@@ -19,6 +19,9 @@ import {
   isCooldownActive,
 } from "../utils/discipline";
 
+import { strategyStore } from "../storage/strategyStore";
+import { accountStore } from "../storage/accountStore";
+
 /* ---------- helpers ---------- */
 function num(x) {
   const v = Number(x);
@@ -126,8 +129,12 @@ export default function TradeForm({
   strategyId,
   accountId,
 }) {
-  const sid = Number(strategyId) || 1;
-  const aid = Number(accountId) || 1;
+  const sid = Number(strategyId) || strategyStore.list()[0]?.id || 1;
+  const aid = Number(accountId) || accountStore.getFirstAccountId(sid);
+
+  // Account-driven funded/prop detection (replaces hardcoded sid === 3 || sid === 4)
+  const account = accountStore.list(sid).find((a) => a.id === aid);
+  const isFunded = account?.accountType === "funded" || account?.venue === "prop";
 
   const CONFIG = useMemo(
     () => ({
@@ -233,8 +240,6 @@ export default function TradeForm({
 
   /* ---------- Risk calc ---------- */
   useEffect(() => {
-    const isFunded = sid === 3 || sid === 4;
-
     const e = num(form.entry);
     const s = num(form.sl);
     const d = num(form.deposit);
@@ -303,7 +308,7 @@ export default function TradeForm({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    sid,
+    isFunded,
     form.entry,
     form.sl,
     form.deposit,
@@ -555,7 +560,7 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} />
+            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} isFunded={isFunded} />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 
