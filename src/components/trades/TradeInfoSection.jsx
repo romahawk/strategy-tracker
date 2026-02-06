@@ -14,9 +14,9 @@ const PAIRS = {
 };
 
 /* ===== % CHECKPOINTS ===== */
-const PCT_MIN = 1;
+const PCT_MIN = 0;                 // ✅ was 1
 const PCT_MAX = 100;
-const CHECKPOINTS = [25, 50, 75, 100];
+const CHECKPOINTS = [0, 25, 50, 75, 100];   // ✅ add 0%
 const SNAP_TOLERANCE = 1;
 
 /* ===== LOCAL STORAGE ===== */
@@ -31,7 +31,12 @@ const sliderCls = "w-full accent-emerald-400 cursor-pointer";
 
 export default function TradeInfoSection({ form, onChange }) {
   /* ---------- percent helpers ---------- */
-  const clamp = (v) => Math.min(PCT_MAX, Math.max(PCT_MIN, Number(v) || PCT_MIN));
+  const clamp = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 25;
+    return Math.min(PCT_MAX, Math.max(PCT_MIN, n));
+  };
+
   const snap = (v) => {
     const val = clamp(v);
     for (const c of CHECKPOINTS) {
@@ -40,7 +45,8 @@ export default function TradeInfoSection({ form, onChange }) {
     return val;
   };
 
-  const pct = Number(form.usedDepositPercent || 25);
+  const pct = Number(form.usedDepositPercent ?? 25);
+
   const pctLeft = (v) => ((v - PCT_MIN) / (PCT_MAX - PCT_MIN)) * 100;
 
   /* ---------- favorites / recent ---------- */
@@ -72,6 +78,15 @@ export default function TradeInfoSection({ form, onChange }) {
 
   const market = form.pairMarket || "crypto";
   const allPairs = PAIRS[market] || [];
+
+  // ✅ active value label positioning (edge-safe)
+  const activeLeft = pctLeft(clamp(pct));
+  const activeStyle =
+    activeLeft <= 1
+      ? { left: 0, transform: "translateX(0)" }
+      : activeLeft >= 99
+      ? { right: 0, left: "auto", transform: "translateX(0)" }
+      : { left: `${activeLeft}%`, transform: "translateX(-50%)" };
 
   return (
     <Card variant="secondary" className="p-2 tradeinfo-scrollbars">
@@ -225,8 +240,8 @@ export default function TradeInfoSection({ form, onChange }) {
           <div className="relative">
             <input
               type="number"
-              min={1}
-              max={100}
+              min={PCT_MIN}
+              max={PCT_MAX}
               value={pct}
               onChange={(e) =>
                 onChange({
@@ -269,8 +284,16 @@ export default function TradeInfoSection({ form, onChange }) {
               ))}
             </div>
 
-            {/* labels (edge-safe positioning) */}
+            {/* ✅ active value under the thumb */}
             <div className="relative h-4 mt-1">
+              <span
+                className="absolute text-[10px] text-emerald-400 font-medium pointer-events-none"
+                style={activeStyle}
+              >
+                {clamp(pct)}%
+              </span>
+
+              {/* labels (edge-safe positioning) */}
               {CHECKPOINTS.map((c) => {
                 const isFirst = c === CHECKPOINTS[0];
                 const isLast = c === CHECKPOINTS[CHECKPOINTS.length - 1];

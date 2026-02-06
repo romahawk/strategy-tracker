@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
-import EntryConditionsSection from "./trades/EntryConditionsSection";
+import EntryConditionsSection from "../features/entryConditions/components/EntryConditionsSection";
 import RiskSetupSection from "./trades/RiskSetupSection";
 import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
@@ -560,7 +560,7 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} isFunded={isFunded} />
+            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} account={account} />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 

@@ -2,11 +2,11 @@
 // Accounts CRUD + defaults per strategy (localStorage MVP)
 //
 // Storage key:
-// - strategy:{strategyId}:accounts  -> [{ id, name, createdAt?, updatedAt? }, ...]
+// - strategy:{strategyId}:accounts  -> [{ id, name, accountType, venue, broker, baseCurrency, status, createdAt, updatedAt }, ...]
 //
 // Notes:
 // - Keeps numeric IDs for compatibility with current routing
-// - Guarantees at least Account 1 exists via ensureDefaults()
+// - Guarantees at least one account exists via ensureDefaults()
 
 function nowISO() {
   return new Date().toISOString();
@@ -25,32 +25,73 @@ const keyAccounts = (strategyId) => `strategy:${Number(strategyId)}:accounts`;
 
 function normalizeAccount(a, fallbackId = 1) {
   const id = Number(a?.id ?? fallbackId);
-  const out = {
+
+  return {
     id,
     name: (a?.name || `Account ${id}`).toString(),
+
+    // account split foundation
+    accountType: a?.accountType === "funded" ? "funded" : "personal",
+    venue: ["CEX", "DEX", "prop"].includes(a?.venue) ? a.venue : "CEX",
+    broker: (a?.broker || "").toString(),
+    baseCurrency: (a?.baseCurrency || "USDT").toString(),
+    status: a?.status === "archived" ? "archived" : "active",
+
     createdAt: typeof a?.createdAt === "string" ? a.createdAt : nowISO(),
     updatedAt: typeof a?.updatedAt === "string" ? a.updatedAt : nowISO(),
   };
-  // Preserve optional account classification fields
-  if (a?.accountType) out.accountType = String(a.accountType);
-  if (a?.venue) out.venue = String(a.venue);
-  return out;
+}
+
+function readList(strategyId) {
+  const sid = Number(strategyId);
+  const k = keyAccounts(sid);
+  const parsed = safeParseJSON(localStorage.getItem(k));
+  if (!Array.isArray(parsed)) return null;
+
+  const normalized = parsed
+    .map((a) => normalizeAccount(a))
+    .sort((a, b) => a.id - b.id);
+
+  return normalized.length ? normalized : null;
+}
+
+function writeList(strategyId, list) {
+  const sid = Number(strategyId);
+  const k = keyAccounts(sid);
+  localStorage.setItem(k, JSON.stringify(list));
 }
 
 export const accountStore = {
   ensureDefaults(strategyId) {
-    const sid = Number(strategyId);
-    const k = keyAccounts(sid);
-
-    const parsed = safeParseJSON(localStorage.getItem(k));
-    if (Array.isArray(parsed) && parsed.length) {
-      const normalized = parsed.map((a) => normalizeAccount(a)).sort((a, b) => a.id - b.id);
-      localStorage.setItem(k, JSON.stringify(normalized));
-      return normalized;
+    const existing = readList(strategyId);
+    if (existing) {
+      writeList(strategyId, existing);
+      return existing;
     }
 
-    const def = [normalizeAccount({ id: 1, name: "Account 1" })];
-    localStorage.setItem(k, JSON.stringify(def));
+    // sensible defaults: personal crypto + funded FTMO
+    const def = [
+      normalizeAccount({
+        id: 1,
+        name: "Personal (Crypto)",
+        accountType: "personal",
+        venue: "CEX",
+        broker: "CEX",
+        baseCurrency: "USDT",
+        status: "active",
+      }),
+      normalizeAccount({
+        id: 2,
+        name: "FTMO (Funded)",
+        accountType: "funded",
+        venue: "prop",
+        broker: "FTMO",
+        baseCurrency: "USD",
+        status: "active",
+      }),
+    ];
+
+    writeList(strategyId, def);
     return def;
   },
 
@@ -60,8 +101,7 @@ export const accountStore = {
 
   getFirstAccountId(strategyId) {
     const list = this.ensureDefaults(strategyId);
-    const first = list[0];
-    return Number(first?.id) || 1;
+    return Number(list?.[0]?.id) || 1;
   },
 
   exists(strategyId, accountId) {
@@ -70,5 +110,60 @@ export const accountStore = {
     if (!Number.isFinite(sid) || !Number.isFinite(aid)) return false;
     const list = this.ensureDefaults(sid);
     return list.some((a) => Number(a.id) === aid);
+  },
+
+  create(strategyId, payload) {
+    const sid = Number(strategyId);
+    const list = this.ensureDefaults(sid);
+
+    const nextId = list.length ? Math.max(...list.map((a) => a.id)) + 1 : 1;
+
+    const created = normalizeAccount(
+      {
+        ...payload,
+        id: nextId,
+        createdAt: nowISO(),
+        updatedAt: nowISO(),
+      },
+      nextId
+    );
+
+    const next = [...list, created].sort((a, b) => a.id - b.id);
+    writeList(sid, next);
+    return { list: next, created };
+  },
+
+  update(strategyId, accountId, patch) {
+    const sid = Number(strategyId);
+    const aid = Number(accountId);
+    const list = this.ensureDefaults(sid);
+
+    const next = list.map((a) => {
+      if (Number(a.id) !== aid) return a;
+      return normalizeAccount(
+        {
+          ...a,
+          ...patch,
+          id: a.id,
+          updatedAt: nowISO(),
+        },
+        a.id
+      );
+    });
+
+    writeList(sid, next);
+    return next;
+  },
+
+  remove(strategyId, accountId) {
+    const sid = Number(strategyId);
+    const aid = Number(accountId);
+    const list = this.ensureDefaults(sid);
+
+    if (list.length <= 1) return list; // cannot delete last account
+
+    const next = list.filter((a) => Number(a.id) !== aid);
+    writeList(sid, next);
+    return next;
   },
 };

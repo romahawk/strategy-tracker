@@ -5,7 +5,7 @@
 // Notes:
 // - Keeps numeric IDs for compatibility with current routing (/strategy/:id/account/:id)
 // - Migrates legacy names from "strategy:names" if present
-// - On delete, cleans up known per-strategy keys (accounts, entry, trades)
+// - On delete, cleans up known per-strategy keys (entry, trades, accounts)
 
 const STRATEGIES_KEY = "strategies:list";
 const LEGACY_NAMES_KEY = "strategy:names";
@@ -55,7 +55,6 @@ function normalizeStrategy(s) {
 function readList() {
   const parsed = safeParseJSON(localStorage.getItem(STRATEGIES_KEY));
   if (!isStrategyList(parsed)) return null;
-  // normalize + sort by id
   return parsed.map(normalizeStrategy).sort((a, b) => a.id - b.id);
 }
 
@@ -69,22 +68,12 @@ function readLegacyNamesMap() {
   return parsed;
 }
 
-function ensureDefaultAccounts(strategyId) {
-  const key = `strategy:${strategyId}:accounts`;
-  const parsed = safeParseJSON(localStorage.getItem(key));
-  if (Array.isArray(parsed) && parsed.length) return;
-  localStorage.setItem(key, JSON.stringify([{ id: 1, name: "Account 1" }]));
-}
-
 function cleanupStrategyStorage(strategyId) {
-  // remove accounts list + entry definition
-  localStorage.removeItem(`strategy:${strategyId}:accounts`);
-  localStorage.removeItem(`strategy:${strategyId}:entry:v1`);
-
-  // remove trades keys per known accounts (if any)
+  // Read accounts first (for trade keys), then delete
   const accounts = safeParseJSON(
     localStorage.getItem(`strategy:${strategyId}:accounts`)
   );
+
   const accountIds = Array.isArray(accounts)
     ? accounts.map((a) => Number(a?.id)).filter((n) => Number.isFinite(n))
     : [];
@@ -98,8 +87,8 @@ function cleanupStrategyStorage(strategyId) {
     }
   }
 
-  // legacy (if you ever stored per-strategy names separately)
-  // no-op for now
+  localStorage.removeItem(`strategy:${strategyId}:entry:v1`);
+  localStorage.removeItem(`strategy:${strategyId}:accounts`);
 }
 
 export const strategyStore = {
@@ -124,9 +113,7 @@ export const strategyStore = {
       });
     });
 
-    // ensure each default strategy has at least Account 1
-    for (const s of seeded) ensureDefaultAccounts(s.id);
-
+    // IMPORTANT: do NOT create accounts here (decouple)
     writeList(seeded);
     return seeded;
   },
@@ -148,7 +135,10 @@ export const strategyStore = {
 
     const created = normalizeStrategy({
       id: nextId,
-      name: typeof name === "string" && name.trim() ? name.trim() : `Strategy ${nextId}`,
+      name:
+        typeof name === "string" && name.trim()
+          ? name.trim()
+          : `Strategy ${nextId}`,
       createdAt: nowISO(),
       updatedAt: nowISO(),
     });
@@ -156,8 +146,7 @@ export const strategyStore = {
     const next = [...list, created].sort((a, b) => a.id - b.id);
     writeList(next);
 
-    ensureDefaultAccounts(created.id);
-
+    // IMPORTANT: do NOT create accounts here (decouple)
     return { list: next, created };
   },
 
@@ -179,14 +168,12 @@ export const strategyStore = {
     if (!Number.isFinite(id)) return this.list();
 
     const list = this.ensureDefaults();
-    if (list.length <= 1) return list; // cannot delete last strategy
+    if (list.length <= 1) return list;
 
     const next = list.filter((s) => s.id !== id);
     writeList(next);
 
-    // cleanup known per-strategy keys
     cleanupStrategyStorage(id);
-
     return next;
   },
 };
