@@ -2,8 +2,24 @@
 import { ShieldCheck } from "lucide-react";
 import { Card } from "../ui/Card";
 
-export default function RiskSetupSection({ form, onChange, strategyId, riskTooHigh }) {
-  const isFTMO = strategyId === 3 || strategyId === 4;
+export default function RiskSetupSection({
+  form,
+  onChange,
+  strategyId,
+  riskTooHigh,
+  account, // ✅ new
+}) {
+  // ✅ NEW: mode derived from selected account
+  const venue = String(account?.venue || "").toLowerCase(); // "cex" | "dex" | "prop"
+  const accountType = String(account?.accountType || "").toLowerCase(); // "personal" | "funded"
+
+  const isPropFromAccount = accountType === "funded" || venue === "prop";
+
+  // ✅ fallback (until parent passes account)
+  const isFTMOFromStrategy = strategyId === 3 || strategyId === 4;
+
+  // Final flag
+  const isProp = account ? isPropFromAccount : isFTMOFromStrategy;
 
   const MIN_LEV = 1;
   const MAX_LEV = 50;
@@ -48,7 +64,7 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
   const handleLeverageNumberChange = (value) => setLeverage(value);
   const handleLeverageSliderChange = (value) => setLeverage(snapLeverage(value));
 
-  const handleRiskFtmoChange = (value) => {
+  const handleRiskPropChange = (value) => {
     let v = parseFloat(value);
     if (!v || Number.isNaN(v)) v = 0.5;
     if (v < 0.25) v = 0.25;
@@ -64,6 +80,11 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
       <div className="flex items-center gap-2 mb-1">
         <ShieldCheck className="w-4 h-4 text-emerald-300" />
         <h3 className="text-sm font-semibold text-white">Risk Setup</h3>
+
+        {/* Optional: small badge showing active mode */}
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full border border-white/10 text-white/60">
+          {isProp ? "PROP / FUNDED" : (venue || "cex").toUpperCase()}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-2">
@@ -77,7 +98,8 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
         </div>
       </div>
 
-      {!isFTMO ? (
+      {!isProp ? (
+        // ✅ CEX / DEX mode (leverage + SL%/$ + Risk%)
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300 flex justify-between">
@@ -149,8 +171,22 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
-              <input type="number" name="slPercent" value={form.slPercent || ""} onChange={onChange} placeholder="SL %" className={inputBase} />
-              <input type="number" name="slDollar" value={form.slDollar || ""} onChange={onChange} placeholder="SL $" className={inputBase} />
+              <input
+                type="number"
+                name="slPercent"
+                value={form.slPercent || ""}
+                onChange={onChange}
+                placeholder="SL %"
+                className={inputBase}
+              />
+              <input
+                type="number"
+                name="slDollar"
+                value={form.slDollar || ""}
+                onChange={onChange}
+                placeholder="SL $"
+                className={inputBase}
+              />
             </div>
 
             <input
@@ -168,12 +204,14 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
           </div>
         </div>
       ) : (
+        // ✅ PROP / FUNDED mode (risk% slider; lots calc lives elsewhere)
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300 flex justify-between">
               <span>Risk per trade %</span>
               <span className="text-[10px] text-slate-400">0.25% – 2.00%</span>
             </label>
+
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -181,7 +219,7 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
                 max={2}
                 step={0.25}
                 value={form.riskPercent || "0.50"}
-                onChange={(e) => handleRiskFtmoChange(e.target.value)}
+                onChange={(e) => handleRiskPropChange(e.target.value)}
                 className={`${inputBase} w-24`}
               />
               <span className="text-xs text-slate-300">%</span>
@@ -193,27 +231,44 @@ export default function RiskSetupSection({ form, onChange, strategyId, riskTooHi
               max={2}
               step={0.25}
               value={Number(form.riskPercent || 0.5)}
-              onChange={(e) => handleRiskFtmoChange(e.target.value)}
+              onChange={(e) => handleRiskPropChange(e.target.value)}
               className="w-full accent-emerald-400 cursor-pointer"
             />
 
             <p className="text-[10px] text-slate-400 mt-1">
-              Leverage: <span className="font-semibold">1×</span>
+              Funded/prop mode: leverage is handled by broker/prop rules; risk is normalized as % of account size.
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-300">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
-              <input readOnly type="number" name="slPercent" value={form.slPercent || ""} className="bg-[#020617] border border-white/5 rounded-lg px-3 py-2 text-sm text-slate-200" />
-              <input readOnly type="number" name="slDollar" value={form.slDollar || ""} className="bg-[#020617] border border-white/5 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input
+                type="number"
+                name="slPercent"
+                value={form.slPercent || ""}
+                onChange={onChange}
+                placeholder="SL %"
+                className={inputBase}
+              />
+              <input
+                type="number"
+                name="slDollar"
+                value={form.slDollar || ""}
+                onChange={onChange}
+                placeholder="SL $"
+                className={inputBase}
+              />
             </div>
 
+            {/* Keep Risk% visible for consistency (already controlled by slider/input above) */}
             <input
-              type="text"
-              readOnly
-              value={form.usedDepositPercent ? `Lot size: ${Number(form.usedDepositPercent).toFixed(2)}%` : "Lot size: –"}
-              className="bg-[#020617] border border-white/5 rounded-lg px-3 py-2 text-[11px] text-slate-300"
+              type="number"
+              name="riskPercent"
+              value={form.riskPercent || ""}
+              onChange={(e) => handleRiskPropChange(e.target.value)}
+              placeholder="Risk %"
+              className={inputBase}
             />
           </div>
         </div>
