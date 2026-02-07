@@ -1,7 +1,5 @@
 // Helpers for rendering rule labels and building trade-time snapshots.
 
-import { RULE_TYPES } from "./ruleTypes";
-
 /**
  * Converts a rule into a human-readable sentence.
  */
@@ -30,13 +28,6 @@ export function ruleToSentence(rule) {
     default:
       return "Unknown condition";
   }
-}
-
-/**
- * Returns the fields schema for a given rule type.
- */
-export function fieldsForType(type) {
-  return RULE_TYPES[type]?.fields || [];
 }
 
 /**
