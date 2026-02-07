@@ -196,9 +196,14 @@ export default function AccountsPage() {
                   <select
                     className={select}
                     value={form.accountType}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, accountType: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      const type = e.target.value;
+                      if (type === "funded") {
+                        setForm((f) => ({ ...f, accountType: type, venue: "prop", baseCurrency: "USD" }));
+                      } else {
+                        setForm((f) => ({ ...f, accountType: type, venue: "CEX", baseCurrency: "USDT" }));
+                      }
+                    }}
                   >
                     {ACCOUNT_TYPES.map((x) => (
                       <option key={x.value} value={x.value}>
@@ -210,17 +215,23 @@ export default function AccountsPage() {
 
                 <div>
                   <label className="text-xs text-white/60">Venue</label>
-                  <select
-                    className={select}
-                    value={form.venue}
-                    onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
-                  >
-                    {VENUES.map((x) => (
-                      <option key={x.value} value={x.value}>
-                        {x.label}
-                      </option>
-                    ))}
-                  </select>
+                  {form.accountType === "funded" ? (
+                    <div className={`${select} flex items-center text-white/50 cursor-not-allowed`}>
+                      Prop
+                    </div>
+                  ) : (
+                    <select
+                      className={select}
+                      value={form.venue}
+                      onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
+                    >
+                      {VENUES.filter((x) => x.value !== "prop").map((x) => (
+                        <option key={x.value} value={x.value}>
+                          {x.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -237,19 +248,25 @@ export default function AccountsPage() {
 
                 <div>
                   <label className="text-xs text-white/60">Base currency</label>
-                  <select
-                    className={select}
-                    value={form.baseCurrency}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, baseCurrency: e.target.value }))
-                    }
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  {form.accountType === "funded" ? (
+                    <div className={`${select} flex items-center text-white/50 cursor-not-allowed`}>
+                      USD
+                    </div>
+                  ) : (
+                    <select
+                      className={select}
+                      value={form.baseCurrency}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, baseCurrency: e.target.value }))
+                      }
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 

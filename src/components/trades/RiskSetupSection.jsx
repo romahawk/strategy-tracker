@@ -5,7 +5,6 @@ import { Card } from "../ui/Card";
 export default function RiskSetupSection({
   form,
   onChange,
-  strategyId,
   riskTooHigh,
   account,
 }) {

@@ -545,7 +545,7 @@ export default function TradeForm({
         <div className="grid gap-2 lg:grid-cols-2">
           <div className="space-y-2 order-2 lg:order-1">
             <TradeInfoSection form={form} onChange={handleChange} />
-            <RiskSetupSection form={form} onChange={handleChange} strategyId={sid} account={account} />
+            <RiskSetupSection form={form} onChange={handleChange} account={account} />
             <TargetsSection form={form} onChange={handleChange} />
           </div>
 
