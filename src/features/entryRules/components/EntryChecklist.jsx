@@ -107,12 +107,12 @@ export default function EntryChecklist({
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
             {groups.map((group, gi) => (
-              <div key={group.id}>
-                {/* Group label (only show if multiple groups or OR) */}
+              <div key={group.id} className="flex flex-col gap-1.5">
+                {/* Group label */}
                 {(groups.length > 1 || group.operator === "OR") && (
-                  <div className="text-[10px] text-slate-400 mb-1 flex items-center gap-1.5">
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
                     <span className={`px-1.5 py-0.5 rounded-full border text-[9px] ${
                       group.operator === "AND"
                         ? "border-emerald-400/20 text-emerald-400/60"
@@ -120,7 +120,7 @@ export default function EntryChecklist({
                     }`}>
                       {group.operator}
                     </span>
-                    Group {gi + 1}: {group.operator === "AND" ? "all must be true" : "any one true"}
+                    G{gi + 1}
                   </div>
                 )}
 
@@ -132,54 +132,46 @@ export default function EntryChecklist({
                   return (
                     <div
                       key={rule.id}
-                      className={`rounded-xl border p-2 mb-1.5 transition ${
+                      className={`rounded-xl border p-2 transition ${
                         satisfied
                           ? "border-emerald-400/20 bg-emerald-400/[0.04]"
                           : "border-white/10 bg-black/10"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {/* Satisfied toggle */}
                         <button
                           type="button"
                           onClick={() => toggleSatisfied(rule.id)}
-                          className={`shrink-0 h-7 w-7 rounded-lg flex items-center justify-center transition ${
+                          className={`shrink-0 h-6 w-6 rounded-lg flex items-center justify-center transition ${
                             satisfied
                               ? "bg-emerald-400/20 border border-emerald-400/40 text-emerald-300"
                               : "bg-white/5 border border-white/10 text-slate-400"
                           }`}
                         >
                           {satisfied ? (
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-3 h-3" />
                           ) : (
-                            <Ban className="w-3.5 h-3.5" />
+                            <Ban className="w-3 h-3" />
                           )}
                         </button>
 
-                        {/* Rule sentence */}
                         <div className="flex-1 min-w-0">
-                          <div className={`text-sm ${satisfied ? "text-emerald-200" : "text-slate-200"}`}>
+                          <div className={`text-xs leading-tight truncate ${satisfied ? "text-emerald-200" : "text-slate-200"}`} title={sentence}>
                             {sentence}
                           </div>
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[9px] text-slate-500">
                             {rule.type}
                             {rule.params?.timeframe && ` · ${rule.params.timeframe}`}
                           </div>
                         </div>
-
-                        {/* Notes toggle (optional micro-notes) */}
-                        {result?.notes && (
-                          <MessageSquare className="w-3 h-3 text-slate-400 shrink-0" />
-                        )}
                       </div>
 
-                      {/* Notes input (always visible for MVP simplicity) */}
                       <input
                         type="text"
                         value={result?.notes || ""}
                         onChange={(e) => setNotes(rule.id, e.target.value)}
                         placeholder="notes…"
-                        className="mt-1.5 w-full h-6 rounded-lg bg-[#0b1120] px-2 text-[11px] text-white/70 border border-white/5 focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
+                        className="mt-1 w-full h-5 rounded-lg bg-[#0b1120] px-2 text-[10px] text-white/70 border border-white/5 focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
                       />
                     </div>
                   );
