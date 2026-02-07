@@ -3,7 +3,7 @@ import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
-import EntryConditionsSection from "../features/entryConditions/components/EntryConditionsSection";
+import EntryChecklist from "../features/entryRules/components/EntryChecklist";
 import RiskSetupSection from "./trades/RiskSetupSection";
 import TargetsSection from "./trades/TargetsSection";
 import ChartSection from "./trades/ChartSection";
@@ -89,23 +89,6 @@ function Collapsible({ title, open, setOpen, children, hint }) {
   );
 }
 
-function buildEntryConditions(form) {
-  const existing = Array.isArray(form?.entryConditions) ? form.entryConditions : [];
-  if (existing.length > 0) {
-    // Normalize old/mixed formats → ensure every item has the new shape
-    return existing.map((c, i) => ({
-      id: c.id || `c_${Date.now()}_${i}`,
-      label: c.label || c.key || "",
-      type: c.type || "text",
-      value: c.value ?? "",
-      options: c.options || "",
-      ok: typeof c.ok === "boolean" ? c.ok : false,
-    }));
-  }
-
-  // No conditions yet → single empty placeholder
-  return [{ id: `c_${Date.now()}`, label: "", type: "select", value: "", options: "", ok: false }];
-}
 
 export default function TradeForm({
   onAddTrade,
@@ -171,7 +154,11 @@ export default function TradeForm({
         : {}),
     };
 
-    hydrated.entryConditions = buildEntryConditions(hydrated);
+    // Hydrate rule results from saved trade (or keep empty for new)
+    if (hydrated.ruleResults) {
+      hydrated.ruleResults = hydrated.ruleResults;
+      hydrated.ruleSnapshot = hydrated.ruleSnapshot || [];
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -493,8 +480,6 @@ export default function TradeForm({
         setDiscipline(next);
       }
 
-      const normalizedEntryConditions = buildEntryConditions(form);
-
       const eqBefore = moneyNum(form.equityBefore) ?? moneyNum(form.deposit);
       const eqAfter =
         moneyNum(form.equityAfter) ??
@@ -516,7 +501,11 @@ export default function TradeForm({
           : {}),
 
         direction: form.direction || "Long",
-        entryConditions: normalizedEntryConditions,
+
+        // Rule-based entry conditions (snapshot at trade time)
+        ruleSnapshot: form.ruleSnapshot || [],
+        ruleResults: form.ruleResults || [],
+
         id,
         strategyId: sid,
         accountId: aid,
@@ -550,10 +539,12 @@ export default function TradeForm({
           </div>
 
           <div className="space-y-2 order-1 lg:order-2">
-            <EntryConditionsSection
-              conditions={form.entryConditions || []}
-              onConditionsChange={(next) => setField("entryConditions", next)}
+            <EntryChecklist
+              strategyId={sid}
               direction={form.direction}
+              ruleResults={form.ruleResults || []}
+              onResultsChange={(next) => setField("ruleResults", next)}
+              onSnapshotChange={(snap) => setField("ruleSnapshot", snap)}
             />
 
             <ExecutionGateSection
