@@ -25,16 +25,17 @@ const keyAccounts = (strategyId) => `strategy:${Number(strategyId)}:accounts`;
 
 function normalizeAccount(a, fallbackId = 1) {
   const id = Number(a?.id ?? fallbackId);
+  const isFunded = a?.accountType === "funded";
 
   return {
     id,
     name: (a?.name || `Account ${id}`).toString(),
 
-    // account split foundation
-    accountType: a?.accountType === "funded" ? "funded" : "personal",
-    venue: ["CEX", "DEX", "prop"].includes(a?.venue) ? a.venue : "CEX",
+    // account split foundation — enforce type→venue→currency invariants
+    accountType: isFunded ? "funded" : "personal",
+    venue: isFunded ? "prop" : (["CEX", "DEX"].includes(a?.venue) ? a.venue : "CEX"),
     broker: (a?.broker || "").toString(),
-    baseCurrency: (a?.baseCurrency || "USDT").toString(),
+    baseCurrency: isFunded ? "USD" : (a?.baseCurrency === "USD" ? "USD" : "USDT"),
     status: a?.status === "archived" ? "archived" : "active",
 
     createdAt: typeof a?.createdAt === "string" ? a.createdAt : nowISO(),

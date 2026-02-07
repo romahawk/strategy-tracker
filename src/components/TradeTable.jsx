@@ -96,6 +96,18 @@ function buildConfluences(trade) {
   // 5) TS4 extras
   put("1m BoS", trade.bos1m);
 
+  // 6) New Entry Rule Builder results (ruleResults)
+  if (Array.isArray(trade?.ruleResults)) {
+    for (const r of trade.ruleResults) {
+      if (!r?.label) continue;
+      const key = r.label;
+      // Only add if not already covered by legacy fields
+      if (!outMap.has(key)) {
+        outMap.set(key, { key, value: r.satisfied ? "Yes" : "No", ok: !!r.satisfied });
+      }
+    }
+  }
+
   // Return list
   return Array.from(outMap.values());
 }
