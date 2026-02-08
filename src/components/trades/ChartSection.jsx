@@ -2,7 +2,7 @@ import { Image } from "lucide-react";
 import { Card } from "../ui/Card";
 
 const inputBase =
-  "w-full h-8 rounded-lg bg-th-raised border border-th-border-dim px-3 text-sm text-th-text placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "w-full h-8 rounded-lg bg-th-raised border border-th-border-dim px-3 text-sm text-th-text placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-th-accent/30";
 
 export default function ChartSection({ form, onChange }) {
   return (

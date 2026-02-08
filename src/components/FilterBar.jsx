@@ -27,7 +27,7 @@ export default function FilterBar({ filters, setFilters }) {
             name="result"
             value={filters.result}
             onChange={(e) => setFilters({ ...filters, result: e.target.value })}
-            className="h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/30"
           >
             <option value="">All</option>
             <option value="Win">Win</option>
@@ -43,7 +43,7 @@ export default function FilterBar({ filters, setFilters }) {
             type="date"
             value={filters.startDate || ""}
             onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            className="h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/30"
           />
         </div>
 
@@ -54,7 +54,7 @@ export default function FilterBar({ filters, setFilters }) {
             type="date"
             value={filters.endDate || ""}
             onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            className="h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/30"
           />
         </div>
 
@@ -66,7 +66,7 @@ export default function FilterBar({ filters, setFilters }) {
             placeholder="e.g. BTCUSDT"
             value={filters.pair || ""}
             onChange={(e) => setFilters({ ...filters, pair: e.target.value })}
-            className="h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 text-xs text-th-text placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-xs text-th-text placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-th-accent/30"
           />
         </div>
 
@@ -74,7 +74,7 @@ export default function FilterBar({ filters, setFilters }) {
         <button
           type="button"
           onClick={clearFilters}
-          className="ml-auto h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs flex items-center gap-1 hover:bg-th-surface transition"
+          className="ml-auto h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs flex items-center gap-1 hover:bg-th-raised transition"
         >
           <X className="w-3 h-3" />
           Clear

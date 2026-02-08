@@ -4,10 +4,10 @@ import { BarChart3, Percent, DollarSign } from "lucide-react";
 import { Card } from "../ui/Card";
 
 const inputBase =
-  "w-full h-8 rounded-lg bg-th-raised border border-th-border px-3 text-sm text-th-text " +
-  "placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "w-full h-8 rounded-lg bg-th-raised border border-th-border-dim px-3 text-sm text-th-text " +
+  "placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-th-accent/30";
 
-const labelBase = "text-[11px] text-th-text-dim mb-1 block";
+const labelBase = "text-[11px] text-th-text-dim mb-0.5 block";
 
 const EXCHANGES = [
   { group: "CEX", items: ["OKX", "BingX", "Bybit", "Binance"] },

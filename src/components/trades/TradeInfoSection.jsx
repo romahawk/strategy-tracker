@@ -24,9 +24,9 @@ const LS_FAV = "alpharhythm:favPairs";
 const LS_RECENT = "alpharhythm:recentPairs";
 
 /* ===== UI TOKENS (compact) ===== */
-const labelCls = "text-[11px] text-th-text-dim mb-1";
+const labelCls = "text-[11px] text-th-text-dim mb-0.5 block";
 const inputBase =
-  "h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 py-1 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/30";
 const sliderCls = "w-full accent-emerald-400 cursor-pointer";
 
 export default function TradeInfoSection({ form, onChange }) {

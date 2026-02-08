@@ -65,7 +65,7 @@ export default function RiskSetupSection({
   };
 
   const inputBase =
-    "bg-th-surface border border-th-border-dim rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
+    "h-8 bg-th-raised border border-th-border-dim rounded-lg px-3 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/30";
 
   return (
     <Card variant="secondary" className="p-2">
@@ -81,11 +81,11 @@ export default function RiskSetupSection({
 
       <div className="grid grid-cols-2 gap-2 mb-2">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-th-text-dim">Entry</label>
+          <label className="text-[11px] text-th-text-dim mb-0.5 block">Entry</label>
           <input type="number" name="entry" value={form.entry || ""} onChange={onChange} className={inputBase} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-th-text-dim">SL (price)</label>
+          <label className="text-[11px] text-th-text-dim mb-0.5 block">SL (price)</label>
           <input type="number" name="sl" value={form.sl || ""} onChange={onChange} className={inputBase} />
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function RiskSetupSection({
       {!isProp ? (
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-th-text-dim flex justify-between">
+            <label className="text-[11px] text-th-text-dim flex justify-between">
               <span>Leverage</span>
               <span className="text-[10px] text-th-text-muted">
                 {MIN_LEV} – {MAX_LEV}×
@@ -160,7 +160,7 @@ export default function RiskSetupSection({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-th-text-dim">SL % / $</label>
+            <label className="text-[11px] text-th-text-dim">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <input
                 type="number"
@@ -186,10 +186,10 @@ export default function RiskSetupSection({
               value={form.riskPercent || ""}
               onChange={onChange}
               placeholder="Risk %"
-              className={`bg-th-surface border rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none ${
+              className={`${inputBase} ${
                 riskTooHigh
-                  ? "border-red-500/70 focus:ring-2 focus:ring-red-500/50"
-                  : "border-th-border-dim focus:ring-2 focus:ring-emerald-400/50"
+                  ? "!border-red-500/70 !ring-red-500/30"
+                  : ""
               }`}
             />
           </div>
@@ -198,7 +198,7 @@ export default function RiskSetupSection({
         // ✅ PROP / FUNDED mode (risk% slider; lots calc lives elsewhere)
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-th-text-dim flex justify-between">
+            <label className="text-[11px] text-th-text-dim flex justify-between">
               <span>Risk per trade %</span>
               <span className="text-[10px] text-th-text-muted">0.25% – 2.00%</span>
             </label>
@@ -232,7 +232,7 @@ export default function RiskSetupSection({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-th-text-dim">SL % / $</label>
+            <label className="text-[11px] text-th-text-dim">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <input
                 type="number"
