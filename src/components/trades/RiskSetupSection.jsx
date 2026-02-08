@@ -65,27 +65,27 @@ export default function RiskSetupSection({
   };
 
   const inputBase =
-    "bg-[#0f172a] border border-white/5 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
+    "bg-th-surface border border-th-border-dim rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
 
   return (
     <Card variant="secondary" className="p-2">
       <div className="flex items-center gap-2 mb-1">
         <ShieldCheck className="w-4 h-4 text-emerald-300" />
-        <h3 className="text-sm font-semibold text-white">Risk Setup</h3>
+        <h3 className="text-sm font-semibold text-th-text">Risk Setup</h3>
 
         {/* Optional: small badge showing active mode */}
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full border border-white/10 text-white/60">
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full border border-th-border text-th-text/60">
           {isProp ? "PROP / FUNDED" : (venue || "cex").toUpperCase()}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-2">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-300">Entry</label>
+          <label className="text-xs text-th-text-dim">Entry</label>
           <input type="number" name="entry" value={form.entry || ""} onChange={onChange} className={inputBase} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-300">SL (price)</label>
+          <label className="text-xs text-th-text-dim">SL (price)</label>
           <input type="number" name="sl" value={form.sl || ""} onChange={onChange} className={inputBase} />
         </div>
       </div>
@@ -93,9 +93,9 @@ export default function RiskSetupSection({
       {!isProp ? (
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-300 flex justify-between">
+            <label className="text-xs text-th-text-dim flex justify-between">
               <span>Leverage</span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-th-text-muted">
                 {MIN_LEV} – {MAX_LEV}×
               </span>
             </label>
@@ -109,7 +109,7 @@ export default function RiskSetupSection({
                 onChange={(e) => handleLeverageNumberChange(e.target.value)}
                 className={`${inputBase} w-24`}
               />
-              <span className="text-xs text-slate-300">×</span>
+              <span className="text-xs text-th-text-dim">×</span>
             </div>
 
             <div className="relative">
@@ -129,7 +129,7 @@ export default function RiskSetupSection({
                   return (
                     <span
                       key={cp.value}
-                      className={`absolute w-px ${near ? "bg-emerald-300" : "bg-white/20"}`}
+                      className={`absolute w-px ${near ? "bg-emerald-300" : "bg-th-hl/20"}`}
                       style={{
                         left: `${leftPct(cp.value)}%`,
                         height: near ? "10px" : "8px",
@@ -148,7 +148,7 @@ export default function RiskSetupSection({
                   <span
                     key={cp.value}
                     className={`absolute -translate-x-1/2 text-[10px] ${
-                      near ? "text-emerald-200 font-semibold" : "text-slate-500"
+                      near ? "text-emerald-200 font-semibold" : "text-th-text-muted"
                     }`}
                     style={{ left: `${leftPct(cp.value)}%` }}
                   >
@@ -160,7 +160,7 @@ export default function RiskSetupSection({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-300">SL % / $</label>
+            <label className="text-xs text-th-text-dim">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <input
                 type="number"
@@ -186,10 +186,10 @@ export default function RiskSetupSection({
               value={form.riskPercent || ""}
               onChange={onChange}
               placeholder="Risk %"
-              className={`bg-[#0f172a] border rounded-lg px-3 py-2 text-sm text-white focus:outline-none ${
+              className={`bg-th-surface border rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none ${
                 riskTooHigh
                   ? "border-red-500/70 focus:ring-2 focus:ring-red-500/50"
-                  : "border-white/5 focus:ring-2 focus:ring-emerald-400/50"
+                  : "border-th-border-dim focus:ring-2 focus:ring-emerald-400/50"
               }`}
             />
           </div>
@@ -198,9 +198,9 @@ export default function RiskSetupSection({
         // ✅ PROP / FUNDED mode (risk% slider; lots calc lives elsewhere)
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-300 flex justify-between">
+            <label className="text-xs text-th-text-dim flex justify-between">
               <span>Risk per trade %</span>
-              <span className="text-[10px] text-slate-400">0.25% – 2.00%</span>
+              <span className="text-[10px] text-th-text-muted">0.25% – 2.00%</span>
             </label>
 
             <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function RiskSetupSection({
                 onChange={(e) => handleRiskPropChange(e.target.value)}
                 className={`${inputBase} w-24`}
               />
-              <span className="text-xs text-slate-300">%</span>
+              <span className="text-xs text-th-text-dim">%</span>
             </div>
 
             <input
@@ -226,13 +226,13 @@ export default function RiskSetupSection({
               className="w-full accent-emerald-400 cursor-pointer"
             />
 
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-[10px] text-th-text-muted mt-1">
               Funded/prop mode: leverage is handled by broker/prop rules; risk is normalized as % of account size.
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-300">SL % / $</label>
+            <label className="text-xs text-th-text-dim">SL % / $</label>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <input
                 type="number"

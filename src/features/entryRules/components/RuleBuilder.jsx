@@ -11,8 +11,8 @@ function structuredCloneSafe(obj) {
 const tabClass = (active) =>
   `px-4 py-1.5 rounded-t-lg text-sm font-medium transition ${
     active
-      ? "bg-white/10 text-white border border-white/10 border-b-transparent"
-      : "text-slate-400 hover:text-slate-200"
+      ? "bg-th-hl/10 text-th-text border border-th-border border-b-transparent"
+      : "text-th-text-muted hover:text-th-text-sub"
   }`;
 
 export default function RuleBuilder({ strategyId, onClose, onSaved }) {
@@ -85,31 +85,31 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-start justify-center px-4 pt-12 pb-6 overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-2xl bg-[#020617] border border-white/10 p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-th-base border border-th-border p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-th-text">
                 Entry Rule Builder
               </h3>
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-[11px] text-th-text-muted mt-0.5">
               TS {sid} — Define required conditions for trade entry
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition"
+            className="text-th-text-muted hover:text-th-text-sub transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Direction tabs */}
-        <div className="flex gap-1 mb-0 border-b border-white/10">
+        <div className="flex gap-1 mb-0 border-b border-th-border">
           <button type="button" className={tabClass(tab === "long")} onClick={() => setTab("long")}>
             Long Rules
           </button>
@@ -121,8 +121,8 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
         {/* Groups */}
         <div className="mt-3 space-y-4">
           {groups.length === 0 && (
-            <div className="rounded-xl border border-white/10 bg-black/10 p-4 text-center">
-              <p className="text-[11px] text-slate-400">
+            <div className="rounded-xl border border-th-border bg-th-inset p-4 text-center">
+              <p className="text-[11px] text-th-text-muted">
                 No rule groups. Add one to start defining conditions.
               </p>
             </div>
@@ -131,12 +131,12 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
           {groups.map((group, gi) => (
             <div
               key={group.id}
-              className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
+              className="rounded-xl border border-th-border bg-th-hl/[0.02] p-3"
             >
               {/* Group header */}
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-400">Group {gi + 1}</span>
+                  <span className="text-[11px] text-th-text-muted">Group {gi + 1}</span>
                   <button
                     type="button"
                     onClick={() => toggleGroupOperator(group.id)}
@@ -154,14 +154,14 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
                   <button
                     type="button"
                     onClick={() => addRule(group.id)}
-                    className="inline-flex items-center gap-1 text-[11px] text-slate-300 hover:text-emerald-300 transition px-2 py-1 rounded-lg bg-white/5 border border-white/10"
+                    className="inline-flex items-center gap-1 text-[11px] text-th-text-dim hover:text-emerald-300 transition px-2 py-1 rounded-lg bg-th-hl/5 border border-th-border"
                   >
                     <Plus className="w-3 h-3" /> Rule
                   </button>
                   <button
                     type="button"
                     onClick={() => removeGroup(group.id)}
-                    className="text-[11px] text-slate-400 hover:text-rose-400 transition px-2 py-1"
+                    className="text-[11px] text-th-text-muted hover:text-rose-400 transition px-2 py-1"
                     title="Remove group"
                   >
                     <X className="w-3 h-3" />
@@ -171,7 +171,7 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
 
               {/* Rules in this group */}
               {group.rules.length === 0 ? (
-                <div className="text-[11px] text-slate-500 py-2 text-center">
+                <div className="text-[11px] text-th-text-muted py-2 text-center">
                   Empty group — add a rule above.
                 </div>
               ) : (
@@ -196,27 +196,27 @@ export default function RuleBuilder({ strategyId, onClose, onSaved }) {
             <button
               type="button"
               onClick={() => addGroup("AND")}
-              className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 hover:text-emerald-300 transition px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
+              className="inline-flex items-center gap-1.5 text-[11px] text-th-text-dim hover:text-emerald-300 transition px-3 py-1.5 rounded-lg bg-th-hl/5 border border-th-border"
             >
               <Plus className="w-3 h-3" /> AND Group
             </button>
             <button
               type="button"
               onClick={() => addGroup("OR")}
-              className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 hover:text-amber-300 transition px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
+              className="inline-flex items-center gap-1.5 text-[11px] text-th-text-dim hover:text-amber-300 transition px-3 py-1.5 rounded-lg bg-th-hl/5 border border-th-border"
             >
               <Plus className="w-3 h-3" /> OR Group
             </button>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-th-text-muted">
               {totalRules} rule{totalRules !== 1 ? "s" : ""}
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition"
+              className="px-3 py-1.5 text-sm text-th-text-muted hover:text-th-text-sub transition"
             >
               Cancel
             </button>

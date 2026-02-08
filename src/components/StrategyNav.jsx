@@ -31,10 +31,10 @@ function getFirstAccountId(sid) {
 }
 
 const selectBase =
-  "h-8 rounded-full bg-[#0b1120] border border-white/10 px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#7f5af0]/40";
+  "h-8 rounded-full bg-th-raised border border-th-border px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/40";
 
 const iconBtn =
-  "group h-8 w-8 rounded-full bg-[#0b1120] border border-white/20 flex items-center justify-center transition hover:border-white/40 hover:bg-white/5 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.08)]";
+  "group h-8 w-8 rounded-full bg-th-raised border border-th-border flex items-center justify-center transition hover:border-th-border hover:bg-th-hl/5 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.08)]";
 
 export default function StrategyNav() {
   const { strategyId, accountId } = useParams();
@@ -130,7 +130,7 @@ export default function StrategyNav() {
 
   return (
     <div className="relative flex items-center gap-2">
-      <span className="text-[9px] uppercase tracking-wide text-slate-300/80">
+      <span className="text-[9px] uppercase tracking-wide text-th-text-dim/80">
         Strategies
       </span>
 
@@ -156,8 +156,7 @@ export default function StrategyNav() {
       >
         <Edit3
           size={16}
-          color="rgba(255,255,255,0.9)"
-          className="opacity-90 group-hover:opacity-100"
+          className="text-th-text opacity-90 group-hover:opacity-100"
         />
       </button>
 
@@ -169,16 +168,15 @@ export default function StrategyNav() {
       >
         <Plus
           size={16}
-          color="rgba(255,255,255,0.9)"
-          className="opacity-90 group-hover:opacity-100"
+          className="text-th-text opacity-90 group-hover:opacity-100"
         />
       </button>
 
       {editStrategy && (
-        <div className="absolute top-10 right-0 z-40 w-60 rounded-2xl bg-[#020617] border border-white/10 shadow-xl p-3 space-y-3">
+        <div className="absolute top-10 right-0 z-40 w-60 rounded-2xl bg-th-base border border-th-border shadow-xl p-3 space-y-3">
           <div className="flex items-center gap-2">
-            <Edit3 size={14} color="rgba(255,255,255,0.95)" />
-            <span className="text-[11px] font-medium text-slate-100">
+            <Edit3 size={14} className="text-th-text" />
+            <span className="text-[11px] font-medium text-th-text">
               Edit strategy
             </span>
           </div>
@@ -186,20 +184,20 @@ export default function StrategyNav() {
           <input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            className="w-full h-8 rounded-lg bg-[#0b1120] border border-white/5 px-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#7f5af0]/40"
+            className="w-full h-8 rounded-lg bg-th-raised border border-th-border-dim px-2 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/40"
             placeholder="Strategy name"
           />
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleRename}
-              className="flex-1 h-7 rounded-full bg-[#7f5af0]/15 border border-[#7f5af0]/40 text-[11px] text-white font-semibold hover:bg-[#7f5af0]/35 transition flex items-center justify-center"
+              className="flex-1 h-7 rounded-full bg-th-accent/15 border border-th-accent/40 text-[11px] text-th-text font-semibold hover:bg-th-accent/35 transition flex items-center justify-center"
             >
               Save
             </button>
             <button
               onClick={closeEdit}
-              className="h-7 px-3 rounded-full bg-white/0 border border-white/10 text-[11px] text-slate-200 hover:bg-white/5 transition flex items-center justify-center"
+              className="h-7 px-3 rounded-full bg-transparent border border-th-border text-[11px] text-th-text-sub hover:bg-th-hl/5 transition flex items-center justify-center"
             >
               Cancel
             </button>
@@ -211,7 +209,7 @@ export default function StrategyNav() {
               className="w-full h-7 rounded-full bg-gradient-to-r from-[#3d1019] to-[#1a070c] text-[11px] text-rose-100 border border-rose-400/10 hover:from-[#5a1320] hover:to-[#270a10] transition flex items-center justify-center gap-1"
               title="Delete current strategy"
             >
-              <Trash2 size={14} color="rgba(255,255,255,0.9)" />
+              <Trash2 size={14} className="text-rose-100" />
               Delete strategy
             </button>
           )}

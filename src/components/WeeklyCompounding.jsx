@@ -263,44 +263,44 @@ export default function WeeklyCompounding({
   );
 
   const outerCard =
-    "bg-gradient-to-b from-[#0b1120] to-[#020617] border border-white/10 rounded-2xl p-5 space-y-8 shadow-[0_0_0_1px_rgba(127,90,240,.15),0_20px_60px_rgba(0,0,0,.6)]";
+    "bg-gradient-to-b from-th-raised to-th-base border border-th-border rounded-2xl p-5 space-y-8 shadow-[0_0_0_1px_rgba(127,90,240,.15),0_20px_60px_rgba(0,0,0,.6)]";
 
   const sectionBar =
-    "flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10";
+    "flex items-center gap-2 px-3 py-2 rounded-lg bg-th-hl/5 border border-th-border";
 
   const thBase =
-    "p-2 text-left text-[11px] font-semibold tracking-wide text-slate-200/80";
-  const tdBase = "p-2 text-[12px] text-slate-100/90";
+    "p-2 text-left text-[11px] font-semibold tracking-wide text-th-text-sub/80";
+  const tdBase = "p-2 text-[12px] text-th-text/90";
 
   return (
     <div className={outerCard}>
       {/* ===== REAL FIRST ===== */}
       <div className="space-y-3">
         <div className={sectionBar}>
-          <TableIcon className="w-4 h-4 text-[#00ffa3]" />
+          <TableIcon className="w-4 h-4 text-th-cta" />
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-100">
+            <span className="text-sm font-semibold text-th-text">
               Real Accounts
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[10px] text-th-text-muted">
               grouped by ISO calendar week
             </span>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-white/10">
+        <div className="overflow-x-auto rounded-xl border border-th-border">
           <table className="table-auto w-full text-xs">
-            <thead className="bg-[#0f172a] text-gray-300">
+            <thead className="bg-th-surface text-th-text-dim">
               <tr>
                 <th className={thBase}>
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-[#00ffa3]" />
+                    <Calendar className="w-3.5 h-3.5 text-th-cta" />
                     Calendar week
                   </div>
                 </th>
                 <th className={thBase}>
                   <div className="flex items-center gap-1">
-                    <LineChart className="w-3.5 h-3.5 text-[#00ffa3]" />
+                    <LineChart className="w-3.5 h-3.5 text-th-cta" />
                     Trading week
                   </div>
                 </th>
@@ -308,7 +308,7 @@ export default function WeeklyCompounding({
                 {accounts.map((a) => (
                   <th key={`d-${a.id}`} className={thBase}>
                     <div className="flex items-center gap-1">
-                      <PiggyBank className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      <PiggyBank className="w-3.5 h-3.5 text-th-cta" />
                       {a.name} Deposit
                     </div>
                   </th>
@@ -317,7 +317,7 @@ export default function WeeklyCompounding({
                 {accounts.map((a) => (
                   <th key={`p-${a.id}`} className={thBase}>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      <DollarSign className="w-3.5 h-3.5 text-th-cta" />
                       {a.name} PnL $
                     </div>
                   </th>
@@ -326,7 +326,7 @@ export default function WeeklyCompounding({
                 {accounts.map((a) => (
                   <th key={`pp-${a.id}`} className={thBase}>
                     <div className="flex items-center gap-1">
-                      <BadgePercent className="w-3.5 h-3.5 text-[#00ffa3]" />
+                      <BadgePercent className="w-3.5 h-3.5 text-th-cta" />
                       {a.name} PnL %
                     </div>
                   </th>
@@ -339,8 +339,8 @@ export default function WeeklyCompounding({
                 <tr
                   key={r.tradingWeek}
                   className={`${
-                    r.tradingWeek % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"
-                  } hover:bg-white/5 transition`}
+                    r.tradingWeek % 2 ? "bg-th-surface/40" : "bg-th-surface/20"
+                  } hover:bg-th-hl/5 transition`}
                 >
                   <td className={tdBase}>{r.calendar}</td>
                   <td className={tdBase}>Week {r.tradingWeek}</td>
@@ -360,9 +360,9 @@ export default function WeeklyCompounding({
                       key={`rp-${r.tradingWeek}-${a.id}`}
                       className={`p-2 text-[12px] ${
                         a.pnlDollar === ""
-                          ? "text-slate-400"
+                          ? "text-th-text-muted"
                           : Number(a.pnlDollar) >= 0
-                          ? "text-[#00ffa3] font-medium"
+                          ? "text-th-cta font-medium"
                           : "text-rose-400 font-medium"
                       }`}
                     >
@@ -383,8 +383,8 @@ export default function WeeklyCompounding({
               ))}
 
               {realRows.length === 0 && (
-                <tr className="bg-[#0f172a]/30">
-                  <td className="p-3 text-slate-400 text-xs" colSpan={2 + accounts.length * 3}>
+                <tr className="bg-th-surface/30">
+                  <td className="p-3 text-th-text-muted text-xs" colSpan={2 + accounts.length * 3}>
                     No weekly data yet. Add trades to populate ISO-week rows.
                   </td>
                 </tr>
@@ -393,22 +393,22 @@ export default function WeeklyCompounding({
           </table>
         </div>
 
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-th-text-muted">
           Real rows are generated from trades in localStorage and grouped per ISO week per account.
         </p>
       </div>
 
-      <div className="h-px bg-white/10" />
+      <div className="h-px bg-th-hl/10" />
 
       {/* ===== REFERENCE LAST ===== */}
       <div className="space-y-4">
         <div className={sectionBar}>
-          <LineChart className="w-4 h-4 text-[#7f5af0]" />
+          <LineChart className="w-4 h-4 text-th-accent" />
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-100">
+            <span className="text-sm font-semibold text-th-text">
               Reference Projection
             </span>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[10px] text-th-text-muted">
               manual compounding, starts at Week 1
             </span>
           </div>
@@ -417,8 +417,8 @@ export default function WeeklyCompounding({
         {/* controls */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="flex flex-col">
-            <label className="text-xs text-gray-300 mb-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-[#7f5af0]" />
+            <label className="text-xs text-th-text-dim mb-1 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-th-accent" />
               Weeks (1–99)
             </label>
             <input
@@ -429,13 +429,13 @@ export default function WeeklyCompounding({
               onChange={(e) =>
                 setRefWeeks(Math.max(1, Math.min(99, Number(e.target.value) || 1)))
               }
-              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              className="bg-th-surface border border-th-border rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-th-cta/50"
             />
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs text-gray-300 mb-1 flex items-center gap-1">
-              <PiggyBank className="w-3.5 h-3.5 text-[#7f5af0]" />
+            <label className="text-xs text-th-text-dim mb-1 flex items-center gap-1">
+              <PiggyBank className="w-3.5 h-3.5 text-th-accent" />
               Deposit
             </label>
             <input
@@ -446,13 +446,13 @@ export default function WeeklyCompounding({
               onChange={(e) =>
                 setRefDeposit(Math.max(1, Math.floor(Number(e.target.value) || 1)))
               }
-              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              className="bg-th-surface border border-th-border rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-th-cta/50"
             />
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs text-gray-300 mb-1 flex items-center gap-1">
-              <BadgePercent className="w-3.5 h-3.5 text-[#7f5af0]" />
+            <label className="text-xs text-th-text-dim mb-1 flex items-center gap-1">
+              <BadgePercent className="w-3.5 h-3.5 text-th-accent" />
               PnL % per week
             </label>
             <input
@@ -462,14 +462,14 @@ export default function WeeklyCompounding({
               step="0.1"
               value={refPct}
               onChange={(e) => setRefPct(Math.max(0, Number(e.target.value) || 0))}
-              className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#00ffa3]/50"
+              className="bg-th-surface border border-th-border rounded-lg px-3 py-2 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-th-cta/50"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-white/10">
+        <div className="overflow-x-auto rounded-xl border border-th-border">
           <table className="table-auto w-full text-xs">
-            <thead className="bg-[#0f172a] text-gray-300">
+            <thead className="bg-th-surface text-th-text-dim">
               <tr>
                 <th className={thBase}>Week</th>
                 <th className={thBase}>Deposit</th>
@@ -483,8 +483,8 @@ export default function WeeklyCompounding({
                 <tr
                   key={`ref-${r.week}`}
                   className={`${
-                    r.week % 2 ? "bg-[#0f172a]/40" : "bg-[#0f172a]/20"
-                  } hover:bg-white/5 transition`}
+                    r.week % 2 ? "bg-th-surface/40" : "bg-th-surface/20"
+                  } hover:bg-th-hl/5 transition`}
                 >
                   <td className={tdBase}>Week {r.week}</td>
                   <td className={tdBase}>
@@ -500,7 +500,7 @@ export default function WeeklyCompounding({
           </table>
         </div>
 
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-th-text-muted">
           This projection is independent of real trades. Use it as a discipline target, not a report.
         </p>
       </div>

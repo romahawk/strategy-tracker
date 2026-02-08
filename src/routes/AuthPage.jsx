@@ -35,17 +35,17 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-200 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#020617]/70 p-6">
-        <h1 className="text-lg font-semibold text-white">
+    <div className="min-h-screen bg-th-surface text-th-text-sub flex items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-th-border bg-th-base/70 p-6">
+        <h1 className="text-lg font-semibold text-th-text">
           {mode === "login" ? "Sign in" : "Create account"}
         </h1>
 
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <div>
-            <label className="text-xs text-slate-300">Email</label>
+            <label className="text-xs text-th-text-dim">Email</label>
             <input
-              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:border-white/25"
+              className="mt-1 w-full rounded-xl bg-th-hl/5 border border-th-border px-3 py-2 outline-none focus:border-th-border"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -54,9 +54,9 @@ export default function AuthPage() {
           </div>
 
           <div>
-            <label className="text-xs text-slate-300">Password</label>
+            <label className="text-xs text-th-text-dim">Password</label>
             <input
-              className="mt-1 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 outline-none focus:border-white/25"
+              className="mt-1 w-full rounded-xl bg-th-hl/5 border border-th-border px-3 py-2 outline-none focus:border-th-border"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -79,7 +79,7 @@ export default function AuthPage() {
         </form>
 
         <button
-          className="mt-4 w-full rounded-xl border border-white/10 py-2 text-sm hover:bg-white/5"
+          className="mt-4 w-full rounded-xl border border-th-border py-2 text-sm hover:bg-th-hl/5"
           onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}
           disabled={busy}
         >

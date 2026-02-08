@@ -251,19 +251,19 @@ export default function EquityCurveChart({ trades = [] }) {
   const hasRealizedTrades = sortedAll.length > 0;
 
   return (
-    <div className="bg-[#0b1120] border border-white/5 rounded-2xl p-4 space-y-4">
+    <div className="bg-th-raised border border-th-border-dim rounded-2xl p-4 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-emerald-300" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Equity curve</h2>
-            <p className="text-[10px] text-slate-400">
+            <h2 className="text-sm font-semibold text-th-text">Equity curve</h2>
+            <p className="text-[10px] text-th-text-muted">
               Balance over time (recalculated equity)
             </p>
             {openCount > 0 && (
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-th-text-muted">
                 {openCount} open trade(s) excluded (equity is realized-only).
               </p>
             )}
@@ -272,42 +272,42 @@ export default function EquityCurveChart({ trades = [] }) {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* ✅ Drawdown toggle */}
-          <label className="flex items-center gap-2 bg-[#0f172a] border border-white/5 rounded-xl px-3 py-2">
+          <label className="flex items-center gap-2 bg-th-surface border border-th-border-dim rounded-xl px-3 py-2">
             <input
               type="checkbox"
               checked={showDrawdown}
               onChange={(e) => setShowDrawdown(e.target.checked)}
               className="accent-emerald-400"
             />
-            <span className="text-xs text-slate-200">Drawdown</span>
+            <span className="text-xs text-th-text-sub">Drawdown</span>
           </label>
 
           {/* Date filter controls */}
-          <div className="flex items-center gap-2 bg-[#0f172a] border border-white/5 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-th-surface border border-th-border-dim rounded-xl px-3 py-2">
             <div className="flex flex-col">
-              <label className="text-[10px] text-slate-400">From</label>
+              <label className="text-[10px] text-th-text-muted">From</label>
               <input
                 type="date"
                 value={fromDate}
                 min={minDate}
                 max={toDate || maxDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="bg-transparent text-xs text-slate-200 focus:outline-none"
+                className="bg-transparent text-xs text-th-text-sub focus:outline-none"
                 disabled={!hasRealizedTrades}
               />
             </div>
 
-            <div className="w-px h-8 bg-white/5" />
+            <div className="w-px h-8 bg-th-hl/5" />
 
             <div className="flex flex-col">
-              <label className="text-[10px] text-slate-400">To</label>
+              <label className="text-[10px] text-th-text-muted">To</label>
               <input
                 type="date"
                 value={toDate}
                 min={fromDate || minDate}
                 max={maxDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="bg-transparent text-xs text-slate-200 focus:outline-none"
+                className="bg-transparent text-xs text-th-text-sub focus:outline-none"
                 disabled={!hasRealizedTrades}
               />
             </div>
@@ -318,7 +318,7 @@ export default function EquityCurveChart({ trades = [] }) {
                 setFromDate(minDate);
                 setToDate(maxDate);
               }}
-              className="ml-2 text-[11px] px-2 py-1 rounded-lg bg-white/5 text-slate-200 hover:bg-white/10 disabled:opacity-40"
+              className="ml-2 text-[11px] px-2 py-1 rounded-lg bg-th-hl/5 text-th-text-sub hover:bg-th-hl/10 disabled:opacity-40"
               title="Reset range"
               disabled={!hasRealizedTrades}
             >
@@ -340,11 +340,11 @@ export default function EquityCurveChart({ trades = [] }) {
         </div>
       </div>
 
-      <div className="bg-[#0f172a] rounded-xl h-72 p-3">
+      <div className="bg-th-surface rounded-xl h-72 p-3">
         {hasData ? (
           <Line data={chartData} options={options} />
         ) : (
-          <div className="h-full flex items-center justify-center text-sm text-slate-400">
+          <div className="h-full flex items-center justify-center text-sm text-th-text-muted">
             {hasRealizedTrades
               ? "No trades in selected date range"
               : "No closed trades to plot yet"}

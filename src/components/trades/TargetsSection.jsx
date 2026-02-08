@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Target, ChevronDown, ChevronRight } from "lucide-react";
 import { Card } from "../ui/Card";
 
-const labelBase = "text-[11px] text-slate-300 mb-1 block";
+const labelBase = "text-[11px] text-th-text-dim mb-1 block";
 const inputBase =
-  "h-8 w-full rounded-lg bg-[#0b1120] border border-white/10 px-3 text-sm text-white " +
-  "placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "h-8 w-full rounded-lg bg-th-raised border border-th-border px-3 text-sm text-th-text " +
+  "placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
 
 const CHECKPOINTS = [25, 33, 50, 100];
 const SNAP_EPS = 1; // soft snap when within ±1
@@ -39,7 +39,7 @@ function MoneyField({ value }) {
       readOnly
       className={
         inputBase +
-        " bg-black/10 border-white/10 text-slate-200 focus:ring-0"
+        " bg-th-inset border-th-border text-th-text-sub focus:ring-0"
       }
       placeholder="$"
       tabIndex={-1}
@@ -78,7 +78,7 @@ function AllocationSlider({ value, onChange, disabled }) {
               className="absolute -translate-x-1/2"
               style={{ left: `${c}%` }}
             >
-              <div className="w-[2px] h-2 rounded-full bg-white/20" />
+              <div className="w-[2px] h-2 rounded-full bg-th-hl/20" />
             </div>
           ))}
         </div>
@@ -95,7 +95,7 @@ function AllocationSlider({ value, onChange, disabled }) {
             className={`text-[10px] px-2 py-1 rounded-full border transition ${
               v === c
                 ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
-                : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                : "border-th-border bg-th-hl/5 text-th-text-dim hover:bg-th-hl/10"
             } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {c}%
@@ -103,7 +103,7 @@ function AllocationSlider({ value, onChange, disabled }) {
         ))}
 
         {/* live value */}
-        <span className="ml-auto text-[10px] text-slate-400">
+        <span className="ml-auto text-[10px] text-th-text-muted">
           {v}%
         </span>
       </div>
@@ -245,7 +245,7 @@ export default function TargetsSection({ form, onChange }) {
     <Card variant="secondary" className="p-2">
       <div className="flex items-center gap-2 mb-2">
         <Target className="w-4 h-4 text-emerald-300" />
-        <h3 className="text-sm font-semibold text-slate-100">Targets</h3>
+        <h3 className="text-sm font-semibold text-th-text">Targets</h3>
       </div>
 
       <div className="space-y-2">
@@ -291,17 +291,17 @@ export default function TargetsSection({ form, onChange }) {
         <button
           type="button"
           onClick={() => setShowMore((v) => !v)}
-          className="w-full flex items-center justify-between px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition"
+          className="w-full flex items-center justify-between px-2 py-1.5 rounded-xl bg-th-hl/5 hover:bg-th-hl/10 border border-th-border transition"
         >
           <div className="flex items-center gap-2">
             {showMore ? (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-200" />
+              <ChevronDown className="w-3.5 h-3.5 text-th-text-sub" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-200" />
+              <ChevronRight className="w-3.5 h-3.5 text-th-text-sub" />
             )}
-            <span className="text-xs text-slate-100">TP2 / TP3</span>
+            <span className="text-xs text-th-text">TP2 / TP3</span>
           </div>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] text-th-text-muted">
             {showMore ? "Hide" : "Show"}
           </span>
         </button>

@@ -568,7 +568,7 @@ export default function TradeForm({
                 ? savePulse
                   ? "bg-emerald-400 text-[#020617] shadow-[0_0_22px_rgba(0,255,163,.28)]"
                   : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] shadow-[0_0_18px_rgba(127,90,240,.18)] hover:brightness-110"
-                : "bg-white/5 text-slate-500 border border-white/10"
+                : "bg-th-hl/5 text-th-text-muted border border-th-border"
             } ${isSaving ? "opacity-70 cursor-wait" : ""}`}
           >
             {isSaving ? (

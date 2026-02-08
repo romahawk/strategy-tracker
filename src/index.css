@@ -2,81 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App-wide custom styles */
+/* ================================================================
+   THEME TOKENS — light (default) / dark (.dark on <html>)
+   ================================================================ */
+:root {
+  /* Backgrounds */
+  --color-bg-base:    255 255 255;   /* page bg */
+  --color-bg-surface: 248 250 252;   /* card / panel */
+  --color-bg-raised:  241 245 249;   /* inputs, nested cards */
+  --color-bg-inset:   226 232 240;   /* deeper insets */
+  --color-bg-overlay: 255 255 255;   /* modals, drawers */
+
+  /* Text */
+  --color-text:       15 23 42;      /* primary */
+  --color-text-sub:   51 65 85;      /* secondary */
+  --color-text-dim:   71 85 105;     /* labels, hints */
+  --color-text-muted: 100 116 139;   /* disabled / faint */
+
+  /* Borders */
+  --color-border:     15 23 42;      /* default border (use /10 etc) */
+  --color-border-val: rgba(0,0,0,0.1);
+  --color-border-dim-val: rgba(0,0,0,0.05);
+
+  /* Highlight (for bg-white/5 → bg-th-hl/5 pattern) */
+  --color-hl:         0 0 0;
+
+  /* Inputs */
+  --color-input:      241 245 249;
+  --color-input-bdr:  rgba(0,0,0,0.1);
+
+  /* Accent (same both themes) */
+  --color-accent:     127 90 240;    /* #7f5af0 */
+  --color-cta:        0 255 163;     /* #00ffa3 */
+}
+
+.dark {
+  --color-bg-base:    2 6 23;
+  --color-bg-surface: 15 23 42;
+  --color-bg-raised:  11 17 32;
+  --color-bg-inset:   17 24 39;
+  --color-bg-overlay: 30 41 59;
+
+  --color-text:       255 255 255;
+  --color-text-sub:   226 232 240;
+  --color-text-dim:   203 213 225;
+  --color-text-muted: 148 163 184;
+
+  --color-border:     255 255 255;
+  --color-border-val: rgba(255,255,255,0.1);
+  --color-border-dim-val: rgba(255,255,255,0.05);
+
+  --color-hl:         255 255 255;
+
+  --color-input:      15 23 42;
+  --color-input-bdr:  rgba(255,255,255,0.05);
+
+  --color-accent:     127 90 240;
+  --color-cta:        0 255 163;
+}
+
+/* ================================================================
+   BASE STYLES
+   ================================================================ */
 body {
- @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white min-h-screen;
+  @apply bg-th-base text-th-text min-h-screen transition-colors duration-200;
 }
 
-h1 {
- @apply text-3xl font-bold tracking-tight;
-}
+h1 { @apply text-3xl font-bold tracking-tight; }
+h2 { @apply text-xl font-semibold mt-4 mb-2; }
 
-h2 {
- @apply text-xl font-semibold mt-4 mb-2;
-}
-
-
-/* Utility examples (custom if needed) */
-.input-style {
- @apply border p-2 rounded w-full;
-}
-
-.btn-clear {
- @apply bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded;
-}
-
-.card {
- @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
-}
-
-/* Tab styles (from your original) */
+/* Tab styles */
 .react-tabs__tab--selected {
- background-color: #00ffa3 !important;
- color: black !important;
- opacity: 1 !important;
- border-bottom: 2px solid white !important;
+  background-color: rgb(var(--color-cta)) !important;
+  color: black !important;
+  opacity: 1 !important;
+  border-bottom: 2px solid white !important;
 }
-
-.react-tabs__tab {
- transition: all 0.3s ease;
-}
-
+.react-tabs__tab { transition: all 0.3s ease; }
 .react-tabs__tab:hover {
- background-color: #00ffa3 !important;
- color: black !important;
+  background-color: rgb(var(--color-cta)) !important;
+  color: black !important;
 }
 
-/* TradeTable specific styles */
-table {
- @apply table-auto w-full text-xs;
- table-layout: fixed;
- width: 100%;
-}
-
+/* TradeTable */
+table { @apply table-auto w-full text-xs; table-layout: fixed; width: 100%; }
 thead tr {
- @apply sticky top-0 bg-[#0f172a] text-left border-b border-gray-600;
- position: sticky;
- top: 0;
- z-index: 10;
+  @apply sticky top-0 bg-th-surface text-left;
+  border-bottom: 1px solid var(--color-border-val);
+  position: sticky; top: 0; z-index: 10;
 }
-
 th {
- @apply p-2 font-semibold text-gray-300;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+  @apply p-2 font-semibold text-th-text-dim;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-th.sticky {
- position: sticky;
- left: 0;
- background: inherit;
- z-index: 11;
-}
-
+th.sticky { position: sticky; left: 0; background: inherit; z-index: 11; }
 td {
- @apply p-2 text-gray-300;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+  @apply p-2 text-th-text-sub;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

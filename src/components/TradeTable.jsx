@@ -284,10 +284,10 @@ export default function TradeTable({
   const totalCols = 26;
 
   return (
-    <div className="bg-[#0b1120] border border-white/5 p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
+    <div className="bg-th-raised border border-th-border-dim p-4 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,.25)] w-full">
       {!normalizedTrades || normalizedTrades.length === 0 ? (
         <div className="text-center py-4">
-          <p className="text-slate-300 italic mb-4">No trades yet.</p>
+          <p className="text-th-text-dim italic mb-4">No trades yet.</p>
           <div className="flex justify-center gap-2">
             <button
               onClick={exportBackup}
@@ -295,7 +295,7 @@ export default function TradeTable({
             >
               <Download className="w-4 h-4" /> Download backup
             </button>
-            <label className="h-8 px-4 rounded-full bg-slate-800 text-white text-xs font-medium hover:bg-slate-700 cursor-pointer flex items-center gap-1">
+            <label className="h-8 px-4 rounded-full bg-th-overlay text-th-text text-xs font-medium hover:bg-th-surface cursor-pointer flex items-center gap-1">
               <Upload className="w-4 h-4" /> Import backup
               <input
                 type="file"
@@ -307,12 +307,12 @@ export default function TradeTable({
           </div>
         </div>
       ) : (
-        <div className="relative rounded-xl overflow-hidden border border-white/5">
+        <div className="relative rounded-xl overflow-hidden border border-th-border-dim">
           <table className="table-auto w-full text-xs" style={{ tableLayout: "fixed" }}>
             <thead className="sticky top-0 z-10">
-              <tr className="text-[11px] uppercase tracking-wide text-white">
+              <tr className="text-[11px] uppercase tracking-wide text-th-text">
                 <th
-                  className="p-2 font-semibold sticky left-0 bg-[#0f172a] z-20"
+                  className="p-2 font-semibold sticky left-0 bg-th-surface z-20"
                   style={{ minWidth: "40px", width: "40px" }}
                 >
                   #
@@ -329,7 +329,7 @@ export default function TradeTable({
                 </th>
                 <th
                   colSpan={6}
-                  className="p-2 border-l border-white/10"
+                  className="p-2 border-l border-th-border"
                   style={{
                     background:
                       "linear-gradient(90deg, rgba(248,113,113,0.8) 0%, rgba(248,113,113,0) 100%)",
@@ -339,7 +339,7 @@ export default function TradeTable({
                 </th>
                 <th
                   colSpan={10}
-                  className="p-2 border-l border-white/10"
+                  className="p-2 border-l border-th-border"
                   style={{
                     background:
                       "linear-gradient(90deg, rgba(16,185,129,0.8) 0%, rgba(16,185,129,0) 100%)",
@@ -349,7 +349,7 @@ export default function TradeTable({
                 </th>
                 <th
                   colSpan={4}
-                  className="p-2 border-l border-white/10"
+                  className="p-2 border-l border-th-border"
                   style={{
                     background:
                       "linear-gradient(90deg, rgba(139,92,246,0.8) 0%, rgba(139,92,246,0) 100%)",
@@ -359,20 +359,20 @@ export default function TradeTable({
                 </th>
               </tr>
 
-              <tr className="text-slate-300/90 text-[11px] bg-[#0f172a] border-b border-white/5">
-                <th className="p-2 sticky left-0 bg-[#0f172a] z-20" style={{ minWidth: "40px", width: "40px" }} />
+              <tr className="text-th-text-dim/90 text-[11px] bg-th-surface border-b border-th-border-dim">
+                <th className="p-2 sticky left-0 bg-th-surface z-20" style={{ minWidth: "40px", width: "40px" }} />
                 <th className="p-2" style={{ minWidth: "100px", width: "100px" }}>Date</th>
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Time</th>
                 <th className="p-2" style={{ minWidth: "140px", width: "140px" }}>Pair</th>
                 <th className="p-2" style={{ minWidth: "50px", width: "50px" }}>Dir</th>
-                <th className="p-2 border-r border-white/10" style={{ minWidth: "90px", width: "90px" }}>Eq. Before</th>
+                <th className="p-2 border-r border-th-border" style={{ minWidth: "90px", width: "90px" }}>Eq. Before</th>
 
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>Entry</th>
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>SL</th>
                 <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>SL %</th>
                 <th className="p-2" style={{ minWidth: "60px", width: "60px" }}>SL $</th>
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Risk %</th>
-                <th className="p-2 border-r border-white/10" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
+                <th className="p-2 border-r border-th-border" style={{ minWidth: "70px", width: "70px" }}>Risk $</th>
 
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TPs Hit</th>
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP1</th>
@@ -383,7 +383,7 @@ export default function TradeTable({
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP2 $</th>
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP3</th>
                 <th className="p-2" style={{ minWidth: "45px", width: "45px" }}>TP3 %</th>
-                <th className="p-2 border-r border-white/10" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
+                <th className="p-2 border-r border-th-border" style={{ minWidth: "45px", width: "45px" }}>TP3 $</th>
 
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Result</th>
                 <th className="p-2" style={{ minWidth: "70px", width: "70px" }}>Comm $</th>
@@ -426,84 +426,84 @@ export default function TradeTable({
                 return (
                   <React.Fragment key={t.id}>
                     <tr
-                      className={`border-b border-white/5 transition ${
-                        index % 2 === 0 ? "bg-[#0f172a]" : "bg-[#0f172a]/50"
+                      className={`border-b border-th-border-dim transition ${
+                        index % 2 === 0 ? "bg-th-surface" : "bg-th-surface/50"
                       }`}
                     >
                       <td
-                        className="p-2 sticky left-0 bg-inherit z-10 font-medium text-slate-200"
+                        className="p-2 sticky left-0 bg-inherit z-10 font-medium text-th-text-sub"
                         style={{ minWidth: "40px", width: "40px" }}
                       >
                         {startIndex + index + 1}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.date ? formatDate(t.date) : ""}</td>
-                      <td className="p-2 text-slate-200">{t.time || ""}</td>
-                      <td className="p-2 text-slate-200 truncate" title={t.pair}>{t.pair || ""}</td>
-                      <td className="p-2 text-slate-200">{dirShort}</td>
+                      <td className="p-2 text-th-text-sub">{t.date ? formatDate(t.date) : ""}</td>
+                      <td className="p-2 text-th-text-sub">{t.time || ""}</td>
+                      <td className="p-2 text-th-text-sub truncate" title={t.pair}>{t.pair || ""}</td>
+                      <td className="p-2 text-th-text-sub">{dirShort}</td>
 
-                      <td className="p-2 text-slate-200 border-r border-white/10">
+                      <td className="p-2 text-th-text-sub border-r border-th-border">
                         {equityBefore === null ? "-" : fmt(equityBefore, 2)}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.entry ?? ""}</td>
-                      <td className="p-2 text-slate-200">{t.sl ?? ""}</td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">{t.entry ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">{t.sl ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">
                         {t.slPercent !== undefined && t.slPercent !== null ? fmtPct(t.slPercent, 2) : "-"}
                       </td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">
                         {t.slDollar !== undefined && t.slDollar !== null ? `$${fmt(t.slDollar, 2)}` : "-"}
                       </td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">
                         {t.riskPercent !== undefined && t.riskPercent !== null ? fmtPct(t.riskPercent, 2) : "-"}
                       </td>
-                      <td className="p-2 text-slate-200 border-r border-white/10">
+                      <td className="p-2 text-th-text-sub border-r border-th-border">
                         {t.riskDollar !== undefined && t.riskDollar !== null ? `$${fmt(t.riskDollar, 2)}` : "-"}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.tpsHit ?? ""}</td>
-                      <td className="p-2 text-slate-200">{t.tp1 ?? ""}</td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">{t.tpsHit ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">{t.tp1 ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">
                         {t.tp1Percent !== undefined && t.tp1Percent !== null ? fmtPct(t.tp1Percent, 2) : "-"}
                       </td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">
                         {t.tp1Dollar !== undefined && t.tp1Dollar !== null ? `$${fmt(t.tp1Dollar, 2)}` : "-"}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.tp2 ?? ""}</td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">{t.tp2 ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">
                         {t.tp2Percent !== undefined && t.tp2Percent !== null ? fmtPct(t.tp2Percent, 2) : "-"}
                       </td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">
                         {t.tp2Dollar !== undefined && t.tp2Dollar !== null ? `$${fmt(t.tp2Dollar, 2)}` : "-"}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.tp3 ?? ""}</td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">{t.tp3 ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">
                         {t.tp3Percent !== undefined && t.tp3Percent !== null ? fmtPct(t.tp3Percent, 2) : "-"}
                       </td>
-                      <td className="p-2 text-slate-200 border-r border-white/10">
+                      <td className="p-2 text-th-text-sub border-r border-th-border">
                         {t.tp3Dollar !== undefined && t.tp3Dollar !== null ? `$${fmt(t.tp3Dollar, 2)}` : "-"}
                       </td>
 
-                      <td className="p-2 text-slate-200">{t.result ?? ""}</td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">{t.result ?? ""}</td>
+                      <td className="p-2 text-th-text-sub">
                         {commissionValue === null ? "-" : `$${fmt(commissionValue, 2)}`}
                       </td>
                       <td className={`p-2 font-semibold ${pnlValue !== null && pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         {pnlValue === null ? "-" : `$${fmt(pnlValue, 2)}`}
                       </td>
-                      <td className="p-2 text-slate-200">
+                      <td className="p-2 text-th-text-sub">
                         {equityAfter === null ? "-" : fmt(equityAfter, 2)}
                       </td>
                     </tr>
 
                     {expandedRows[t.id] && (
-                      <tr className="bg-[#020617]/50">
+                      <tr className="bg-th-base/50">
                         <td colSpan={totalCols} className="p-3">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex flex-col gap-2">
-                              <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                              <div className="flex flex-wrap gap-2 text-xs text-th-text-sub">
                                 {matching.length === 0 ? (
                                   <span className="opacity-60">No matching confluences</span>
                                 ) : (
@@ -520,7 +520,7 @@ export default function TradeTable({
                               </div>
 
                               {violated.length > 0 && (
-                                <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                                <div className="flex flex-wrap gap-2 text-xs text-th-text-sub">
                                   {violated.map((c) => (
                                     <span
                                       key={`bad-${c.key}`}
@@ -563,7 +563,7 @@ export default function TradeTable({
                       <td colSpan={totalCols} className="p-1">
                         <button
                           onClick={() => toggleRow(t.id)}
-                          className="w-full text-center text-slate-400 hover:text-emerald-300 text-xs flex items-center justify-center gap-1 py-1"
+                          className="w-full text-center text-th-text-muted hover:text-emerald-300 text-xs flex items-center justify-center gap-1 py-1"
                         >
                           {expandedRows[t.id] ? (
                             <>
@@ -584,12 +584,12 @@ export default function TradeTable({
           </table>
 
           {totalPages > 0 && (
-            <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-[#0f172a] border-t border-white/5">
+            <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-th-surface border-t border-th-border-dim">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  className="h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs disabled:opacity-40 hover:bg-th-surface"
                   title="First page"
                 >
                   First
@@ -598,19 +598,19 @@ export default function TradeTable({
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  className="h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs disabled:opacity-40 hover:bg-th-surface"
                 >
                   Previous
                 </button>
 
-                <span className="text-xs text-slate-200">
+                <span className="text-xs text-th-text-sub">
                   Page {currentPage} of {totalPages}
                 </span>
 
                 <button
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  className="h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs disabled:opacity-40 hover:bg-th-surface"
                 >
                   Next
                 </button>
@@ -618,7 +618,7 @@ export default function TradeTable({
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="h-8 px-3 rounded-full bg-slate-800 text-slate-100 text-xs disabled:opacity-40 hover:bg-slate-700"
+                  className="h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs disabled:opacity-40 hover:bg-th-surface"
                   title="Last page"
                 >
                   Last
@@ -632,7 +632,7 @@ export default function TradeTable({
                 >
                   <Download className="w-4 h-4" /> Backup
                 </button>
-                <label className="h-8 px-3 rounded-full bg-slate-800 text-white text-xs flex items-center gap-1 cursor-pointer hover:bg-slate-700">
+                <label className="h-8 px-3 rounded-full bg-th-overlay text-th-text text-xs flex items-center gap-1 cursor-pointer hover:bg-th-surface">
                   <Upload className="w-4 h-4" /> Import
                   <input
                     type="file"
