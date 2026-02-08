@@ -499,7 +499,7 @@ export default function TradeForm({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="flex flex-col gap-2 h-[calc(100vh-10rem)]"
+        className="flex flex-col gap-2 h-[calc(100vh-12rem)]"
       >
         {/* Row 1: Entry Checklist (full width) */}
         <div className="shrink-0">
@@ -514,20 +514,20 @@ export default function TradeForm({
 
         {/* Row 2: Trade Info | Risk Setup | Targets */}
         <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <TradeInfoSection form={form} onChange={handleChange} />
           </div>
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <RiskSetupSection form={form} onChange={handleChange} account={account} />
           </div>
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <TargetsSection form={form} onChange={handleChange} />
           </div>
         </div>
 
         {/* Row 3: Execution Gate | Result | Chart */}
         <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <ExecutionGateSection
               form={form}
               strategyId={sid}
@@ -550,10 +550,10 @@ export default function TradeForm({
               slPctOk={slPctOk}
             />
           </div>
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <ResultSection form={form} onChange={handleChange} />
           </div>
-          <div className="overflow-y-auto rounded-2xl">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <ChartSection form={form} onChange={handleChange} />
           </div>
         </div>
