@@ -24,9 +24,9 @@ export default function RightNavCluster({ active, onOpen }) {
                 "h-8 w-8", // smaller to match navbar rhythm
                 "rounded-md", // less bubbly, more “control”
                 "transition-all",
-                "hover:bg-white/8",
+                "hover:bg-th-hl/8",
                 isActive
-                  ? "bg-[#00ffa3]/10 shadow-[0_0_16px_rgba(0,255,163,0.22)]"
+                  ? "bg-th-cta/10 shadow-[0_0_16px_rgba(0,255,163,0.22)]"
                   : "bg-transparent",
               ].join(" ")}
               title={label}
@@ -35,7 +35,7 @@ export default function RightNavCluster({ active, onOpen }) {
               <Icon
                 className={[
                   "w-4 h-4",
-                  isActive ? "text-[#00ffa3]" : "text-white/75",
+                  isActive ? "text-th-cta" : "text-th-text/75",
                 ].join(" ")}
               />
             </button>
@@ -44,7 +44,7 @@ export default function RightNavCluster({ active, onOpen }) {
             {idx < ITEMS.length - 1 && (
               <span
                 aria-hidden="true"
-                className="mx-2 h-4 w-px bg-white/12"
+                className="mx-2 h-4 w-px bg-th-hl/12"
               />
             )}
           </span>

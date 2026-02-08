@@ -2,81 +2,164 @@
 @tailwind components;
 @tailwind utilities;
 
-/* App-wide custom styles */
+/* ================================================================
+   THEME TOKENS — light (default) / dark (.dark on <html>)
+   ================================================================ */
+:root {
+  /* Backgrounds */
+  --color-bg-base:    255 255 255;   /* page bg — pure white */
+  --color-bg-surface: 249 250 251;   /* card / panel — gray-50 */
+  --color-bg-raised:  243 244 246;   /* inputs on cards — gray-100 */
+  --color-bg-inset:   229 231 235;   /* deeper insets — gray-200 */
+  --color-bg-overlay: 255 255 255;   /* modals, drawers */
+
+  /* Text — Tailwind gray-900 → gray-500 scale */
+  --color-text:       17 24 39;      /* primary — gray-900 */
+  --color-text-sub:   55 65 81;      /* secondary — gray-700 */
+  --color-text-dim:   75 85 99;      /* labels — gray-600 */
+  --color-text-muted: 107 114 128;   /* disabled — gray-500 */
+
+  /* Borders — heavier than before */
+  --color-border:     17 24 39;
+  --color-border-val: rgba(0,0,0,0.16);
+  --color-border-dim-val: rgba(0,0,0,0.10);
+
+  /* Highlight (subtle tint) */
+  --color-hl:         0 0 0;
+
+  /* Inputs — white so they pop against gray surface */
+  --color-input:      255 255 255;
+  --color-input-bdr:  rgba(0,0,0,0.16);
+
+  /* Accent / CTA — tuned for legibility on white */
+  --color-accent:     109 40 217;    /* violet-700 — richer on white */
+  --color-cta:        5 150 105;     /* emerald-600 — professional green */
+
+  /* Shadows (light gets soft shadows, dark uses none) */
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
+  --shadow-header: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.dark {
+  --color-bg-base:    2 6 23;
+  --color-bg-surface: 15 23 42;
+  --color-bg-raised:  11 17 32;
+  --color-bg-inset:   17 24 39;
+  --color-bg-overlay: 30 41 59;
+
+  --color-text:       255 255 255;
+  --color-text-sub:   226 232 240;
+  --color-text-dim:   203 213 225;
+  --color-text-muted: 148 163 184;
+
+  --color-border:     255 255 255;
+  --color-border-val: rgba(255,255,255,0.1);
+  --color-border-dim-val: rgba(255,255,255,0.05);
+
+  --color-hl:         255 255 255;
+
+  --color-input:      15 23 42;
+  --color-input-bdr:  rgba(255,255,255,0.05);
+
+  --color-accent:     127 90 240;
+  --color-cta:        0 255 163;
+
+  --shadow-card: none;
+  --shadow-header: 0 8px 30px rgba(0,0,0,0.35);
+}
+
+/* ================================================================
+   BASE STYLES
+   ================================================================ */
 body {
- @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-white min-h-screen;
+  @apply bg-th-base text-th-text min-h-screen transition-colors duration-200;
 }
 
-h1 {
- @apply text-3xl font-bold tracking-tight;
+/* ================================================================
+   LIGHT MODE POLISH — shadows, input borders, select styling
+   ================================================================ */
+
+/* Inputs & selects get visible borders + white bg in light mode */
+:root input:not([type="range"]):not([type="checkbox"]),
+:root select,
+:root textarea {
+  background-color: rgb(var(--color-input)) !important;
+  border-color: var(--color-input-bdr) !important;
+}
+:root input:not([type="range"]):not([type="checkbox"]):focus,
+:root select:focus,
+:root textarea:focus {
+  border-color: rgb(var(--color-accent)) !important;
+  box-shadow: 0 0 0 2px rgb(var(--color-accent) / 0.15) !important;
 }
 
-h2 {
- @apply text-xl font-semibold mt-4 mb-2;
+/* Select caret / arrow — ensure visibility in light mode */
+:root select {
+  appearance: auto;
 }
 
-
-/* Utility examples (custom if needed) */
-.input-style {
- @apply border p-2 rounded w-full;
+/* Range sliders — themed track */
+:root input[type="range"] {
+  accent-color: rgb(var(--color-cta));
 }
 
-.btn-clear {
- @apply bg-gray-300 text-black hover:bg-gray-400 px-4 py-2 rounded;
+/* Option elements - ensure readable in light mode */
+:root option {
+  background-color: rgb(var(--color-bg-base));
+  color: rgb(var(--color-text));
 }
 
-.card {
- @apply bg-white dark:bg-gray-800 rounded-2xl p-4 shadow;
-}
+/* ================================================================
+   LIGHT MODE: darken pale accent text for legibility on white
+   ================================================================ */
+:root:not(.dark) .text-emerald-100,
+:root:not(.dark) .text-emerald-200,
+:root:not(.dark) .text-emerald-300 { color: #059669; }
 
-/* Tab styles (from your original) */
+:root:not(.dark) .text-amber-100,
+:root:not(.dark) .text-amber-200,
+:root:not(.dark) .text-amber-300 { color: #b45309; }
+
+:root:not(.dark) .text-rose-100,
+:root:not(.dark) .text-rose-200 { color: #e11d48; }
+
+/* Matching bg-accent opacity colors */
+:root:not(.dark) .bg-emerald-300\/10 { background-color: rgba(5,150,105,0.10); }
+:root:not(.dark) .bg-amber-300\/10 { background-color: rgba(180,83,9,0.10); }
+:root:not(.dark) .border-emerald-300\/40 { border-color: rgba(5,150,105,0.25); }
+
+h1 { @apply text-3xl font-bold tracking-tight; }
+h2 { @apply text-xl font-semibold mt-4 mb-2; }
+
+/* Tab styles */
 .react-tabs__tab--selected {
- background-color: #00ffa3 !important;
- color: black !important;
- opacity: 1 !important;
- border-bottom: 2px solid white !important;
+  background-color: rgb(var(--color-cta)) !important;
+  color: white !important;
+  opacity: 1 !important;
+  border-bottom: none !important;
 }
-
-.react-tabs__tab {
- transition: all 0.3s ease;
+.dark .react-tabs__tab--selected {
+  color: black !important;
 }
-
+.react-tabs__tab { transition: all 0.3s ease; }
 .react-tabs__tab:hover {
- background-color: #00ffa3 !important;
- color: black !important;
+  background-color: rgb(var(--color-cta) / 0.15) !important;
+  color: rgb(var(--color-text)) !important;
 }
 
-/* TradeTable specific styles */
-table {
- @apply table-auto w-full text-xs;
- table-layout: fixed;
- width: 100%;
-}
-
+/* TradeTable */
+table { @apply table-auto w-full text-xs; table-layout: fixed; width: 100%; }
 thead tr {
- @apply sticky top-0 bg-[#0f172a] text-left border-b border-gray-600;
- position: sticky;
- top: 0;
- z-index: 10;
+  @apply sticky top-0 bg-th-surface text-left;
+  border-bottom: 1px solid var(--color-border-val);
+  position: sticky; top: 0; z-index: 10;
 }
-
 th {
- @apply p-2 font-semibold text-gray-300;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+  @apply p-2 font-semibold text-th-text-dim;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-th.sticky {
- position: sticky;
- left: 0;
- background: inherit;
- z-index: 11;
-}
-
+th.sticky { position: sticky; left: 0; background: inherit; z-index: 11; }
 td {
- @apply p-2 text-gray-300;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+  @apply p-2 text-th-text-sub;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

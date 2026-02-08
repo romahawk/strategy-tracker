@@ -31,9 +31,14 @@ import {
   Trash2,
   HandCoins,
   TrendingUp,
+  Sun,
+  Moon,
 } from "lucide-react";
 
+import { useTheme } from "./contexts/ThemeContext";
+
 export default function App() {
+  const { theme, toggle: toggleTheme } = useTheme();
   const { strategyId: sidParam, accountId: aidParam } = useParams();
   const strategyId = Number(sidParam || 1);
   const accountId = Number(aidParam || 1);
@@ -306,10 +311,10 @@ export default function App() {
     const base =
       "px-4 h-8 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-2";
 
-    const ghost = "text-slate-300 hover:text-white hover:bg-white/5";
+    const ghost = "text-th-text-sub hover:text-th-text hover:bg-th-hl/5";
 
     const activePill =
-      "bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.35)] scale-[1.02]";
+      "bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold scale-[1.02]";
 
     const primary =
       "bg-gradient-to-r from-[#f97316] to-[#fb923c] text-black font-semibold shadow hover:brightness-110";
@@ -317,7 +322,7 @@ export default function App() {
     const iconCls = "w-4 h-4 opacity-90";
 
     return (
-      <div className="flex items-center justify-between gap-3 mb-4 bg-[#0f172a] rounded-xl p-2">
+      <div className="flex items-center justify-between gap-3 mb-4 bg-th-surface rounded-xl p-2">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setInnerTabs((prev) => ({ ...prev, [which]: "trade" }))}
@@ -371,7 +376,7 @@ export default function App() {
 
         <button
           onClick={clearCurrentScope}
-          className="h-8 px-4 rounded-full bg-white/5 text-slate-200 text-sm font-medium hover:bg-white/10 transition flex items-center gap-2 border border-white/10"
+          className="h-8 px-4 rounded-full bg-th-hl/5 text-th-text-sub text-sm font-medium hover:bg-th-hl/10 transition flex items-center gap-2 border border-th-border"
           title="Clears only current tab + current strategy + current account"
         >
           <Trash2 className="w-4 h-4" />
@@ -382,57 +387,70 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-300 flex flex-col">
-      <ToastContainer position="top-right" theme="dark" />
+    <div className="min-h-screen bg-th-surface text-th-text-dim flex flex-col">
+      <ToastContainer position="top-right" theme={theme === "dark" ? "dark" : "light"} />
 
       <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
         {/* ✅ UPDATED NAVBAR */}
-        <header className="sticky top-0 z-50 h-16 px-5 bg-[#020617]/90 backdrop-blur border-b border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex items-center gap-4">
+        <header className="sticky top-0 z-50 h-16 px-5 bg-th-base/90 backdrop-blur border-b border-th-border shadow-[var(--shadow-header)] flex items-center gap-4">
           <div className="flex items-center gap-2 min-w-fit shrink-0">
-            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#7f5af0] to-[#00ffa3] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-th-accent to-th-cta flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm font-semibold tracking-tight text-white">
+            <span className="text-sm font-semibold tracking-tight text-th-text">
               AlphaRhythm
             </span>
           </div>
 
-          <TabList className="flex items-center gap-1 bg-[#0f172a]/80 rounded-full px-1 py-1 ml-2 h-9 shrink-0">
+          <TabList className="flex items-center gap-1 bg-th-surface/80 rounded-full px-1 py-1 ml-2 h-9 shrink-0">
             <Tab
-              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
-              selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               Live
             </Tab>
             <Tab
-              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
-              selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               Backtest
             </Tab>
             <Tab
-              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-slate-200/80 hover:text-white hover:bg-white/5 transition outline-none"
-              selectedClassName="bg-[#0b1120] text-white border border-white/10 shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               History
             </Tab>
           </TabList>
 
-          <div className="h-7 w-px bg-white/10 mx-2 shrink-0" />
+          <div className="h-7 w-px bg-th-hl/10 mx-2 shrink-0" />
 
           {/* ✅ isolate nav controls to prevent overlay/focus weirdness */}
-          <div className="relative z-10 flex items-center gap-3 text-white shrink-0">
+          <div className="relative z-10 flex items-center gap-3 text-th-text shrink-0">
             <StrategyNav />
           </div>
 
-          <div className="h-7 w-px bg-white/10 mx-1 shrink-0" />
+          <div className="h-7 w-px bg-th-hl/10 mx-1 shrink-0" />
 
-          <div className="relative z-10 flex items-center gap-3 text-white shrink-0">
+          <div className="relative z-10 flex items-center gap-3 text-th-text shrink-0">
             <AccountNav />
           </div>
 
           {/* spacer */}
           <div className="ml-auto" />
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="h-8 w-8 rounded-md flex items-center justify-center hover:bg-th-hl/8 transition-all"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 text-th-text/75" />
+            ) : (
+              <Moon className="w-4 h-4 text-th-text/75" />
+            )}
+          </button>
 
           {/* RIGHT: Guide | Tools | Journal | Profile */}
           <div className="relative z-10 flex items-center gap-2 shrink-0">
@@ -459,7 +477,7 @@ export default function App() {
             )}
 
             {innerTabs.live === "all" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(newFilters) => setFilters({ ...newFilters, mode: "live" })}
@@ -477,20 +495,20 @@ export default function App() {
             )}
 
             {innerTabs.live === "kpis" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.live === "equity" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
 
             {/* ✅ Live-only compounding tab */}
             {innerTabs.live === "compound" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <WeeklyCompounding
                   strategyId={strategyId}
                   accountId={accountId}
@@ -516,7 +534,7 @@ export default function App() {
             )}
 
             {innerTabs.backtest === "all" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(f) => setFilters({ ...f, mode: "backtest" })}
@@ -534,13 +552,13 @@ export default function App() {
             )}
 
             {innerTabs.backtest === "kpis" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.backtest === "equity" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
@@ -560,7 +578,7 @@ export default function App() {
             )}
 
             {innerTabs.history === "all" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(f) => setFilters({ ...f, mode: "history" })}
@@ -578,13 +596,13 @@ export default function App() {
             )}
 
             {innerTabs.history === "kpis" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.history === "equity" && (
-              <div className="bg-[#1e293b] rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
@@ -602,8 +620,8 @@ export default function App() {
 
       {selectedTrade && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#1e293b] p-6 rounded-2xl shadow-lg max-w-4xl w-full">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-th-base p-6 rounded-2xl shadow-xl border border-th-border max-w-4xl w-full">
+            <h2 className="text-2xl font-bold text-th-text mb-4 flex items-center gap-2">
               <BarChart3 className="w-6 h-6" />
               Trade Chart
             </h2>
@@ -614,7 +632,7 @@ export default function App() {
             />
             <button
               onClick={closeModal}
-              className="mt-4 bg-[#00ffa3] text-black font-semibold px-6 py-3 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-[#00ffa3]/50 transition-all duration-300"
+              className="mt-4 bg-th-cta text-black font-semibold px-6 py-3 rounded-xl hover:brightness-110 focus:ring-2 focus:ring-th-cta/50 transition-all duration-300"
             >
               Close
             </button>

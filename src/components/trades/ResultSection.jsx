@@ -4,10 +4,10 @@ import { BarChart3, Percent, DollarSign } from "lucide-react";
 import { Card } from "../ui/Card";
 
 const inputBase =
-  "w-full h-8 rounded-lg bg-[#0b1120] border border-white/10 px-3 text-sm text-white " +
-  "placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "w-full h-8 rounded-lg bg-th-raised border border-th-border px-3 text-sm text-th-text " +
+  "placeholder:text-th-text-muted focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
 
-const labelBase = "text-[11px] text-slate-300 mb-1 block";
+const labelBase = "text-[11px] text-th-text-dim mb-1 block";
 
 const EXCHANGES = [
   { group: "CEX", items: ["OKX", "BingX", "Bybit", "Binance"] },
@@ -89,7 +89,7 @@ export default function ResultSection({ form, onChange }) {
     <Card variant="passive" className="p-2">
       <div className="flex items-center gap-2 mb-2">
         <BarChart3 className="w-4 h-4 text-emerald-300" />
-        <h3 className="text-sm font-semibold text-slate-100">Result</h3>
+        <h3 className="text-sm font-semibold text-th-text">Result</h3>
       </div>
 
       <div className="grid gap-2">
@@ -201,7 +201,7 @@ export default function ResultSection({ form, onChange }) {
               name="commission"
               value={commissionAuto}
               readOnly
-              className={inputBase + " bg-black/10 text-slate-200 focus:ring-0"}
+              className={inputBase + " bg-th-inset text-th-text-sub focus:ring-0"}
               placeholder="$"
               tabIndex={-1}
             />
@@ -228,7 +228,7 @@ export default function ResultSection({ form, onChange }) {
               name="tpTotal"
               value={form.tpTotal ?? ""}
               readOnly
-              className={inputBase + " bg-black/10 text-slate-200 focus:ring-0"}
+              className={inputBase + " bg-th-inset text-th-text-sub focus:ring-0"}
               tabIndex={-1}
             />
           </div>
@@ -239,7 +239,7 @@ export default function ResultSection({ form, onChange }) {
               name="pnl"
               value={form.pnl ?? ""}
               readOnly
-              className={inputBase + " bg-black/10 text-slate-200 focus:ring-0"}
+              className={inputBase + " bg-th-inset text-th-text-sub focus:ring-0"}
               tabIndex={-1}
             />
           </div>
@@ -250,14 +250,14 @@ export default function ResultSection({ form, onChange }) {
               name="nextDeposit"
               value={form.nextDeposit ?? ""}
               readOnly
-              className={inputBase + " bg-black/10 text-slate-200 focus:ring-0"}
+              className={inputBase + " bg-th-inset text-th-text-sub focus:ring-0"}
               tabIndex={-1}
             />
           </div>
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-400">
+      <p className="mt-2 text-[11px] text-th-text-muted">
         Exit fee auto-switch: SL/Loss → taker, TP+Win → maker. Templates are editable defaults.
       </p>
     </Card>

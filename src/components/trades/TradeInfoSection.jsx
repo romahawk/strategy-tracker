@@ -24,9 +24,9 @@ const LS_FAV = "alpharhythm:favPairs";
 const LS_RECENT = "alpharhythm:recentPairs";
 
 /* ===== UI TOKENS (compact) ===== */
-const labelCls = "text-[11px] text-slate-300 mb-1";
+const labelCls = "text-[11px] text-th-text-dim mb-1";
 const inputBase =
-  "h-8 bg-[#0f172a] border border-white/5 rounded-lg px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
+  "h-8 bg-th-surface border border-th-border-dim rounded-lg px-3 py-1 text-sm text-th-text focus:outline-none focus:ring-2 focus:ring-emerald-400/40";
 const sliderCls = "w-full accent-emerald-400 cursor-pointer";
 
 export default function TradeInfoSection({ form, onChange }) {
@@ -93,29 +93,25 @@ export default function TradeInfoSection({ form, onChange }) {
       {/* Component-scoped scrollbar styling */}
       <style>{`
         .tradeinfo-scrollbars select {
-          scrollbar-width: thin;              /* Firefox */
-          scrollbar-color: rgba(148,163,184,.45) rgba(2,6,23,.85);
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148,163,184,.45) transparent;
         }
-        .tradeinfo-scrollbars select::-webkit-scrollbar {
-          width: 10px;
-        }
+        .tradeinfo-scrollbars select::-webkit-scrollbar { width: 8px; }
         .tradeinfo-scrollbars select::-webkit-scrollbar-track {
-          background: rgba(2,6,23,.85);
-          border-left: 1px solid rgba(255,255,255,.06);
+          background: rgb(var(--color-bg-raised));
         }
         .tradeinfo-scrollbars select::-webkit-scrollbar-thumb {
-          background: rgba(148,163,184,.35);
-          border: 2px solid rgba(2,6,23,.85);
+          background: rgb(var(--color-text-muted) / 0.35);
           border-radius: 999px;
         }
         .tradeinfo-scrollbars select::-webkit-scrollbar-thumb:hover {
-          background: rgba(148,163,184,.55);
+          background: rgb(var(--color-text-muted) / 0.55);
         }
       `}</style>
 
       <div className="flex items-center gap-2 mb-2">
         <Calendar className="w-4 h-4 text-emerald-400" />
-        <h3 className="text-sm font-semibold text-white">Trade Info</h3>
+        <h3 className="text-sm font-semibold text-th-text">Trade Info</h3>
       </div>
 
       {/* Date / Time */}
@@ -197,7 +193,7 @@ export default function TradeInfoSection({ form, onChange }) {
               type="button"
               onClick={toggleFavorite}
               className={`absolute right-5 top-1/2 -translate-y-1/2 transition ${
-                isFav ? "text-yellow-400" : "text-slate-500"
+                isFav ? "text-yellow-400" : "text-th-text-muted"
               } hover:scale-110`}   // ✅ moved left a bit, no overlap
               title={isFav ? "Remove from favorites" : "Add to favorites"}
             >
@@ -250,7 +246,7 @@ export default function TradeInfoSection({ form, onChange }) {
               }
               className={`${inputBase} pr-6 w-full text-center`}
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-th-text-muted">
               %
             </span>
           </div>
@@ -278,7 +274,7 @@ export default function TradeInfoSection({ form, onChange }) {
               {CHECKPOINTS.map((c) => (
                 <span
                   key={c}
-                  className="absolute w-px bg-white/30"
+                  className="absolute w-px bg-th-hl/30"
                   style={{ left: `${pctLeft(c)}%`, height: 6 }}
                 />
               ))}
@@ -302,7 +298,7 @@ export default function TradeInfoSection({ form, onChange }) {
                   return (
                     <span
                       key={c}
-                      className="absolute left-0 text-[10px] text-slate-500"
+                      className="absolute left-0 text-[10px] text-th-text-muted"
                     >
                       {c}%
                     </span>
@@ -313,7 +309,7 @@ export default function TradeInfoSection({ form, onChange }) {
                   return (
                     <span
                       key={c}
-                      className="absolute right-0 text-[10px] text-slate-500"
+                      className="absolute right-0 text-[10px] text-th-text-muted"
                     >
                       {c}%
                     </span>
@@ -323,7 +319,7 @@ export default function TradeInfoSection({ form, onChange }) {
                 return (
                   <span
                     key={c}
-                    className="absolute -translate-x-1/2 text-[10px] text-slate-500"
+                    className="absolute -translate-x-1/2 text-[10px] text-th-text-muted"
                     style={{ left: `${pctLeft(c)}%` }}
                   >
                     {c}%

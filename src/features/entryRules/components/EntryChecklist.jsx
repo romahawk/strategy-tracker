@@ -69,7 +69,7 @@ export default function EntryChecklist({
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-semibold text-slate-100">
+            <h3 className="text-sm font-semibold text-th-text">
               Entry Checklist
             </h3>
             {stats.total > 0 && (
@@ -83,7 +83,7 @@ export default function EntryChecklist({
                 {stats.satisfied}/{stats.total} ({stats.pct}%)
               </span>
             )}
-            <span className="text-[10px] text-slate-400 ml-1">
+            <span className="text-[10px] text-th-text-muted ml-1">
               {dir}
             </span>
           </div>
@@ -91,17 +91,17 @@ export default function EntryChecklist({
           <button
             type="button"
             onClick={() => setShowBuilder(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-th-hl/5 hover:bg-th-hl/10 border border-th-border px-3 py-1.5 transition"
             title="Edit entry rules for this TS"
           >
-            <Settings className="w-3.5 h-3.5 text-slate-200" />
-            <span className="text-[11px] text-slate-200">Rules</span>
+            <Settings className="w-3.5 h-3.5 text-th-text-sub" />
+            <span className="text-[11px] text-th-text-sub">Rules</span>
           </button>
         </div>
 
         {!hasRules ? (
-          <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-            <p className="text-[11px] text-slate-400">
+          <div className="rounded-xl border border-th-border bg-th-inset p-3">
+            <p className="text-[11px] text-th-text-muted">
               No entry rules defined for {dir} trades.
               Click Rules to add conditions for this Trading System.
             </p>
@@ -112,7 +112,7 @@ export default function EntryChecklist({
               <div key={group.id} className="flex flex-col gap-1.5">
                 {/* Group label */}
                 {(groups.length > 1 || group.operator === "OR") && (
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                  <div className="text-[10px] text-th-text-muted flex items-center gap-1.5">
                     <span className={`px-1.5 py-0.5 rounded-full border text-[9px] ${
                       group.operator === "AND"
                         ? "border-emerald-400/20 text-emerald-400/60"
@@ -135,7 +135,7 @@ export default function EntryChecklist({
                       className={`rounded-xl border p-2 transition ${
                         satisfied
                           ? "border-emerald-400/20 bg-emerald-400/[0.04]"
-                          : "border-white/10 bg-black/10"
+                          : "border-th-border bg-th-inset"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export default function EntryChecklist({
                           className={`shrink-0 h-6 w-6 rounded-lg flex items-center justify-center transition ${
                             satisfied
                               ? "bg-emerald-400/20 border border-emerald-400/40 text-emerald-300"
-                              : "bg-white/5 border border-white/10 text-slate-400"
+                              : "bg-th-hl/5 border border-th-border text-th-text-muted"
                           }`}
                         >
                           {satisfied ? (
@@ -156,10 +156,10 @@ export default function EntryChecklist({
                         </button>
 
                         <div className="flex-1 min-w-0">
-                          <div className={`text-xs leading-tight truncate ${satisfied ? "text-emerald-200" : "text-slate-200"}`} title={sentence}>
+                          <div className={`text-xs leading-tight truncate ${satisfied ? "text-emerald-200" : "text-th-text-sub"}`} title={sentence}>
                             {sentence}
                           </div>
-                          <div className="text-[9px] text-slate-500">
+                          <div className="text-[9px] text-th-text-muted">
                             {rule.type}
                             {rule.params?.timeframe && ` · ${rule.params.timeframe}`}
                           </div>
@@ -171,7 +171,7 @@ export default function EntryChecklist({
                         value={result?.notes || ""}
                         onChange={(e) => setNotes(rule.id, e.target.value)}
                         placeholder="notes…"
-                        className="mt-1 w-full h-5 rounded-lg bg-[#0b1120] px-2 text-[10px] text-white/70 border border-white/5 focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
+                        className="mt-1 w-full h-5 rounded-lg bg-th-raised px-2 text-[10px] text-th-text/70 border border-th-border-dim focus:outline-none focus:ring-1 focus:ring-emerald-400/30"
                       />
                     </div>
                   );

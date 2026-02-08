@@ -19,7 +19,7 @@ export default function ProtectedRoute() {
   // Normal auth flow
   if (initializing) {
     return (
-      <div className="min-h-screen bg-[#0f172a] text-gray-200 p-6">
+      <div className="min-h-screen bg-th-surface text-th-text-sub p-6">
         Loading…
       </div>
     );
