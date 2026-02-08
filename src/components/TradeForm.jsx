@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Check, ChevronDown, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "react-toastify";
 
 import TradeInfoSection from "./trades/TradeInfoSection";
@@ -65,30 +65,6 @@ function pctMove({ entry, price, direction }) {
   return Number.isFinite(pct) ? pct : null;
 }
 
-function Collapsible({ title, open, setOpen, children, hint }) {
-  return (
-    <div className="border border-white/5 rounded-2xl overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/5 transition"
-      >
-        <div className="flex items-center gap-2">
-          {open ? (
-            <ChevronDown className="w-4 h-4 text-slate-300" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-slate-300" />
-          )}
-          <span className="text-sm font-semibold text-slate-100">{title}</span>
-          {hint && <span className="text-[11px] text-slate-400">{hint}</span>}
-        </div>
-        <span className="text-[11px] text-slate-400">{open ? "Hide" : "Show"}</span>
-      </button>
-      {open && <div className="p-2 pt-0">{children}</div>}
-    </div>
-  );
-}
-
 
 export default function TradeForm({
   onAddTrade,
@@ -117,9 +93,6 @@ export default function TradeForm({
   const [form, setForm] = useState({});
   const [acceptedLoss, setAcceptedLoss] = useState(false);
   const [replanMode, setReplanMode] = useState(false);
-
-  const [showResult, setShowResult] = useState(false);
-  const [showChart, setShowChart] = useState(false);
 
   const [discipline, setDiscipline] = useState(() => loadDiscipline(sid, aid));
   useEffect(() => setDiscipline(loadDiscipline(sid, aid)), [sid, aid]);
@@ -521,32 +494,40 @@ export default function TradeForm({
     }
   };
 
-  const triggerSubmit = () => {
-    const f = formRef.current;
-    if (!f) return;
-    if (typeof f.requestSubmit === "function") f.requestSubmit();
-    else f.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-  };
-
   return (
     <>
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-2 pb-20">
-        <div className="grid gap-2 lg:grid-cols-2">
-          <div className="space-y-2 order-2 lg:order-1">
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-2 h-[calc(100vh-14rem)]"
+      >
+        {/* Row 1: Entry Checklist (full width) */}
+        <div className="shrink-0">
+          <EntryChecklist
+            strategyId={sid}
+            direction={form.direction}
+            ruleResults={form.ruleResults || []}
+            onResultsChange={(next) => setField("ruleResults", next)}
+            onSnapshotChange={(snap) => setField("ruleSnapshot", snap)}
+          />
+        </div>
+
+        {/* Row 2: Trade Info | Risk Setup | Targets */}
+        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <TradeInfoSection form={form} onChange={handleChange} />
+          </div>
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <RiskSetupSection form={form} onChange={handleChange} account={account} />
+          </div>
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <TargetsSection form={form} onChange={handleChange} />
           </div>
+        </div>
 
-          <div className="space-y-2 order-1 lg:order-2">
-            <EntryChecklist
-              strategyId={sid}
-              direction={form.direction}
-              ruleResults={form.ruleResults || []}
-              onResultsChange={(next) => setField("ruleResults", next)}
-              onSnapshotChange={(snap) => setField("ruleSnapshot", snap)}
-            />
-
+        {/* Row 3: Execution Gate | Result | Chart */}
+        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <ExecutionGateSection
               form={form}
               strategyId={sid}
@@ -568,23 +549,19 @@ export default function TradeForm({
               gateReady={gateReady}
               slPctOk={slPctOk}
             />
-
-            <Collapsible title="Result" open={showResult} setOpen={setShowResult} hint="post-trade">
-              <ResultSection form={form} onChange={handleChange} />
-            </Collapsible>
-
-            <Collapsible title="Chart" open={showChart} setOpen={setShowChart} hint="optional">
-              <ChartSection form={form} onChange={handleChange} />
-            </Collapsible>
+          </div>
+          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
+            <ResultSection form={form} onChange={handleChange} />
+          </div>
+          <div className="rounded-2xl">
+            <ChartSection form={form} onChange={handleChange} />
           </div>
         </div>
-      </form>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#020617]/90 backdrop-blur border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="flex justify-end gap-2">
+        {/* Row 4: Save (bottom-right) */}
+        <div className="flex justify-end shrink-0">
           <button
-            type="button"
-            onClick={triggerSubmit}
+            type="submit"
             disabled={isSaving}
             className={`h-9 px-5 rounded-full text-sm font-semibold transition active:scale-[0.98] ${
               saveEmphasis
@@ -608,7 +585,9 @@ export default function TradeForm({
             )}
           </button>
         </div>
-      </div>
+      </form>
+
+      {/* RuleBuilder modal renders from within EntryChecklist */}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Layers, Settings, Check, Ban, MessageSquare } from "lucide-react";
+import { Layers, Settings, Check, Ban } from "lucide-react";
 import { Card } from "../../../components/ui/Card";
 import { loadRuleSet } from "../ruleStore";
 import { ruleToSentence, snapshotRulesForTrade, confluenceStats } from "../ruleHelpers";
@@ -66,7 +66,7 @@ export default function EntryChecklist({
   return (
     <>
       <Card variant="secondary" className="p-2">
-        <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-semibold text-slate-100">
@@ -107,7 +107,7 @@ export default function EntryChecklist({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {groups.map((group, gi) => (
               <div key={group.id} className="flex flex-col gap-1.5">
                 {/* Group label */}
