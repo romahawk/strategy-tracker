@@ -499,7 +499,7 @@ export default function TradeForm({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="flex flex-col gap-2 h-[calc(100vh-12rem)]"
+        className="flex flex-col gap-2 h-[calc(100vh-14rem)]"
       >
         {/* Row 1: Entry Checklist (full width) */}
         <div className="shrink-0">
@@ -553,7 +553,7 @@ export default function TradeForm({
           <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
             <ResultSection form={form} onChange={handleChange} />
           </div>
-          <div className="rounded-2xl [&>*]:h-full [&>*]:overflow-y-auto">
+          <div className="rounded-2xl">
             <ChartSection form={form} onChange={handleChange} />
           </div>
         </div>
