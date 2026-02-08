@@ -248,8 +248,8 @@ export default function TargetsSection({ form, onChange }) {
         <h3 className="text-sm font-semibold text-slate-100">Targets</h3>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[260px,1fr] gap-2">
-        <div className="space-y-2">
+      <div className="space-y-2">
+        <div>
           <label className={labelBase}>TP status</label>
           <select
             name="tpsHit"
@@ -265,119 +265,94 @@ export default function TargetsSection({ form, onChange }) {
           </select>
         </div>
 
-        <div className="space-y-3">
-          {/* TP1 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-            <div>
-              <label className={labelBase}>TP1 (price)</label>
-              <input
-                name="tp1"
-                value={form.tp1 || ""}
-                onChange={onChange}
-                placeholder="TP1"
-                className={inputBase}
-              />
-            </div>
-
-            <div>
-              <label className={labelBase}>TP1 % (allocation)</label>
-              <AllocationSlider
-                value={alloc1}
-                onChange={setTP1Alloc}
-                disabled={disableTP1}
-              />
-            </div>
-
-            <div>
-              <label className={labelBase}>TP1, $</label>
-              <MoneyField value={tp1Dollar} />
-            </div>
+        {/* TP1 */}
+        <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+          <div>
+            <label className={labelBase}>TP1</label>
+            <input
+              name="tp1"
+              value={form.tp1 || ""}
+              onChange={onChange}
+              placeholder="price"
+              className={inputBase}
+            />
           </div>
-
-          {/* toggle */}
-          <button
-            type="button"
-            onClick={() => setShowMore((v) => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition"
-          >
-            <div className="flex items-center gap-2">
-              {showMore ? (
-                <ChevronDown className="w-4 h-4 text-slate-200" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-slate-200" />
-              )}
-              <span className="text-sm text-slate-100">TP2 / TP3</span>
-              <span className="text-[11px] text-slate-400">(optional)</span>
-            </div>
-            <span className="text-[11px] text-slate-400">
-              {showMore ? "Hide" : "Show"}
-            </span>
-          </button>
-
-          {showMore && (
-            <div className="space-y-3">
-              {/* TP2 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-                <div>
-                  <label className={labelBase}>TP2 (price)</label>
-                  <input
-                    name="tp2"
-                    value={form.tp2 || ""}
-                    onChange={onChange}
-                    placeholder="TP2"
-                    className={inputBase}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelBase}>TP2 % (allocation)</label>
-                  <AllocationSlider
-                    value={alloc2}
-                    onChange={setTP2Alloc}
-                    disabled={disableTP2}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelBase}>TP2, $</label>
-                  <MoneyField value={tp2Dollar} />
-                </div>
-              </div>
-
-              {/* TP3 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-                <div>
-                  <label className={labelBase}>TP3 (price)</label>
-                  <input
-                    name="tp3"
-                    value={form.tp3 || ""}
-                    onChange={onChange}
-                    placeholder="TP3"
-                    className={inputBase}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelBase}>TP3 % (allocation)</label>
-                  <AllocationSlider
-                    value={alloc3}
-                    onChange={setTP3Alloc}
-                    disabled={disableTP3}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelBase}>TP3, $</label>
-                  <MoneyField value={tp3Dollar} />
-                </div>
-              </div>
-
-              <p className="text-[11px] text-slate-400">
-                TP % = how much of the position you plan to close at each target.
-              </p>
-            </div>
-          )}
+          <div className="w-20">
+            <MoneyField value={tp1Dollar} />
+          </div>
         </div>
+        <AllocationSlider
+          value={alloc1}
+          onChange={setTP1Alloc}
+          disabled={disableTP1}
+        />
+
+        {/* TP2/3 toggle */}
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="w-full flex items-center justify-between px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition"
+        >
+          <div className="flex items-center gap-2">
+            {showMore ? (
+              <ChevronDown className="w-3.5 h-3.5 text-slate-200" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 text-slate-200" />
+            )}
+            <span className="text-xs text-slate-100">TP2 / TP3</span>
+          </div>
+          <span className="text-[10px] text-slate-400">
+            {showMore ? "Hide" : "Show"}
+          </span>
+        </button>
+
+        {showMore && (
+          <div className="space-y-2">
+            {/* TP2 */}
+            <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+              <div>
+                <label className={labelBase}>TP2</label>
+                <input
+                  name="tp2"
+                  value={form.tp2 || ""}
+                  onChange={onChange}
+                  placeholder="price"
+                  className={inputBase}
+                />
+              </div>
+              <div className="w-20">
+                <MoneyField value={tp2Dollar} />
+              </div>
+            </div>
+            <AllocationSlider
+              value={alloc2}
+              onChange={setTP2Alloc}
+              disabled={disableTP2}
+            />
+
+            {/* TP3 */}
+            <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+              <div>
+                <label className={labelBase}>TP3</label>
+                <input
+                  name="tp3"
+                  value={form.tp3 || ""}
+                  onChange={onChange}
+                  placeholder="price"
+                  className={inputBase}
+                />
+              </div>
+              <div className="w-20">
+                <MoneyField value={tp3Dollar} />
+              </div>
+            </div>
+            <AllocationSlider
+              value={alloc3}
+              onChange={setTP3Alloc}
+              disabled={disableTP3}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
