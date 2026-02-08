@@ -153,13 +153,13 @@ export default function ExecutionGateSection({
         </div>
       </div>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-[#7f5af0]/35 to-transparent my-2" />
+      <div className="h-px bg-gradient-to-r from-transparent via-th-accent/35 to-transparent my-2" />
 
       <div className="grid md:grid-cols-2 gap-2">
         {checks.map((c) => (
           <div
             key={c.label}
-            className="flex items-center gap-2 px-2 py-1 rounded-lg bg-black/15 border border-th-border"
+            className="flex items-center gap-2 px-2 py-1 rounded-lg bg-th-raised border border-th-border"
           >
             <StatusDot ok={c.ok} />
             <span className="text-xs text-th-text">{c.label}</span>
@@ -210,7 +210,7 @@ export default function ExecutionGateSection({
               ? "bg-emerald-300/15 text-emerald-50 border border-emerald-300/30"
               : armDisabled
               ? "bg-th-hl/5 text-th-text-muted border border-th-border cursor-not-allowed"
-              : "bg-gradient-to-r from-[#00ffa3] to-[#7f5af0] text-[#020617] hover:brightness-110 shadow-[0_0_18px_rgba(127,90,240,.20)]"
+              : "bg-gradient-to-r from-th-cta to-th-accent text-white dark:text-black hover:brightness-110 shadow-[0_0_18px_rgba(127,90,240,.20)]"
           }`}
           title={isArmed ? "Trade is ARMED" : armDisabledReason || ""}
         >

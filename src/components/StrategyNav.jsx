@@ -34,7 +34,7 @@ const selectBase =
   "h-8 rounded-full bg-th-raised border border-th-border px-3 text-xs text-th-text focus:outline-none focus:ring-2 focus:ring-th-accent/40";
 
 const iconBtn =
-  "group h-8 w-8 rounded-full bg-th-raised border border-th-border flex items-center justify-center transition hover:border-th-border hover:bg-th-hl/5 hover:shadow-[0_0_0_2px_rgba(255,255,255,0.08)]";
+  "group h-8 w-8 rounded-full bg-th-raised border border-th-border flex items-center justify-center transition hover:border-th-border hover:bg-th-hl/5";
 
 export default function StrategyNav() {
   const { strategyId, accountId } = useParams();
@@ -206,10 +206,10 @@ export default function StrategyNav() {
           {strategies.length > 1 && (
             <button
               onClick={handleDelete}
-              className="w-full h-7 rounded-full bg-gradient-to-r from-[#3d1019] to-[#1a070c] text-[11px] text-rose-100 border border-rose-400/10 hover:from-[#5a1320] hover:to-[#270a10] transition flex items-center justify-center gap-1"
+              className="w-full h-7 rounded-full bg-rose-500/10 dark:bg-gradient-to-r dark:from-[#3d1019] dark:to-[#1a070c] text-[11px] text-rose-600 dark:text-rose-100 border border-rose-300/30 dark:border-rose-400/10 hover:bg-rose-500/20 dark:hover:from-[#5a1320] dark:hover:to-[#270a10] transition flex items-center justify-center gap-1"
               title="Delete current strategy"
             >
-              <Trash2 size={14} className="text-rose-100" />
+              <Trash2 size={14} />
               Delete strategy
             </button>
           )}

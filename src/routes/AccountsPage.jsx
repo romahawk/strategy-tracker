@@ -23,7 +23,7 @@ const shell =
   "mx-auto w-full max-w-[1400px] px-6 py-6";
 
 const card =
-  "rounded-2xl border border-th-border bg-th-hl/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_12px_50px_rgba(0,0,0,0.45)] backdrop-blur";
+  "rounded-2xl border border-th-border bg-th-base shadow-[var(--shadow-card)]";
 
 const input =
   "mt-1 w-full rounded-xl bg-th-raised border border-th-border px-3 py-2 text-sm text-th-text/90 outline-none focus:border-th-border focus:ring-2 focus:ring-th-cta/20";

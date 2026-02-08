@@ -45,7 +45,7 @@ export default function RightSidePanel({ open, activeTab, onClose }) {
           "w-[460px] max-w-[94vw]",
           "bg-th-base/95 backdrop-blur-xl",
           "border-l border-th-border",
-          "shadow-[-32px_0_80px_rgba(0,0,0,0.65)]",
+          "dark:shadow-[-32px_0_80px_rgba(0,0,0,0.65)] shadow-[-16px_0_48px_rgba(0,0,0,0.12)]",
           "transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "translate-x-full",
         ].join(" ")}

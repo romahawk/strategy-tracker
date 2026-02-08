@@ -12,7 +12,7 @@ export default function FilterBar({ filters, setFilters }) {
         <Filter className="w-4 h-4 text-emerald-400" />
         <h3 className="text-sm font-semibold text-th-text">Filters</h3>
         {(filters.result || filters.startDate || filters.endDate || filters.pair) && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-200">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-200">
             active
           </span>
         )}

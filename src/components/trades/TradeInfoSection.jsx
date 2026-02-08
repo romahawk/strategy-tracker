@@ -93,23 +93,19 @@ export default function TradeInfoSection({ form, onChange }) {
       {/* Component-scoped scrollbar styling */}
       <style>{`
         .tradeinfo-scrollbars select {
-          scrollbar-width: thin;              /* Firefox */
-          scrollbar-color: rgba(148,163,184,.45) rgba(2,6,23,.85);
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148,163,184,.45) transparent;
         }
-        .tradeinfo-scrollbars select::-webkit-scrollbar {
-          width: 10px;
-        }
+        .tradeinfo-scrollbars select::-webkit-scrollbar { width: 8px; }
         .tradeinfo-scrollbars select::-webkit-scrollbar-track {
-          background: rgba(2,6,23,.85);
-          border-left: 1px solid rgba(255,255,255,.06);
+          background: rgb(var(--color-bg-raised));
         }
         .tradeinfo-scrollbars select::-webkit-scrollbar-thumb {
-          background: rgba(148,163,184,.35);
-          border: 2px solid rgba(2,6,23,.85);
+          background: rgb(var(--color-text-muted) / 0.35);
           border-radius: 999px;
         }
         .tradeinfo-scrollbars select::-webkit-scrollbar-thumb:hover {
-          background: rgba(148,163,184,.55);
+          background: rgb(var(--color-text-muted) / 0.55);
         }
       `}</style>
 

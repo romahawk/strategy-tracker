@@ -311,10 +311,10 @@ export default function App() {
     const base =
       "px-4 h-8 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-2";
 
-    const ghost = "text-th-text-dim hover:text-th-text hover:bg-th-hl/5";
+    const ghost = "text-th-text-sub hover:text-th-text hover:bg-th-hl/5";
 
     const activePill =
-      "bg-th-raised text-th-text border border-th-border shadow-[0_0_0_1px_rgba(127,90,240,.35)] scale-[1.02]";
+      "bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold scale-[1.02]";
 
     const primary =
       "bg-gradient-to-r from-[#f97316] to-[#fb923c] text-black font-semibold shadow hover:brightness-110";
@@ -388,11 +388,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-th-surface text-th-text-dim flex flex-col">
-      <ToastContainer position="top-right" theme="dark" />
+      <ToastContainer position="top-right" theme={theme === "dark" ? "dark" : "light"} />
 
       <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>
         {/* ✅ UPDATED NAVBAR */}
-        <header className="sticky top-0 z-50 h-16 px-5 bg-th-base/90 backdrop-blur border-b border-th-border shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex items-center gap-4">
+        <header className="sticky top-0 z-50 h-16 px-5 bg-th-base/90 backdrop-blur border-b border-th-border shadow-[var(--shadow-header)] flex items-center gap-4">
           <div className="flex items-center gap-2 min-w-fit shrink-0">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-th-accent to-th-cta flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
@@ -405,19 +405,19 @@ export default function App() {
           <TabList className="flex items-center gap-1 bg-th-surface/80 rounded-full px-1 py-1 ml-2 h-9 shrink-0">
             <Tab
               className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
-              selectedClassName="bg-th-raised text-th-text border border-th-border shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               Live
             </Tab>
             <Tab
               className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
-              selectedClassName="bg-th-raised text-th-text border border-th-border shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               Backtest
             </Tab>
             <Tab
               className="px-4 h-7 flex items-center rounded-full text-xs font-medium text-th-text-sub/80 hover:text-th-text hover:bg-th-hl/5 transition outline-none"
-              selectedClassName="bg-th-raised text-th-text border border-th-border shadow-[0_0_0_1px_rgba(127,90,240,.4)]"
+              selectedClassName="bg-th-base text-th-text border border-th-border shadow-[var(--shadow-card)] font-semibold"
             >
               History
             </Tab>
@@ -477,7 +477,7 @@ export default function App() {
             )}
 
             {innerTabs.live === "all" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(newFilters) => setFilters({ ...newFilters, mode: "live" })}
@@ -495,20 +495,20 @@ export default function App() {
             )}
 
             {innerTabs.live === "kpis" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.live === "equity" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
 
             {/* ✅ Live-only compounding tab */}
             {innerTabs.live === "compound" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <WeeklyCompounding
                   strategyId={strategyId}
                   accountId={accountId}
@@ -534,7 +534,7 @@ export default function App() {
             )}
 
             {innerTabs.backtest === "all" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(f) => setFilters({ ...f, mode: "backtest" })}
@@ -552,13 +552,13 @@ export default function App() {
             )}
 
             {innerTabs.backtest === "kpis" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.backtest === "equity" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
@@ -578,7 +578,7 @@ export default function App() {
             )}
 
             {innerTabs.history === "all" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4 space-y-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4 space-y-4">
                 <FilterBar
                   filters={filters}
                   setFilters={(f) => setFilters({ ...f, mode: "history" })}
@@ -596,13 +596,13 @@ export default function App() {
             )}
 
             {innerTabs.history === "kpis" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <Metrics trades={filteredCurrentTrades} />
               </div>
             )}
 
             {innerTabs.history === "equity" && (
-              <div className="bg-th-overlay rounded-2xl shadow-lg p-4">
+              <div className="bg-th-base rounded-2xl shadow-[var(--shadow-card)] border border-th-border p-4">
                 <EquityCurveChart trades={filteredCurrentTrades} />
               </div>
             )}
@@ -620,7 +620,7 @@ export default function App() {
 
       {selectedTrade && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-th-overlay p-6 rounded-2xl shadow-lg max-w-4xl w-full">
+          <div className="bg-th-base p-6 rounded-2xl shadow-xl border border-th-border max-w-4xl w-full">
             <h2 className="text-2xl font-bold text-th-text mb-4 flex items-center gap-2">
               <BarChart3 className="w-6 h-6" />
               Trade Chart

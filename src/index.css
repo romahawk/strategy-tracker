@@ -7,33 +7,37 @@
    ================================================================ */
 :root {
   /* Backgrounds */
-  --color-bg-base:    255 255 255;   /* page bg */
-  --color-bg-surface: 248 250 252;   /* card / panel */
-  --color-bg-raised:  241 245 249;   /* inputs, nested cards */
-  --color-bg-inset:   226 232 240;   /* deeper insets */
+  --color-bg-base:    255 255 255;   /* page bg — pure white */
+  --color-bg-surface: 249 250 251;   /* card / panel — gray-50 */
+  --color-bg-raised:  243 244 246;   /* inputs on cards — gray-100 */
+  --color-bg-inset:   229 231 235;   /* deeper insets — gray-200 */
   --color-bg-overlay: 255 255 255;   /* modals, drawers */
 
-  /* Text */
-  --color-text:       15 23 42;      /* primary */
-  --color-text-sub:   51 65 85;      /* secondary */
-  --color-text-dim:   71 85 105;     /* labels, hints */
-  --color-text-muted: 100 116 139;   /* disabled / faint */
+  /* Text — Tailwind gray-900 → gray-500 scale */
+  --color-text:       17 24 39;      /* primary — gray-900 */
+  --color-text-sub:   55 65 81;      /* secondary — gray-700 */
+  --color-text-dim:   75 85 99;      /* labels — gray-600 */
+  --color-text-muted: 107 114 128;   /* disabled — gray-500 */
 
-  /* Borders */
-  --color-border:     15 23 42;      /* default border (use /10 etc) */
-  --color-border-val: rgba(0,0,0,0.1);
-  --color-border-dim-val: rgba(0,0,0,0.05);
+  /* Borders — heavier than before */
+  --color-border:     17 24 39;
+  --color-border-val: rgba(0,0,0,0.16);
+  --color-border-dim-val: rgba(0,0,0,0.10);
 
-  /* Highlight (for bg-white/5 → bg-th-hl/5 pattern) */
+  /* Highlight (subtle tint) */
   --color-hl:         0 0 0;
 
-  /* Inputs */
-  --color-input:      241 245 249;
-  --color-input-bdr:  rgba(0,0,0,0.1);
+  /* Inputs — white so they pop against gray surface */
+  --color-input:      255 255 255;
+  --color-input-bdr:  rgba(0,0,0,0.16);
 
-  /* Accent (same both themes) */
-  --color-accent:     127 90 240;    /* #7f5af0 */
-  --color-cta:        0 255 163;     /* #00ffa3 */
+  /* Accent / CTA — tuned for legibility on white */
+  --color-accent:     109 40 217;    /* violet-700 — richer on white */
+  --color-cta:        5 150 105;     /* emerald-600 — professional green */
+
+  /* Shadows (light gets soft shadows, dark uses none) */
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06);
+  --shadow-header: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .dark {
@@ -59,6 +63,9 @@
 
   --color-accent:     127 90 240;
   --color-cta:        0 255 163;
+
+  --shadow-card: none;
+  --shadow-header: 0 8px 30px rgba(0,0,0,0.35);
 }
 
 /* ================================================================
@@ -68,20 +75,76 @@ body {
   @apply bg-th-base text-th-text min-h-screen transition-colors duration-200;
 }
 
+/* ================================================================
+   LIGHT MODE POLISH — shadows, input borders, select styling
+   ================================================================ */
+
+/* Inputs & selects get visible borders + white bg in light mode */
+:root input:not([type="range"]):not([type="checkbox"]),
+:root select,
+:root textarea {
+  background-color: rgb(var(--color-input)) !important;
+  border-color: var(--color-input-bdr) !important;
+}
+:root input:not([type="range"]):not([type="checkbox"]):focus,
+:root select:focus,
+:root textarea:focus {
+  border-color: rgb(var(--color-accent)) !important;
+  box-shadow: 0 0 0 2px rgb(var(--color-accent) / 0.15) !important;
+}
+
+/* Select caret / arrow — ensure visibility in light mode */
+:root select {
+  appearance: auto;
+}
+
+/* Range sliders — themed track */
+:root input[type="range"] {
+  accent-color: rgb(var(--color-cta));
+}
+
+/* Option elements - ensure readable in light mode */
+:root option {
+  background-color: rgb(var(--color-bg-base));
+  color: rgb(var(--color-text));
+}
+
+/* ================================================================
+   LIGHT MODE: darken pale accent text for legibility on white
+   ================================================================ */
+:root:not(.dark) .text-emerald-100,
+:root:not(.dark) .text-emerald-200,
+:root:not(.dark) .text-emerald-300 { color: #059669; }
+
+:root:not(.dark) .text-amber-100,
+:root:not(.dark) .text-amber-200,
+:root:not(.dark) .text-amber-300 { color: #b45309; }
+
+:root:not(.dark) .text-rose-100,
+:root:not(.dark) .text-rose-200 { color: #e11d48; }
+
+/* Matching bg-accent opacity colors */
+:root:not(.dark) .bg-emerald-300\/10 { background-color: rgba(5,150,105,0.10); }
+:root:not(.dark) .bg-amber-300\/10 { background-color: rgba(180,83,9,0.10); }
+:root:not(.dark) .border-emerald-300\/40 { border-color: rgba(5,150,105,0.25); }
+
 h1 { @apply text-3xl font-bold tracking-tight; }
 h2 { @apply text-xl font-semibold mt-4 mb-2; }
 
 /* Tab styles */
 .react-tabs__tab--selected {
   background-color: rgb(var(--color-cta)) !important;
-  color: black !important;
+  color: white !important;
   opacity: 1 !important;
-  border-bottom: 2px solid white !important;
+  border-bottom: none !important;
+}
+.dark .react-tabs__tab--selected {
+  color: black !important;
 }
 .react-tabs__tab { transition: all 0.3s ease; }
 .react-tabs__tab:hover {
-  background-color: rgb(var(--color-cta)) !important;
-  color: black !important;
+  background-color: rgb(var(--color-cta) / 0.15) !important;
+  color: rgb(var(--color-text)) !important;
 }
 
 /* TradeTable */
